@@ -1,156 +1,114 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
-import { Button } from '@/components/ui/button';
-import { useDashboardSummary } from '@/hooks/useDashboardSummary';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Users, 
   CreditCard, 
   Wallet, 
   Layers, 
+  FileText,
   Bell, 
-  RefreshCw,
-  AlertTriangle,
-  Loader2
+  History,
+  UserCog,
+  ArrowRight,
 } from 'lucide-react';
 
 /**
  * DashboardPage - SCR-DBL-001
  * 
  * Route: /dashboard
- * Main dashboard with summary widgets
+ * Main dashboard with module navigation cards
  */
 
+const modules = [
+  { 
+    label: 'Customers', 
+    icon: Users, 
+    path: '/customers',
+    description: 'Manage customer accounts and profiles'
+  },
+  { 
+    label: 'Cards', 
+    icon: CreditCard, 
+    path: '/cards',
+    description: 'Card issuance and management'
+  },
+  { 
+    label: 'Loads', 
+    icon: Wallet, 
+    path: '/loads',
+    description: 'Load transactions and history'
+  },
+  { 
+    label: 'Batch Operations', 
+    icon: Layers, 
+    path: '/batch-operations',
+    description: 'Bulk processing and batch jobs'
+  },
+  { 
+    label: 'Reports', 
+    icon: FileText, 
+    path: '/reports',
+    description: 'Analytics and reporting'
+  },
+  { 
+    label: 'Notifications', 
+    icon: Bell, 
+    path: '/notifications',
+    description: 'System alerts and messages'
+  },
+  { 
+    label: 'Audit Logs', 
+    icon: History, 
+    path: '/audit-logs',
+    description: 'Activity history and audit trails'
+  },
+  { 
+    label: 'User Management', 
+    icon: UserCog, 
+    path: '/users',
+    description: 'Manage system users and roles'
+  },
+];
+
 export default function DashboardPage() {
-  const { data, isLoading, error, refetch } = useDashboardSummary();
-  const { forceSessionExpired } = useAuth();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
-  };
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <ProtectedRoute>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader 
-            title="Dashboard" 
-            subtitle="Overview of your business operations"
-            actions={
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={refetch}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            }
+            title={`Welcome back, ${user?.name?.split(' ')[0] || 'User'}`}
+            subtitle="Access your modules from the dashboard"
           />
 
-          {/* Loading State */}
-          {isLoading && !data && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Stats Grid */}
-          {data && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {/* Customers */}
-              <StatCard
-                title="Total Customers"
-                value={formatNumber(data.totalCustomers)}
-                caption={`${formatNumber(data.activeCustomers)} active`}
-                icon={Users}
-                trend={{ value: 3.2, isPositive: true }}
-              />
-
-              {/* Cards */}
-              <StatCard
-                title="Total Cards"
-                value={formatNumber(data.totalCards)}
-                caption={`${formatNumber(data.activeCards)} active`}
-                icon={CreditCard}
-                trend={{ value: 5.1, isPositive: true }}
-              />
-
-              {/* Today's Loads */}
-              <StatCard
-                title="Today's Loads"
-                value={formatNumber(data.todayLoadsCount)}
-                caption={formatCurrency(data.todayLoadsAmount)}
-                icon={Wallet}
-                accentValue
-              />
-
-              {/* Pending Customer Batches */}
-              <StatCard
-                title="Pending Customer Batches"
-                value={formatNumber(data.pendingCustomerBatches)}
-                caption="Awaiting processing"
-                icon={Layers}
-              />
-
-              {/* Pending Load Batches */}
-              <StatCard
-                title="Pending Load Batches"
-                value={formatNumber(data.pendingLoadBatches)}
-                caption="Awaiting processing"
-                icon={Layers}
-              />
-
-              {/* Unread Notifications */}
-              <StatCard
-                title="Unread Notifications"
-                value={formatNumber(data.unreadNotifications)}
-                caption="Requires attention"
-                icon={Bell}
-                accentValue={data.unreadNotifications > 0}
-              />
-            </div>
-          )}
-
-          {/* Demo: Session Expiry Button */}
-          <div className="mt-8 pt-8 border-t border-border">
-            <div className="kardit-card p-4 max-w-md">
-              <h3 className="text-sm font-medium mb-2">Demo Controls</h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Test session expiry behavior
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={forceSessionExpired}
+          {/* Module Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {modules.map((module) => (
+              <button
+                key={module.path}
+                onClick={() => navigate(module.path)}
+                className="kardit-card p-5 text-left transition-all duration-200 hover:shadow-md hover:border-primary/30 group"
               >
-                <AlertTriangle className="h-4 w-4" />
-                Simulate Session Expiry
-              </Button>
-            </div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="rounded-lg bg-primary/10 p-2.5">
+                    <module.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <h3 className="font-medium text-foreground mb-1">
+                  {module.label}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {module.description}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
       </AppLayout>
