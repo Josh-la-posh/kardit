@@ -29,6 +29,10 @@ const statusChipVariants = cva(
         WARNING: "bg-warning/15 text-warning border border-warning/20",
         ERROR: "bg-destructive/15 text-destructive border border-destructive/20",
         INFO: "bg-info/15 text-info border border-info/20",
+        INVITED: "bg-info/15 text-info border border-info/20",
+        DISABLED: "bg-muted text-muted-foreground border border-border",
+        UPLOADED: "bg-primary/15 text-primary border border-primary/20",
+        VERIFIED: "bg-success/15 text-success border border-success/20",
       },
     },
     defaultVariants: {
@@ -50,6 +54,10 @@ const statusIcons = {
   WARNING: AlertTriangle,
   ERROR: X,
   INFO: AlertTriangle,
+  INVITED: Clock,
+  DISABLED: Ban,
+  UPLOADED: Clock,
+  VERIFIED: Check,
 };
 
 export type StatusType = keyof typeof statusIcons;

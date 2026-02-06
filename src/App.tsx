@@ -11,11 +11,28 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 
-// Dashboard Pages
+// Dashboard
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
-import PlaceholderPage from "./pages/PlaceholderPage";
 
+// User Management
+import UsersListPage from "./pages/users/UsersListPage";
+import CreateUserPage from "./pages/users/CreateUserPage";
+import UserDetailPage from "./pages/users/UserDetailPage";
+
+// Customer Management
+import CustomersListPage from "./pages/customers/CustomersListPage";
+import CreateCustomerPage from "./pages/customers/CreateCustomerPage";
+import CustomerProfilePage from "./pages/customers/CustomerProfilePage";
+import CustomerBatchesPage from "./pages/customers/CustomerBatchesPage";
+import IssueCardPage from "./pages/customers/IssueCardPage";
+
+// Card Management
+import CardsListPage from "./pages/cards/CardsListPage";
+import CardDetailPage from "./pages/cards/CardDetailPage";
+
+// Other
+import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,43 +52,32 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
             
-            {/* Protected Routes */}
+            {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             
-            {/* Placeholder Routes - To be implemented later */}
-            <Route 
-              path="/customers" 
-              element={<PlaceholderPage title="Customers" description="Manage your customers" />} 
-            />
-            <Route 
-              path="/cards" 
-              element={<PlaceholderPage title="Cards" description="Card management" />} 
-            />
-            <Route 
-              path="/loads" 
-              element={<PlaceholderPage title="Loads" description="Load transactions" />} 
-            />
-            <Route 
-              path="/batch-operations" 
-              element={<PlaceholderPage title="Batch Operations" description="Bulk processing" />} 
-            />
-            <Route 
-              path="/reports" 
-              element={<PlaceholderPage title="Reports" description="Analytics and reports" />} 
-            />
-            <Route 
-              path="/notifications" 
-              element={<PlaceholderPage title="Notifications" description="All notifications" />} 
-            />
-            <Route 
-              path="/audit-logs" 
-              element={<PlaceholderPage title="Audit Logs" description="Activity history" />} 
-            />
-            <Route 
-              path="/users" 
-              element={<PlaceholderPage title="User Management" description="Manage system users" />} 
-            />
+            {/* User Management */}
+            <Route path="/users" element={<UsersListPage />} />
+            <Route path="/users/create" element={<CreateUserPage />} />
+            <Route path="/users/:userId" element={<UserDetailPage />} />
+
+            {/* Customer Management */}
+            <Route path="/customers" element={<CustomersListPage />} />
+            <Route path="/customers/create" element={<CreateCustomerPage />} />
+            <Route path="/customers/batches" element={<CustomerBatchesPage />} />
+            <Route path="/customers/:customerId" element={<CustomerProfilePage />} />
+            <Route path="/customers/:customerId/cards/new" element={<IssueCardPage />} />
+
+            {/* Card Management */}
+            <Route path="/cards" element={<CardsListPage />} />
+            <Route path="/cards/:cardId" element={<CardDetailPage />} />
+
+            {/* Placeholder Routes */}
+            <Route path="/loads" element={<PlaceholderPage title="Loads" description="Load transactions" />} />
+            <Route path="/batch-operations" element={<PlaceholderPage title="Batch Operations" description="Bulk processing" />} />
+            <Route path="/reports" element={<PlaceholderPage title="Reports" description="Analytics and reports" />} />
+            <Route path="/notifications" element={<PlaceholderPage title="Notifications" description="All notifications" />} />
+            <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" description="Activity history" />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
