@@ -31,6 +31,24 @@ import IssueCardPage from "./pages/customers/IssueCardPage";
 import CardsListPage from "./pages/cards/CardsListPage";
 import CardDetailPage from "./pages/cards/CardDetailPage";
 
+// Loads
+import LoadsHomePage from "./pages/loads/LoadsHomePage";
+import SingleLoadPage from "./pages/loads/SingleLoadPage";
+import LoadReversalPage from "./pages/loads/LoadReversalPage";
+import LoadBatchesPage from "./pages/loads/LoadBatchesPage";
+
+// Reports
+import ReportsLandingPage from "./pages/reports/ReportsLandingPage";
+import ReportDetailPage from "./pages/reports/ReportDetailPage";
+
+// Notifications
+import NotificationsListPage from "./pages/notifications/NotificationsListPage";
+import NotificationDetailPage from "./pages/notifications/NotificationDetailPage";
+
+// Audit Logs
+import AuditLogsListPage from "./pages/audit/AuditLogsListPage";
+import AuditLogDetailPage from "./pages/audit/AuditLogDetailPage";
+
 // Other
 import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
@@ -72,12 +90,27 @@ const App = () => (
             <Route path="/cards" element={<CardsListPage />} />
             <Route path="/cards/:cardId" element={<CardDetailPage />} />
 
+            {/* Loads */}
+            <Route path="/loads" element={<LoadsHomePage />} />
+            <Route path="/loads/single" element={<SingleLoadPage />} />
+            <Route path="/loads/reversal" element={<LoadReversalPage />} />
+            <Route path="/loads/batches" element={<LoadBatchesPage />} />
+            <Route path="/loads/batches/:batchId" element={<LoadBatchesPage />} />
+
+            {/* Reports */}
+            <Route path="/reports" element={<ReportsLandingPage />} />
+            <Route path="/reports/:reportDefinitionId" element={<ReportDetailPage />} />
+
+            {/* Notifications */}
+            <Route path="/notifications" element={<NotificationsListPage />} />
+            <Route path="/notifications/:id" element={<NotificationDetailPage />} />
+
+            {/* Audit Logs */}
+            <Route path="/audit-logs" element={<AuditLogsListPage />} />
+            <Route path="/audit-logs/:id" element={<AuditLogDetailPage />} />
+
             {/* Placeholder Routes */}
-            <Route path="/loads" element={<PlaceholderPage title="Loads" description="Load transactions" />} />
             <Route path="/batch-operations" element={<PlaceholderPage title="Batch Operations" description="Bulk processing" />} />
-            <Route path="/reports" element={<PlaceholderPage title="Reports" description="Analytics and reports" />} />
-            <Route path="/notifications" element={<PlaceholderPage title="Notifications" description="All notifications" />} />
-            <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" description="Activity history" />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

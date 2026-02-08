@@ -300,6 +300,13 @@ export const store = {
     _cards = [..._cards, card];
     return card;
   },
+  updateCard: (id: string, patch: Partial<Card>): Card | null => {
+    const idx = _cards.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    _cards[idx] = { ..._cards[idx], ...patch };
+    _cards = [..._cards];
+    return _cards[idx];
+  },
 
   // Batches
   getBatches: () => [..._batches],

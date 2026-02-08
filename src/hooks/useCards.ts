@@ -23,17 +23,17 @@ export function useCard(cardId: string | undefined) {
   const [card, setCard] = useState<Card | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const fetch = useCallback(async () => {
     if (!cardId) return;
     setIsLoading(true);
-    const t = setTimeout(() => {
-      setCard(store.getCard(cardId) || null);
-      setIsLoading(false);
-    }, DELAY);
-    return () => clearTimeout(t);
+    await new Promise(r => setTimeout(r, DELAY));
+    setCard(store.getCard(cardId) || null);
+    setIsLoading(false);
   }, [cardId]);
 
-  return { card, isLoading };
+  useEffect(() => { fetch(); }, [fetch]);
+
+  return { card, isLoading, refetch: fetch };
 }
 
 export function useCreateCard() {
