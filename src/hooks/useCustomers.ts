@@ -48,7 +48,7 @@ export function useCreateCustomer() {
 
   const createCustomerWithCard = useCallback(async (
     customerData: Omit<Customer, 'id' | 'customerId' | 'createdAt' | 'status'>,
-    cardData: { productName: string; issuingBankName: string; currency: string },
+    cardData: { productName: string; productCode: string; issuingBankName: string; currency: string; embossName?: string; deliveryMethod?: string },
     kycDocs: { type: string; fileName: string }[]
   ) => {
     setIsLoading(true);

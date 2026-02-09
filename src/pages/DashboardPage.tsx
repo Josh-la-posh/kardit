@@ -85,6 +85,7 @@ export default function DashboardPage() {
           <PageHeader 
             title={`Welcome back, ${user?.name?.split(' ')[0] || 'User'}`}
             subtitle="Access your modules from the dashboard"
+            showBack={false}
           />
 
           {/* Module Cards Grid */}

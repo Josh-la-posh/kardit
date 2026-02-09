@@ -1,33 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { useCustomer } from '@/hooks/useCustomers';
-import { CreditCard, Loader2, Mail, Phone, MapPin, Calendar, Globe, FileText } from 'lucide-react';
+import { store } from '@/stores/mockStore';
+import { CreditCard, Loader2, Mail, Phone, MapPin, Calendar, Globe, FileText, Code, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function CustomerProfilePage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { customer, kycDocuments, cards, isLoading } = useCustomer(customerId);
+  const [cmsOpen, setCmsOpen] = useState(false);
+
+  const pendingRequests = customerId ? store.getPendingCMSRequests(customerId) : [];
 
   if (isLoading) {
-    return (
-      <ProtectedRoute><AppLayout>
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-      </AppLayout></ProtectedRoute>
-    );
+    return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
   }
-
   if (!customer) {
-    return (
-      <ProtectedRoute><AppLayout>
-        <div className="text-center py-20 text-muted-foreground">Customer not found.</div>
-      </AppLayout></ProtectedRoute>
-    );
+    return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Customer not found.</div></AppLayout></ProtectedRoute>;
   }
 
   return (
@@ -52,30 +48,33 @@ export default function CustomerProfilePage() {
             <div className="kardit-card p-6 space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Overview</h3>
               <div className="space-y-3">
-                {customer.email && (
-                  <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.email}</span></div>
-                )}
-                {customer.phone && (
-                  <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.phone}</span></div>
-                )}
-                {customer.dateOfBirth && (
-                  <div className="flex items-center gap-3"><Calendar className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{format(new Date(customer.dateOfBirth), 'PPP')}</span></div>
-                )}
-                {customer.nationality && (
-                  <div className="flex items-center gap-3"><Globe className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.nationality}</span></div>
-                )}
+                {customer.email && <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.email}</span></div>}
+                {customer.phone && <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.phone}</span></div>}
+                {customer.dateOfBirth && <div className="flex items-center gap-3"><Calendar className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{format(new Date(customer.dateOfBirth), 'PPP')}</span></div>}
+                {customer.nationality && <div className="flex items-center gap-3"><Globe className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.nationality}</span></div>}
+                {customer.embossName && <div className="flex items-center gap-3"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Emboss: <span className="font-mono">{customer.embossName}</span></span></div>}
                 {customer.address && (
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="text-sm">
-                      {[customer.address.line1, customer.address.line2, customer.address.city, customer.address.state, customer.address.country, customer.address.postalCode].filter(Boolean).join(', ')}
-                    </span>
+                    <span className="text-sm">{[customer.address.line1, customer.address.line2, customer.address.city, customer.address.state, customer.address.country, customer.address.postalCode].filter(Boolean).join(', ')}</span>
                   </div>
                 )}
                 {customer.idType && (
                   <div className="flex items-center gap-3">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customer.idType}: {customer.idNumber} (exp: {customer.idExpiryDate})</span>
+                    <span className="text-sm">{customer.idType}: {customer.idNumber} {customer.idExpiryDate ? `(exp: ${customer.idExpiryDate})` : ''}</span>
+                  </div>
+                )}
+                {customer.rib && (
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">RIB: <span className="font-mono">{customer.rib}</span></span>
+                  </div>
+                )}
+                {customer.agencyCode && (
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Agency: {customer.agencyCode}</span>
                   </div>
                 )}
               </div>
@@ -102,6 +101,32 @@ export default function CustomerProfilePage() {
             </div>
           </div>
 
+          {/* CMS Payload Preview */}
+          {pendingRequests.length > 0 && (
+            <div className="mt-4">
+              <Collapsible open={cmsOpen} onOpenChange={setCmsOpen}>
+                <div className="kardit-card p-4">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Code className="h-4 w-4" /> CMS Payload Preview ({pendingRequests.length})
+                    </h3>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${cmsOpen ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    {pendingRequests.map((req) => (
+                      <div key={req.id} className="mt-3">
+                        <p className="text-xs text-muted-foreground mb-1">Request ID: {req.id} — {format(new Date(req.createdAt), 'PPP HH:mm')}</p>
+                        <pre className="text-xs bg-muted rounded-md p-3 overflow-auto max-h-64 text-foreground">
+                          {JSON.stringify(req.payload, null, 2)}
+                        </pre>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            </div>
+          )}
+
           {/* Cards */}
           <div className="kardit-card mt-4 overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
@@ -124,11 +149,7 @@ export default function CustomerProfilePage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {cards.map((card, i) => (
-                      <tr
-                        key={card.id}
-                        onClick={() => navigate(`/cards/${card.id}`)}
-                        className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                      >
+                      <tr key={card.id} onClick={() => navigate(`/cards/${card.id}`)} className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
                         <td className="px-4 py-3 text-sm font-mono">{card.maskedPan}</td>
                         <td className="px-4 py-3 text-sm">{card.productName}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuingBankName}</td>
