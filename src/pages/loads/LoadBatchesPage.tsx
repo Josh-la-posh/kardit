@@ -12,9 +12,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function LoadBatchesPage() {
-  const navigate = useNavigate();
   const { batchId } = useParams<{ batchId: string }>();
-
   if (batchId) return <BatchDetail batchId={batchId} />;
   return <BatchList />;
 }
@@ -32,7 +30,7 @@ function BatchList() {
   };
 
   const handleDownloadTemplate = () => {
-    const content = 'card_identifier,amount,currency\n****-****-****-1234,100.00,USD\n';
+    const content = 'card_identifier,crt_code_product,load_typ,crt_load_value,currency\n****-****-****-1234,KRD_GLD,L,100.00,840\n****-****-****-5678,KRD_CLS,L,250.00,840\n';
     const blob = new Blob([content], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,7 +47,8 @@ function BatchList() {
 
         <div className="kardit-card p-6 mb-4">
           <h3 className="text-sm font-semibold mb-2">How batch loading works</h3>
-          <p className="text-sm text-muted-foreground mb-4">Upload a CSV file with card identifiers and amounts. The system will validate each row and process valid loads.</p>
+          <p className="text-sm text-muted-foreground mb-3">Upload a CSV file with card identifiers, product codes, load types, and amounts. The system will validate each row and process valid loads.</p>
+          <p className="text-xs text-muted-foreground mb-4">Required columns: <span className="font-mono text-foreground">card_identifier</span>, <span className="font-mono text-foreground">crt_code_product</span>, <span className="font-mono text-foreground">load_typ</span>, <span className="font-mono text-foreground">crt_load_value</span>, <span className="font-mono text-foreground">currency</span></p>
           <div className="flex gap-3">
             <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
               <Download className="h-4 w-4 mr-1" /> Download Template
@@ -129,7 +128,7 @@ function BatchDetail({ batchId }: { batchId: string }) {
 
   const handleDownloadErrors = () => {
     const errorRows = batch.rows.filter(r => r.status === 'FAILED' || r.status === 'INVALID');
-    const lines = ['Row,Card,Amount,Status,Errors', ...errorRows.map(r => `${r.rowNumber},${r.cardIdentifier},${r.amount},${r.status},"${(r.errors || []).join('; ')}"`)];
+    const lines = ['Row,Card,Product Code,Load Type,Amount,Status,Errors', ...errorRows.map(r => `${r.rowNumber},${r.cardIdentifier},${r.productCode || ''},${r.loadType || ''},${r.amount},${r.status},"${(r.errors || []).join('; ')}"`)];
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `errors_${batchId}.csv`; a.click();
@@ -146,7 +145,6 @@ function BatchDetail({ batchId }: { batchId: string }) {
           </div>
         } />
 
-        {/* Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <div className="kardit-card p-4"><p className="text-xs text-muted-foreground uppercase">Total Rows</p><p className="text-xl font-bold">{batch.rows.length}</p></div>
           <div className="kardit-card p-4"><p className="text-xs text-muted-foreground uppercase">Valid</p><p className="text-xl font-bold text-success">{validCount + processedCount}</p></div>
@@ -156,7 +154,6 @@ function BatchDetail({ batchId }: { batchId: string }) {
           )}
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3 mb-4">
           {(batch.status === 'UPLOADED' || batch.status === 'VALIDATED') && validCount > 0 && (
             <Button onClick={handleSubmitValid} disabled={processing}>
@@ -168,13 +165,14 @@ function BatchDetail({ batchId }: { batchId: string }) {
           )}
         </div>
 
-        {/* Rows table */}
         <div className="kardit-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead><tr className="border-b border-border bg-muted/50">
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Row</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product Code</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Load Type</th>
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Errors / TX ID</th>
@@ -184,6 +182,8 @@ function BatchDetail({ batchId }: { batchId: string }) {
                   <tr key={r.rowNumber} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
                     <td className="px-4 py-3 text-sm">{r.rowNumber}</td>
                     <td className="px-4 py-3 text-sm font-mono">{r.cardIdentifier}</td>
+                    <td className="px-4 py-3 text-sm font-mono">{r.productCode || '—'}</td>
+                    <td className="px-4 py-3 text-sm">{r.loadType || '—'}</td>
                     <td className="px-4 py-3 text-sm text-right">{r.amount.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <StatusChip status={

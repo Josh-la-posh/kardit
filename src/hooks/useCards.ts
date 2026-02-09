@@ -39,7 +39,15 @@ export function useCard(cardId: string | undefined) {
 export function useCreateCard() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const createCard = useCallback(async (data: { customerId: string; productName: string; issuingBankName: string; currency: string }) => {
+  const createCard = useCallback(async (data: {
+    customerId: string;
+    productName: string;
+    productCode: string;
+    issuingBankName: string;
+    currency: string;
+    embossName?: string;
+    deliveryMethod?: string;
+  }) => {
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, 600));
     const card = store.createCard(data);

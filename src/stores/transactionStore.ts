@@ -43,6 +43,8 @@ export type LoadBatchRowStatus = 'VALID' | 'INVALID' | 'PROCESSED' | 'FAILED';
 export interface LoadBatchRow {
   rowNumber: number;
   cardIdentifier: string;
+  productCode?: string;
+  loadType?: string;
   amount: number;
   status: LoadBatchRowStatus;
   errors?: string[];
@@ -122,13 +124,28 @@ export const transactionStore = {
   getLoadBatch: (id: string) => _loadBatches.find(b => b.id === id) || null,
   addLoadBatch: (fileName: string): LoadBatch => {
     const rowCount = 5 + Math.floor(Math.random() * 10);
-    const rows: LoadBatchRow[] = Array.from({ length: rowCount }, (_, i) => ({
-      rowNumber: i + 1,
-      cardIdentifier: `****-****-****-${String(1000 + Math.floor(Math.random() * 9000))}`,
-      amount: Math.round((50 + Math.random() * 950) * 100) / 100,
-      status: Math.random() > 0.2 ? 'VALID' as const : 'INVALID' as const,
-      errors: Math.random() > 0.2 ? undefined : ['Card not found'],
-    }));
+    const productCodes = ['KRD_CLS', 'KRD_GLD', 'KRD_PLT', 'KRD_CRP'];
+    const rows: LoadBatchRow[] = Array.from({ length: rowCount }, (_, i) => {
+      const hasProduct = Math.random() > 0.15;
+      const hasLoadType = Math.random() > 0.15;
+      const hasAmount = Math.random() > 0.1;
+      const productCode = hasProduct ? productCodes[Math.floor(Math.random() * productCodes.length)] : undefined;
+      const loadType = hasLoadType ? 'L' : undefined;
+      const amount = hasAmount ? Math.round((50 + Math.random() * 950) * 100) / 100 : 0;
+      const errors: string[] = [];
+      if (!hasProduct) errors.push('Missing crt_code_product');
+      if (!hasLoadType) errors.push('Missing load_typ');
+      if (!hasAmount) errors.push('Invalid crt_load_value');
+      return {
+        rowNumber: i + 1,
+        cardIdentifier: `****-****-****-${String(1000 + Math.floor(Math.random() * 9000))}`,
+        productCode,
+        loadType,
+        amount,
+        status: errors.length > 0 ? 'INVALID' as const : 'VALID' as const,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    });
     const batch: LoadBatch = { id: genId('lb'), fileName, status: 'UPLOADED', createdAt: new Date().toISOString(), rows };
     _loadBatches = [batch, ..._loadBatches];
     return batch;

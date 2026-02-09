@@ -12,7 +12,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 export interface TextFieldProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+  label?: React.ReactNode;
   error?: string;
   hint?: string;
 }

@@ -23,7 +23,10 @@ export function useLoadSummary() {
 export function useCreateSingleLoad() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const createLoad = useCallback(async (data: { cardId: string; amount: number; currency: string; reference?: string }) => {
+  const createLoad = useCallback(async (data: {
+    cardId: string; amount: number; currency: string; reference?: string;
+    loadType?: string; productCode?: string;
+  }) => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
     const card = store.getCard(data.cardId);
@@ -31,8 +34,15 @@ export function useCreateSingleLoad() {
     const prevBalance = card.currentBalance;
 
     const lt = transactionStore.createLoad({ cardId: data.cardId, type: 'LOAD', amount: data.amount, currency: data.currency, reference: data.reference });
-    transactionStore.addTransaction({ cardId: data.cardId, postedAt: new Date().toISOString(), type: 'LOAD', amount: data.amount, currency: data.currency, status: 'POSTED', narrative: data.reference || 'Single load' });
+    transactionStore.addTransaction({ cardId: data.cardId, postedAt: new Date().toISOString(), type: data.amount < 0 ? 'REVERSAL' : 'LOAD', amount: data.amount, currency: data.currency, status: 'POSTED', narrative: data.reference || (data.amount < 0 ? 'Unload' : 'Single load') });
     store.updateCard(data.cardId, { currentBalance: prevBalance + data.amount });
+
+    if (data.loadType || data.productCode) {
+      store.addCMSAction({
+        entityType: 'LOAD', entityId: lt.id,
+        payload: { load_typ: data.loadType || 'L', crt_code_product: data.productCode || card.productCode, crt_load_value: Math.abs(data.amount), currency: data.currency, reference: data.reference },
+      });
+    }
 
     setIsLoading(false);
     return { loadTransaction: lt, previousBalance: prevBalance, newBalance: prevBalance + data.amount };
@@ -44,7 +54,10 @@ export function useCreateSingleLoad() {
 export function useCreateLoadReversal() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const createReversal = useCallback(async (data: { cardId: string; originalLoadId: string; amount: number; currency: string; reason?: string }) => {
+  const createReversal = useCallback(async (data: {
+    cardId: string; originalLoadId: string; amount: number; currency: string; reason?: string;
+    productCode?: string;
+  }) => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
     const card = store.getCard(data.cardId);
@@ -54,6 +67,11 @@ export function useCreateLoadReversal() {
     const lt = transactionStore.createLoad({ cardId: data.cardId, type: 'REVERSAL', amount: -data.amount, currency: data.currency, reference: data.reason, relatedLoadId: data.originalLoadId });
     transactionStore.addTransaction({ cardId: data.cardId, postedAt: new Date().toISOString(), type: 'REVERSAL', amount: -data.amount, currency: data.currency, status: 'POSTED', narrative: `Reversal: ${data.reason || ''}` });
     store.updateCard(data.cardId, { currentBalance: prevBalance - data.amount });
+
+    store.addCMSAction({
+      entityType: 'LOAD', entityId: lt.id,
+      payload: { load_typ: 'U', crt_code_product: data.productCode || card.productCode, crt_load_value: data.amount, currency: data.currency, original_load_id: data.originalLoadId, reason: data.reason },
+    });
 
     setIsLoading(false);
     return { loadTransaction: lt, previousBalance: prevBalance, newBalance: prevBalance - data.amount };
