@@ -33,6 +33,18 @@ const statusChipVariants = cva(
         DISABLED: "bg-muted text-muted-foreground border border-border",
         UPLOADED: "bg-primary/15 text-primary border border-primary/20",
         VERIFIED: "bg-success/15 text-success border border-success/20",
+        LOCKED: "bg-warning/15 text-warning border border-warning/20",
+        COMPLETED: "bg-success/15 text-success border border-success/20",
+        VALIDATING: "bg-primary/15 text-primary border border-primary/20",
+        VALIDATED: "bg-success/15 text-success border border-success/20",
+        POSTED: "bg-success/15 text-success border border-success/20",
+        DECLINED: "bg-destructive/15 text-destructive border border-destructive/20",
+        QUEUED: "bg-warning/15 text-warning border border-warning/20",
+        RUNNING: "bg-primary/15 text-primary border border-primary/20",
+        IDLE: "bg-muted text-muted-foreground border border-border",
+        VALID: "bg-success/15 text-success border border-success/20",
+        INVALID: "bg-destructive/15 text-destructive border border-destructive/20",
+        PROCESSED: "bg-success/15 text-success border border-success/20",
       },
     },
     defaultVariants: {
@@ -58,7 +70,19 @@ const statusIcons = {
   DISABLED: Ban,
   UPLOADED: Clock,
   VERIFIED: Check,
-};
+  LOCKED: Ban,
+  COMPLETED: Check,
+  VALIDATING: Loader2,
+  VALIDATED: Check,
+  POSTED: Check,
+  DECLINED: X,
+  QUEUED: Clock,
+  RUNNING: Loader2,
+  IDLE: Clock,
+  VALID: Check,
+  INVALID: X,
+  PROCESSED: Check,
+} as const;
 
 export type StatusType = keyof typeof statusIcons;
 
