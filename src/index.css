@@ -106,6 +106,39 @@
     --border: 220 10% 90%;
     --input: 220 10% 90%;
     --ring: 28 85% 48%;
+
+    /* Status Colors for Light Mode */
+    --success: 142 70% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 10%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 200 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    /* Sidebar for Light Mode */
+    --sidebar-background: 220 10% 96%;
+    --sidebar-foreground: 220 15% 30%;
+    --sidebar-primary: 28 85% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 10% 92%;
+    --sidebar-accent-foreground: 220 15% 10%;
+    --sidebar-border: 220 10% 88%;
+    --sidebar-ring: 28 85% 48%;
+
+    /* Custom Kardit tokens for Light Mode */
+    --surface: 0 0% 98%;
+    --surface-hover: 220 10% 95%;
+    --text-primary: 220 15% 10%;
+    --text-secondary: 220 10% 40%;
+    --text-muted: 220 10% 55%;
+
+    /* Shadows for Light Mode */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 20px hsl(28 85% 52% / 0.1);
   }
 }
 
