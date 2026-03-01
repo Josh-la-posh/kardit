@@ -86,7 +86,7 @@ export default function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute><AppLayout>
+      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}><AppLayout>
         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </AppLayout></ProtectedRoute>
     );
@@ -94,14 +94,14 @@ export default function UserDetailPage() {
 
   if (!user) {
     return (
-      <ProtectedRoute><AppLayout>
+      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}><AppLayout>
         <div className="text-center py-20 text-muted-foreground">User not found.</div>
       </AppLayout></ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}>
       <AppLayout>
         <div className="animate-fade-in max-w-3xl">
           <PageHeader

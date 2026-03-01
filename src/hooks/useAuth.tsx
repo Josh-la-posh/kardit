@@ -11,6 +11,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
  * 
  * Demo users:
  * - demo@kardit.app / Demo123! - Normal login
+ * - superadmin@kardit.app / Demo123! - Super Admin access
  * - firstlogin@kardit.app / Demo123! - Requires password change
  * - locked@kardit.app / any - Account locked
  */
@@ -20,6 +21,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  tenantId: string;
   tenantName: string;
   avatarUrl?: string;
 }
@@ -50,7 +52,19 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'demo@kardit.app',
       name: 'John Doe',
       role: 'Admin',
+      tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+    },
+  },
+  'superadmin@kardit.app': {
+    password: 'Demo123!',
+    user: {
+      id: '0',
+      email: 'superadmin@kardit.app',
+      name: 'Super Admin',
+      role: 'Super Admin',
+      tenantId: 'tenant_chamsswitch',
+      tenantName: 'Chamsswitch',
     },
   },
   'firstlogin@kardit.app': {
@@ -61,6 +75,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'firstlogin@kardit.app',
       name: 'New User',
       role: 'User',
+      tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },
   },
@@ -72,6 +87,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'locked@kardit.app',
       name: 'Locked User',
       role: 'User',
+      tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },
   },

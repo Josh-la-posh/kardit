@@ -30,7 +30,7 @@ export default function AuditLogsListPage() {
   }, [logs, userSearch, actionFilter, entityFilter]);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRoles={["Super Admin"]}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader title="Audit Logs" subtitle="Activity history" />

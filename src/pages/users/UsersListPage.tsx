@@ -31,7 +31,7 @@ export default function UsersListPage() {
   }, [users, search, statusFilter, roleFilter]);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

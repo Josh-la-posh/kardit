@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { store, Customer, KycDocument, Card } from '@/stores/mockStore';
+import { useAuth } from '@/hooks/useAuth';
 
 const DELAY = 500;
 
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, DELAY));
-    setCustomers(store.getCustomers());
+    setCustomers(store.getCustomers(tenantScope));
     setIsLoading(false);
-  }, []);
+  }, [tenantScope]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -24,19 +28,22 @@ export function useCustomer(customerId: string | undefined) {
   const [kycDocuments, setKycDocuments] = useState<KycDocument[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const fetch = useCallback(async () => {
     if (!customerId) return;
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, DELAY));
-    const c = store.getCustomer(customerId);
+    const c = store.getCustomer(customerId, tenantScope);
     setCustomer(c);
     if (c) {
-      setKycDocuments(store.getKycDocuments(c.id));
-      setCards(store.getCardsByCustomer(c.id));
+      setKycDocuments(store.getKycDocuments(c.id, tenantScope));
+      setCards(store.getCardsByCustomer(c.id, tenantScope));
     }
     setIsLoading(false);
-  }, [customerId]);
+  }, [customerId, tenantScope]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -45,6 +52,7 @@ export function useCustomer(customerId: string | undefined) {
 
 export function useCreateCustomer() {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const createCustomerWithCard = useCallback(async (
     customerData: Omit<Customer, 'id' | 'customerId' | 'createdAt' | 'status'>,
@@ -53,14 +61,15 @@ export function useCreateCustomer() {
   ) => {
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, 800));
-    const customer = store.createCustomer(customerData);
-    store.createCard({ customerId: customer.id, ...cardData });
+    const tenantId = user?.tenantId || 'tenant_alpha_affiliate';
+    const customer = store.createCustomer({ ...customerData, tenantId });
+    store.createCard({ tenantId, customerId: customer.id, ...cardData });
     kycDocs.forEach((doc) => {
-      store.addKycDocument({ customerId: customer.id, type: doc.type, status: 'UPLOADED', fileName: doc.fileName });
+      store.addKycDocument({ tenantId, customerId: customer.id, type: doc.type, status: 'UPLOADED', fileName: doc.fileName });
     });
     setIsLoading(false);
     return customer;
-  }, []);
+  }, [user?.tenantId]);
 
   return { createCustomerWithCard, isLoading };
 }

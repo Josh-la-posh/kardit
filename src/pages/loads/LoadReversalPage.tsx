@@ -12,12 +12,15 @@ import { store } from '@/stores/mockStore';
 import { Loader2, Search, CheckCircle, ArrowLeft, ChevronDown, Code } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoadReversalPage() {
   const navigate = useNavigate();
   const { cards } = useCards();
   const { createReversal, isLoading: submitting } = useCreateLoadReversal();
-  const customers = store.getCustomers();
+  const { user } = useAuth();
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
+  const customers = store.getCustomers(tenantScope);
   const custMap = useMemo(() => {
     const m: Record<string, string> = {};
     customers.forEach(c => { m[c.id] = `${c.firstName} ${c.lastName}`; });
@@ -39,7 +42,7 @@ export default function LoadReversalPage() {
     return cards.filter(c => c.maskedPan.includes(q) || (custMap[c.customerId] || '').toLowerCase().includes(q));
   }, [cards, search, custMap]);
 
-  const selectedCard = selectedCardId ? store.getCard(selectedCardId) : null;
+  const selectedCard = selectedCardId ? store.getCard(selectedCardId, tenantScope) : null;
   const selectedLoad = selectedLoadId ? loads.find(l => l.id === selectedLoadId) : null;
 
   const cmsPayload = useMemo(() => ({

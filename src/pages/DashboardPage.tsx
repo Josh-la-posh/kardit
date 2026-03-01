@@ -23,7 +23,7 @@ import {
  * Main dashboard with module navigation cards
  */
 
-const modules = [
+const modules: Array<{ label: string; icon: any; path: string; description: string; roles?: string[] }> = [
   { 
     label: 'Customers', 
     icon: Users, 
@@ -64,19 +64,27 @@ const modules = [
     label: 'Audit Logs', 
     icon: History, 
     path: '/audit-logs',
-    description: 'Activity history and audit trails'
+    description: 'Activity history and audit trails',
+    roles: ['Super Admin']
   },
   { 
     label: 'User Management', 
     icon: UserCog, 
     path: '/users',
-    description: 'Manage system users and roles'
+    description: 'Manage system users and roles',
+    roles: ['Admin', 'Super Admin']
   },
 ];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const visibleModules = modules.filter((m) => {
+    if (!m.roles?.length) return true;
+    const role = user?.role;
+    return role ? m.roles.includes(role) : false;
+  });
 
   return (
     <ProtectedRoute>
@@ -90,7 +98,7 @@ export default function DashboardPage() {
 
           {/* Module Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {modules.map((module) => (
+            {visibleModules.map((module) => (
               <button
                 key={module.path}
                 onClick={() => navigate(module.path)}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { transactionStore, LoadTransaction, LoadBatch } from '@/stores/transactionStore';
 import { store } from '@/stores/mockStore';
+import { useAuth } from '@/hooks/useAuth';
 
 const DELAY = 400;
 
@@ -22,6 +23,9 @@ export function useLoadSummary() {
 
 export function useCreateSingleLoad() {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const createLoad = useCallback(async (data: {
     cardId: string; amount: number; currency: string; reference?: string;
@@ -29,7 +33,7 @@ export function useCreateSingleLoad() {
   }) => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
-    const card = store.getCard(data.cardId);
+    const card = store.getCard(data.cardId, tenantScope);
     if (!card) throw new Error('Card not found');
     const prevBalance = card.currentBalance;
 
@@ -46,13 +50,16 @@ export function useCreateSingleLoad() {
 
     setIsLoading(false);
     return { loadTransaction: lt, previousBalance: prevBalance, newBalance: prevBalance + data.amount };
-  }, []);
+  }, [tenantScope]);
 
   return { createLoad, isLoading };
 }
 
 export function useCreateLoadReversal() {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const createReversal = useCallback(async (data: {
     cardId: string; originalLoadId: string; amount: number; currency: string; reason?: string;
@@ -60,7 +67,7 @@ export function useCreateLoadReversal() {
   }) => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
-    const card = store.getCard(data.cardId);
+    const card = store.getCard(data.cardId, tenantScope);
     if (!card) throw new Error('Card not found');
     const prevBalance = card.currentBalance;
 
@@ -75,7 +82,7 @@ export function useCreateLoadReversal() {
 
     setIsLoading(false);
     return { loadTransaction: lt, previousBalance: prevBalance, newBalance: prevBalance - data.amount };
-  }, []);
+  }, [tenantScope]);
 
   return { createReversal, isLoading };
 }

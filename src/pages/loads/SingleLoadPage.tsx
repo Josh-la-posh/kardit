@@ -11,6 +11,7 @@ import { useCreateSingleLoad } from '@/hooks/useLoads';
 import { store } from '@/stores/mockStore';
 import { Loader2, Search, CreditCard, CheckCircle, ArrowLeft, ChevronDown, Code } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const LOAD_TYPES = [
   { code: 'L', label: 'Load (Credit)' },
@@ -21,7 +22,9 @@ export default function SingleLoadPage() {
   const navigate = useNavigate();
   const { cards } = useCards();
   const { createLoad, isLoading: submitting } = useCreateSingleLoad();
-  const customers = store.getCustomers();
+  const { user } = useAuth();
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
+  const customers = store.getCustomers(tenantScope);
   const custMap = useMemo(() => {
     const m: Record<string, string> = {};
     customers.forEach(c => { m[c.id] = `${c.firstName} ${c.lastName}`; });
@@ -42,7 +45,7 @@ export default function SingleLoadPage() {
     return cards.filter(c => c.status === 'ACTIVE' && (c.maskedPan.includes(q) || (custMap[c.customerId] || '').toLowerCase().includes(q)));
   }, [cards, search, custMap]);
 
-  const selectedCard = selectedCardId ? store.getCard(selectedCardId) : null;
+  const selectedCard = selectedCardId ? store.getCard(selectedCardId, tenantScope) : null;
 
   const cmsPayload = useMemo(() => ({
     load_typ: loadType,

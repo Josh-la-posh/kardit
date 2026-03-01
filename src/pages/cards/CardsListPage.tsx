@@ -8,16 +8,20 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useCards } from '@/hooks/useCards';
 import { store } from '@/stores/mockStore';
 import { Search, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function CardsListPage() {
   const navigate = useNavigate();
   const { cards, isLoading } = useCards();
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [productFilter, setProductFilter] = useState('ALL');
 
-  const customers = store.getCustomers();
+  const customers = store.getCustomers(tenantScope);
   const customerMap = useMemo(() => {
     const m: Record<string, string> = {};
     customers.forEach((c) => { m[c.id] = `${c.firstName} ${c.lastName}`; });

@@ -13,12 +13,16 @@ import { store, CARD_ACTION_CODES, CARD_REASON_CODES, CardStatus } from '@/store
 import { Loader2, CreditCard, DollarSign, Calendar, User, Lock, Unlock, ShieldBan, RefreshCw, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 type ActionCode = 'L' | 'U' | 'P';
 
 export default function CardDetailPage() {
   const { cardId } = useParams<{ cardId: string }>();
   const { card, isLoading, refetch: refetchCard } = useCard(cardId);
+  const { user } = useAuth();
+
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const [filters, setFilters] = useState<TransactionFilters>({});
   const { transactions, isLoading: txLoading, refetch: refetchTx } = useCardTransactions(cardId, filters);
@@ -29,7 +33,7 @@ export default function CardDetailPage() {
   const [reasonCode, setReasonCode] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  const customer = card ? store.getCustomer(card.customerId) : null;
+  const customer = card ? store.getCustomer(card.customerId, tenantScope) : null;
 
   const handleRefresh = useCallback(() => { refetchCard(); refetchTx(); }, [refetchCard, refetchTx]);
 

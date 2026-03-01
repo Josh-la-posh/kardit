@@ -47,7 +47,7 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const navItems = [
+const navItems: Array<{ label: string; icon: any; path: string; roles?: string[] }> = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
@@ -55,8 +55,8 @@ const navItems = [
   { label: 'Batch Operations', icon: Layers, path: '/batch-operations' },
   { label: 'Reports', icon: FileText, path: '/reports' },
   { label: 'Notifications', icon: Bell, path: '/notifications' },
-  { label: 'Audit Logs', icon: History, path: '/audit-logs' },
-  { label: 'User Management', icon: UserCog, path: '/users' },
+  { label: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['Super Admin'] },
+  { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -76,6 +76,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.roles?.length) return true;
+    const role = user?.role;
+    return role ? item.roles.includes(role) : false;
+  });
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -121,7 +127,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-2">
             <ul className="space-y-1">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <li key={item.path}>
                   <Link
                     to={item.path}

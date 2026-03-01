@@ -16,6 +16,7 @@ export type UserStatus = 'ACTIVE' | 'INVITED' | 'LOCKED' | 'DISABLED';
 
 export interface ManagedUser {
   id: string;
+  tenantId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -40,6 +41,7 @@ export interface CustomerAddress {
 
 export interface Customer {
   id: string;
+  tenantId: string;
   customerId: string;
   firstName: string;
   lastName: string;
@@ -62,6 +64,7 @@ export type KycDocumentStatus = 'UPLOADED' | 'VERIFIED' | 'REJECTED';
 
 export interface KycDocument {
   id: string;
+  tenantId: string;
   customerId: string;
   type: 'ID_FRONT' | 'ID_BACK' | 'PROOF_OF_ADDRESS' | string;
   status: KycDocumentStatus;
@@ -73,6 +76,7 @@ export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED';
 
 export interface Card {
   id: string;
+  tenantId: string;
   customerId: string;
   maskedPan: string;
   productName: string;
@@ -90,6 +94,7 @@ export type BatchStatus = 'UPLOADED' | 'VALIDATING' | 'VALIDATED' | 'PROCESSING'
 
 export interface CustomerBatch {
   id: string;
+  tenantId: string;
   fileName: string;
   status: BatchStatus;
   totalRecords?: number;
@@ -188,22 +193,27 @@ export const CARD_REASON_CODES: Record<string, { code: string; label: string }[]
 
 let _users: ManagedUser[] = [
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'u1', firstName: 'John', lastName: 'Doe', email: 'admin@alphabank.com', phone: '+1-555-0101',
     status: 'ACTIVE', roles: [ROLES[0]], lastLoginAt: '2026-02-06T10:30:00Z', createdAt: '2024-01-15T09:00:00Z',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'u2', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.j@alphabank.com', phone: '+1-555-0102',
     status: 'ACTIVE', roles: [ROLES[1]], lastLoginAt: '2026-02-05T14:20:00Z', createdAt: '2024-06-20T11:00:00Z',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'u3', firstName: 'Mike', lastName: 'Chen', email: 'mike.c@alphabank.com',
     status: 'INVITED', roles: [ROLES[2]], createdAt: '2026-01-10T08:00:00Z',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'u4', firstName: 'Emily', lastName: 'Rodriguez', email: 'emily.r@alphabank.com',
     status: 'LOCKED', roles: [ROLES[1], ROLES[3]], lastLoginAt: '2026-01-28T16:45:00Z', createdAt: '2025-03-12T10:00:00Z',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'u5', firstName: 'David', lastName: 'Kim', email: 'fail-invite@kardit.app',
     status: 'DISABLED', roles: [ROLES[2]], createdAt: '2025-08-01T09:00:00Z',
   },
@@ -211,6 +221,7 @@ let _users: ManagedUser[] = [
 
 let _customers: Customer[] = [
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'c1', customerId: 'CUS-10001', firstName: 'Alice', lastName: 'Williams', embossName: 'ALICE WILLIAMS',
     email: 'alice.w@example.com', phone: '+1-555-1001', status: 'ACTIVE', createdAt: '2025-03-15T10:00:00Z',
     dateOfBirth: '1990-05-12', nationality: 'US', idType: 'passport', idNumber: 'P1234567', idExpiryDate: '2030-05-12',
@@ -218,6 +229,7 @@ let _customers: Customer[] = [
     rib: '1234567890123456789012', agencyCode: 'AG001',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'c2', customerId: 'CUS-10002', firstName: 'Bob', lastName: 'Martinez', embossName: 'BOB MARTINEZ',
     email: 'bob.m@example.com', phone: '+1-555-1002', status: 'PENDING', createdAt: '2026-01-20T14:00:00Z',
     dateOfBirth: '1985-11-03', nationality: 'MX', idType: 'national_id', idNumber: 'NID987654', idExpiryDate: '2028-11-03',
@@ -225,17 +237,20 @@ let _customers: Customer[] = [
     rib: '9876543210987654321098', agencyCode: 'AG002',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'c3', customerId: 'CUS-10003', firstName: 'Clara', lastName: 'Nguyen', embossName: 'CLARA NGUYEN',
     email: 'clara.n@example.com', status: 'ACTIVE', createdAt: '2025-07-08T09:00:00Z',
     dateOfBirth: '1992-08-25', nationality: 'VN', idType: 'passport', idNumber: 'P7654321', idExpiryDate: '2029-08-25',
     address: { line1: '789 Pine Rd', city: 'Houston', state: 'TX', country: 'US', postalCode: '77001' },
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'c4', customerId: 'CUS-10004', firstName: 'Daniel', lastName: 'Okafor',
     email: 'daniel.o@example.com', phone: '+44-20-7946-0958', status: 'REJECTED', createdAt: '2026-01-05T08:00:00Z',
     dateOfBirth: '1988-02-14', nationality: 'NG', idType: 'driver_license', idNumber: 'DL-456789', idExpiryDate: '2027-02-14',
   },
   {
+    tenantId: 'tenant_alpha_affiliate',
     id: 'c5', customerId: 'CUS-10005', firstName: 'Eva', lastName: 'Schmidt', embossName: 'EVA SCHMIDT',
     email: 'eva.s@example.com', phone: '+49-30-12345678', status: 'ACTIVE', createdAt: '2025-11-22T12:00:00Z',
     dateOfBirth: '1995-06-30', nationality: 'DE', idType: 'national_id', idNumber: 'DE-ID-112233', idExpiryDate: '2031-06-30',
@@ -244,28 +259,28 @@ let _customers: Customer[] = [
 ];
 
 let _kycDocuments: KycDocument[] = [
-  { id: 'kyc1', customerId: 'c1', type: 'ID_FRONT', status: 'VERIFIED', fileName: 'alice_passport_front.jpg', uploadedAt: '2025-03-15T10:05:00Z' },
-  { id: 'kyc2', customerId: 'c1', type: 'ID_BACK', status: 'VERIFIED', fileName: 'alice_passport_back.jpg', uploadedAt: '2025-03-15T10:06:00Z' },
-  { id: 'kyc3', customerId: 'c1', type: 'PROOF_OF_ADDRESS', status: 'VERIFIED', fileName: 'alice_utility_bill.pdf', uploadedAt: '2025-03-15T10:07:00Z' },
-  { id: 'kyc4', customerId: 'c2', type: 'ID_FRONT', status: 'UPLOADED', fileName: 'bob_id_front.jpg', uploadedAt: '2026-01-20T14:10:00Z' },
-  { id: 'kyc5', customerId: 'c3', type: 'ID_FRONT', status: 'VERIFIED', fileName: 'clara_passport.jpg', uploadedAt: '2025-07-08T09:10:00Z' },
-  { id: 'kyc6', customerId: 'c3', type: 'PROOF_OF_ADDRESS', status: 'REJECTED', fileName: 'clara_bank_stmt.pdf', uploadedAt: '2025-07-08T09:12:00Z' },
-  { id: 'kyc7', customerId: 'c4', type: 'ID_FRONT', status: 'REJECTED', fileName: 'daniel_dl_front.jpg', uploadedAt: '2026-01-05T08:05:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc1', customerId: 'c1', type: 'ID_FRONT', status: 'VERIFIED', fileName: 'alice_passport_front.jpg', uploadedAt: '2025-03-15T10:05:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc2', customerId: 'c1', type: 'ID_BACK', status: 'VERIFIED', fileName: 'alice_passport_back.jpg', uploadedAt: '2025-03-15T10:06:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc3', customerId: 'c1', type: 'PROOF_OF_ADDRESS', status: 'VERIFIED', fileName: 'alice_utility_bill.pdf', uploadedAt: '2025-03-15T10:07:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc4', customerId: 'c2', type: 'ID_FRONT', status: 'UPLOADED', fileName: 'bob_id_front.jpg', uploadedAt: '2026-01-20T14:10:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc5', customerId: 'c3', type: 'ID_FRONT', status: 'VERIFIED', fileName: 'clara_passport.jpg', uploadedAt: '2025-07-08T09:10:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc6', customerId: 'c3', type: 'PROOF_OF_ADDRESS', status: 'REJECTED', fileName: 'clara_bank_stmt.pdf', uploadedAt: '2025-07-08T09:12:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'kyc7', customerId: 'c4', type: 'ID_FRONT', status: 'REJECTED', fileName: 'daniel_dl_front.jpg', uploadedAt: '2026-01-05T08:05:00Z' },
 ];
 
 let _cards: Card[] = [
-  { id: 'card1', customerId: 'c1', maskedPan: '****-****-****-4532', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 2450.00, createdAt: '2025-03-16T09:00:00Z', embossName: 'ALICE WILLIAMS', deliveryMethod: 'BRANCH_PICKUP' },
-  { id: 'card2', customerId: 'c1', maskedPan: '****-****-****-7891', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Alpha Bank', status: 'FROZEN', currency: 'USD', currentBalance: 150.75, createdAt: '2025-06-01T10:00:00Z', embossName: 'ALICE WILLIAMS', deliveryMethod: 'HOME_DELIVERY' },
-  { id: 'card3', customerId: 'c2', maskedPan: '****-****-****-3344', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Beta Financial', status: 'PENDING', currency: 'USD', currentBalance: 0, createdAt: '2026-01-20T15:00:00Z', embossName: 'BOB MARTINEZ' },
-  { id: 'card4', customerId: 'c3', maskedPan: '****-****-****-5566', productName: 'Kardit Platinum', productCode: 'KRD_PLT', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 12300.00, createdAt: '2025-07-09T11:00:00Z', embossName: 'CLARA NGUYEN' },
-  { id: 'card5', customerId: 'c3', maskedPan: '****-****-****-9988', productName: 'Kardit Corporate', productCode: 'KRD_CRP', issuingBankName: 'Gamma Trust', status: 'ACTIVE', currency: 'EUR', currentBalance: 8500.00, createdAt: '2025-09-15T08:00:00Z', embossName: 'CLARA NGUYEN' },
-  { id: 'card6', customerId: 'c5', maskedPan: '****-****-****-2211', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Gamma Trust', status: 'BLOCKED', currency: 'EUR', currentBalance: 320.50, createdAt: '2025-12-01T14:00:00Z', embossName: 'EVA SCHMIDT' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card1', customerId: 'c1', maskedPan: '****-****-****-4532', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 2450.00, createdAt: '2025-03-16T09:00:00Z', embossName: 'ALICE WILLIAMS', deliveryMethod: 'BRANCH_PICKUP' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card2', customerId: 'c1', maskedPan: '****-****-****-7891', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Alpha Bank', status: 'FROZEN', currency: 'USD', currentBalance: 150.75, createdAt: '2025-06-01T10:00:00Z', embossName: 'ALICE WILLIAMS', deliveryMethod: 'HOME_DELIVERY' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card3', customerId: 'c2', maskedPan: '****-****-****-3344', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Beta Financial', status: 'PENDING', currency: 'USD', currentBalance: 0, createdAt: '2026-01-20T15:00:00Z', embossName: 'BOB MARTINEZ' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card4', customerId: 'c3', maskedPan: '****-****-****-5566', productName: 'Kardit Platinum', productCode: 'KRD_PLT', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 12300.00, createdAt: '2025-07-09T11:00:00Z', embossName: 'CLARA NGUYEN' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card5', customerId: 'c3', maskedPan: '****-****-****-9988', productName: 'Kardit Corporate', productCode: 'KRD_CRP', issuingBankName: 'Gamma Trust', status: 'ACTIVE', currency: 'EUR', currentBalance: 8500.00, createdAt: '2025-09-15T08:00:00Z', embossName: 'CLARA NGUYEN' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'card6', customerId: 'c5', maskedPan: '****-****-****-2211', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Gamma Trust', status: 'BLOCKED', currency: 'EUR', currentBalance: 320.50, createdAt: '2025-12-01T14:00:00Z', embossName: 'EVA SCHMIDT' },
 ];
 
 let _batches: CustomerBatch[] = [
-  { id: 'batch1', fileName: 'customers_jan_2026.csv', status: 'COMPLETED', totalRecords: 150, createdAt: '2026-01-15T09:00:00Z' },
-  { id: 'batch2', fileName: 'customers_feb_2026.csv', status: 'PROCESSING', totalRecords: 85, createdAt: '2026-02-01T10:00:00Z' },
-  { id: 'batch3', fileName: 'customers_onboard.csv', status: 'FAILED', totalRecords: 42, createdAt: '2026-02-03T11:00:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'batch1', fileName: 'customers_jan_2026.csv', status: 'COMPLETED', totalRecords: 150, createdAt: '2026-01-15T09:00:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'batch2', fileName: 'customers_feb_2026.csv', status: 'PROCESSING', totalRecords: 85, createdAt: '2026-02-01T10:00:00Z' },
+  { tenantId: 'tenant_alpha_affiliate', id: 'batch3', fileName: 'customers_onboard.csv', status: 'FAILED', totalRecords: 42, createdAt: '2026-02-03T11:00:00Z' },
 ];
 
 let _cmsActions: CMSActionRecord[] = [];
@@ -278,8 +293,13 @@ const genId = (prefix: string) => `${prefix}${_nextId++}`;
 
 export const store = {
   // Users
-  getUsers: () => [..._users],
-  getUser: (id: string) => _users.find((u) => u.id === id) || null,
+  getUsers: (tenantId?: string) => tenantId ? _users.filter((u) => u.tenantId === tenantId) : [..._users],
+  getUser: (id: string, tenantId?: string) => {
+    const u = _users.find((u) => u.id === id) || null;
+    if (!u) return null;
+    if (tenantId && u.tenantId !== tenantId) return null;
+    return u;
+  },
   createUser: (data: Omit<ManagedUser, 'id' | 'createdAt' | 'status'>): ManagedUser => {
     const user: ManagedUser = { ...data, id: genId('u'), status: 'INVITED', createdAt: new Date().toISOString() };
     _users = [..._users, user];
@@ -294,8 +314,13 @@ export const store = {
   },
 
   // Customers
-  getCustomers: () => [..._customers],
-  getCustomer: (id: string) => _customers.find((c) => c.id === id) || null,
+  getCustomers: (tenantId?: string) => tenantId ? _customers.filter((c) => c.tenantId === tenantId) : [..._customers],
+  getCustomer: (id: string, tenantId?: string) => {
+    const c = _customers.find((c) => c.id === id) || null;
+    if (!c) return null;
+    if (tenantId && c.tenantId !== tenantId) return null;
+    return c;
+  },
   createCustomer: (data: Omit<Customer, 'id' | 'customerId' | 'createdAt' | 'status'>): Customer => {
     const id = genId('c');
     const customer: Customer = {
@@ -310,7 +335,10 @@ export const store = {
   },
 
   // KYC Documents
-  getKycDocuments: (customerId: string) => _kycDocuments.filter((d) => d.customerId === customerId),
+  getKycDocuments: (customerId: string, tenantId?: string) => {
+    const docs = _kycDocuments.filter((d) => d.customerId === customerId);
+    return tenantId ? docs.filter((d) => d.tenantId === tenantId) : docs;
+  },
   addKycDocument: (doc: Omit<KycDocument, 'id' | 'uploadedAt'>): KycDocument => {
     const kycDoc: KycDocument = { ...doc, id: genId('kyc'), uploadedAt: new Date().toISOString() };
     _kycDocuments = [..._kycDocuments, kycDoc];
@@ -318,9 +346,17 @@ export const store = {
   },
 
   // Cards
-  getCards: () => [..._cards],
-  getCard: (id: string) => _cards.find((c) => c.id === id) || null,
-  getCardsByCustomer: (customerId: string) => _cards.filter((c) => c.customerId === customerId),
+  getCards: (tenantId?: string) => tenantId ? _cards.filter((c) => c.tenantId === tenantId) : [..._cards],
+  getCard: (id: string, tenantId?: string) => {
+    const c = _cards.find((c) => c.id === id) || null;
+    if (!c) return null;
+    if (tenantId && c.tenantId !== tenantId) return null;
+    return c;
+  },
+  getCardsByCustomer: (customerId: string, tenantId?: string) => {
+    const cards = _cards.filter((c) => c.customerId === customerId);
+    return tenantId ? cards.filter((c) => c.tenantId === tenantId) : cards;
+  },
   createCard: (data: Omit<Card, 'id' | 'createdAt' | 'status' | 'currentBalance' | 'maskedPan'>): Card => {
     const last4 = String(Math.floor(1000 + Math.random() * 9000));
     const card: Card = {
@@ -343,9 +379,9 @@ export const store = {
   },
 
   // Batches
-  getBatches: () => [..._batches],
-  addBatch: (fileName: string): CustomerBatch => {
-    const batch: CustomerBatch = { id: genId('batch'), fileName, status: 'UPLOADED', createdAt: new Date().toISOString() };
+  getBatches: (tenantId?: string) => tenantId ? _batches.filter((b) => b.tenantId === tenantId) : [..._batches],
+  addBatch: (fileName: string, tenantId: string): CustomerBatch => {
+    const batch: CustomerBatch = { id: genId('batch'), tenantId, fileName, status: 'UPLOADED', createdAt: new Date().toISOString() };
     _batches = [..._batches, batch];
     return batch;
   },
