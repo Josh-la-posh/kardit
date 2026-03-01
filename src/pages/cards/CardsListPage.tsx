@@ -45,7 +45,7 @@ export default function CardsListPage() {
   }, [cards, search, statusFilter, productFilter, customerMap]);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader title="Cards" subtitle="Manage all issued cards" />

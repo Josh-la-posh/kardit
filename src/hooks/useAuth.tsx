@@ -11,6 +11,8 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
  * 
  * Demo users:
  * - demo@kardit.app / Demo123! - Normal login
+ * - affiliate@kardit.app / Demo123! - Affiliate operator login
+ * - bank@kardit.app / Demo123! - Bank portal login
  * - superadmin@kardit.app / Demo123! - Super Admin access
  * - firstlogin@kardit.app / Demo123! - Requires password change
  * - locked@kardit.app / any - Account locked
@@ -21,6 +23,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
   tenantId: string;
   tenantName: string;
   avatarUrl?: string;
@@ -52,8 +55,33 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'demo@kardit.app',
       name: 'John Doe',
       role: 'Admin',
+      stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+    },
+  },
+  'affiliate@kardit.app': {
+    password: 'Demo123!',
+    user: {
+      id: '5',
+      email: 'affiliate@kardit.app',
+      name: 'Affiliate User',
+      role: 'User',
+      stakeholderType: 'AFFILIATE',
+      tenantId: 'tenant_alpha_affiliate',
+      tenantName: 'Alpha Bank Affiliate',
+    },
+  },
+  'bank@kardit.app': {
+    password: 'Demo123!',
+    user: {
+      id: '4',
+      email: 'bank@kardit.app',
+      name: 'Alpha Bank User',
+      role: 'User',
+      stakeholderType: 'BANK',
+      tenantId: 'tenant_alpha_bank',
+      tenantName: 'Alpha Bank',
     },
   },
   'superadmin@kardit.app': {
@@ -63,6 +91,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'superadmin@kardit.app',
       name: 'Super Admin',
       role: 'Super Admin',
+      stakeholderType: 'SERVICE_PROVIDER',
       tenantId: 'tenant_chamsswitch',
       tenantName: 'Chamsswitch',
     },
@@ -75,6 +104,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'firstlogin@kardit.app',
       name: 'New User',
       role: 'User',
+      stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },
@@ -87,6 +117,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       email: 'locked@kardit.app',
       name: 'Locked User',
       role: 'User',
+      stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },

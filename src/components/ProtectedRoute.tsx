@@ -14,9 +14,14 @@ import { useAuth } from '@/hooks/useAuth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
+  requiredStakeholderTypes?: Array<'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER'>;
 }
 
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRoles,
+  requiredStakeholderTypes,
+}: ProtectedRouteProps) {
   const { isAuthenticated, passwordMustChange, user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,6 +35,23 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   if (!isAuthenticated || passwordMustChange) {
     return null;
+  }
+
+  if (requiredStakeholderTypes?.length) {
+    const stakeholderType = user?.stakeholderType;
+    const allowed = stakeholderType ? requiredStakeholderTypes.includes(stakeholderType) : false;
+    if (!allowed) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center px-6">
+          <div className="max-w-md w-full rounded-lg border border-border bg-card p-6 text-center">
+            <h2 className="text-lg font-semibold text-foreground">Access denied</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You don&apos;t have permission to view this page.
+            </p>
+          </div>
+        </div>
+      );
+    }
   }
 
   if (requiredRoles?.length) {

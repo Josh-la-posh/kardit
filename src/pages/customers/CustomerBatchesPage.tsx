@@ -43,7 +43,7 @@ export default function CustomerBatchesPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

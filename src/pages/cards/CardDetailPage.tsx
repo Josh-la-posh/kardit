@@ -61,10 +61,10 @@ export default function CardDetailPage() {
   };
 
   if (isLoading) {
-    return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
   }
   if (!card) {
-    return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Card not found.</div></AppLayout></ProtectedRoute>;
+    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="text-center py-20 text-muted-foreground">Card not found.</div></AppLayout></ProtectedRoute>;
   }
 
   const amountIcon = (amount: number) => amount > 0
@@ -74,7 +74,7 @@ export default function CardDetailPage() {
   const availableReasons = actionCode ? (CARD_REASON_CODES[actionCode] || []) : [];
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

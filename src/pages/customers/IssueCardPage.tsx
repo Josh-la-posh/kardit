@@ -102,7 +102,7 @@ export default function IssueCardPage() {
   };
 
   if (custLoading) {
-    return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
   }
 
   const fieldLabel = (label: string, required = false) => (
@@ -110,7 +110,7 @@ export default function IssueCardPage() {
   );
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

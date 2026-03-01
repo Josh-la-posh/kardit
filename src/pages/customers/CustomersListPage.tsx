@@ -31,7 +31,7 @@ export default function CustomersListPage() {
   }, [customers, search, statusFilter]);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

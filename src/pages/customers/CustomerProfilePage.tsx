@@ -20,14 +20,14 @@ export default function CustomerProfilePage() {
   const pendingRequests = customerId ? store.getPendingCMSRequests(customerId) : [];
 
   if (isLoading) {
-    return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
   }
   if (!customer) {
-    return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Customer not found.</div></AppLayout></ProtectedRoute>;
+    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="text-center py-20 text-muted-foreground">Customer not found.</div></AppLayout></ProtectedRoute>;
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

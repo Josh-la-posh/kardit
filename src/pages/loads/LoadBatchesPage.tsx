@@ -39,7 +39,7 @@ function BatchList() {
   };
 
   return (
-    <ProtectedRoute><AppLayout>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout>
       <div className="animate-fade-in">
         <PageHeader title="Batch Loads" subtitle="Upload and process bulk load files" actions={
           <Button variant="outline" onClick={() => navigate('/loads')}><ArrowLeft className="h-4 w-4 mr-1" /> Back to Loads</Button>
@@ -102,8 +102,8 @@ function BatchDetail({ batchId }: { batchId: string }) {
   const { batch, isLoading, refetch } = useLoadBatch(batchId);
   const [processing, setProcessing] = useState(false);
 
-  if (isLoading) return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
-  if (!batch) return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Batch not found.</div></AppLayout></ProtectedRoute>;
+  if (isLoading) return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+  if (!batch) return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="text-center py-20 text-muted-foreground">Batch not found.</div></AppLayout></ProtectedRoute>;
 
   const validCount = batch.rows.filter(r => r.status === 'VALID').length;
   const invalidCount = batch.rows.filter(r => r.status === 'INVALID').length;
@@ -136,7 +136,7 @@ function BatchDetail({ batchId }: { batchId: string }) {
   };
 
   return (
-    <ProtectedRoute><AppLayout>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout>
       <div className="animate-fade-in">
         <PageHeader title={`Batch: ${batch.fileName}`} subtitle={`ID: ${batch.id}`} actions={
           <div className="flex items-center gap-2">

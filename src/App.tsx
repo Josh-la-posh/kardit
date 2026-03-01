@@ -15,6 +15,8 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Dashboard
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import BankDashboardPage from "./pages/bank/BankDashboardPage";
+import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 
 // User Management
 import UsersListPage from "./pages/users/UsersListPage";
@@ -74,6 +76,8 @@ const App = () => (
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/bank/dashboard" element={<BankDashboardPage />} />
+            <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             
             {/* User Management */}

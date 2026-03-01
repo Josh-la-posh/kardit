@@ -45,9 +45,12 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  navVariant?: 'affiliate' | 'bank' | 'service-provider';
 }
 
-const navItems: Array<{ label: string; icon: any; path: string; roles?: string[] }> = [
+type NavItem = { label: string; icon: any; path: string; roles?: string[] };
+
+const affiliateNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
@@ -59,11 +62,31 @@ const navItems: Array<{ label: string; icon: any; path: string; roles?: string[]
   { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
 ];
 
-export function AppLayout({ children }: AppLayoutProps) {
+const bankNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/bank/dashboard' },
+  { label: 'Reports', icon: FileText, path: '/reports' },
+  { label: 'Notifications', icon: Bell, path: '/notifications' },
+];
+
+const serviceProviderNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/super-admin/dashboard' },
+  { label: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['Super Admin'] },
+  { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
+];
+
+export function AppLayout({ children, navVariant }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { unreadCount } = useRecentNotifications();
+
+  const resolvedNavVariant: NonNullable<AppLayoutProps['navVariant']> =
+    navVariant ??
+    (user?.stakeholderType === 'BANK'
+      ? 'bank'
+      : user?.stakeholderType === 'SERVICE_PROVIDER'
+        ? 'service-provider'
+        : 'affiliate');
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,6 +99,13 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const navItems =
+    resolvedNavVariant === 'bank'
+      ? bankNavItems
+      : resolvedNavVariant === 'service-provider'
+        ? serviceProviderNavItems
+        : affiliateNavItems;
 
   const visibleNavItems = navItems.filter((item) => {
     if (!item.roles?.length) return true;
@@ -111,7 +141,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             'flex h-16 items-center border-b border-sidebar-border px-4',
             sidebarCollapsed ? 'justify-center' : 'justify-between'
           )}>
-            <Link to="/dashboard" className="flex items-center">
+            <Link
+              to={
+                resolvedNavVariant === 'bank'
+                  ? '/bank/dashboard'
+                  : resolvedNavVariant === 'service-provider'
+                    ? '/super-admin/dashboard'
+                    : '/dashboard'
+              }
+              className="flex items-center"
+            >
               <KarditLogo size="md" showText={!sidebarCollapsed} />
             </Link>
             

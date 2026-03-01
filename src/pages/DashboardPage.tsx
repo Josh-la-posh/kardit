@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -80,6 +80,16 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  useEffect(() => {
+    const stakeholderType = user?.stakeholderType;
+    if (stakeholderType === 'BANK') {
+      navigate('/bank/dashboard', { replace: true });
+    }
+    if (stakeholderType === 'SERVICE_PROVIDER') {
+      navigate('/super-admin/dashboard', { replace: true });
+    }
+  }, [navigate, user?.stakeholderType]);
+
   const visibleModules = modules.filter((m) => {
     if (!m.roles?.length) return true;
     const role = user?.role;
@@ -87,7 +97,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader 

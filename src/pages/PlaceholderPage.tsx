@@ -15,7 +15,7 @@ interface PlaceholderPageProps {
 
 export default function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader 

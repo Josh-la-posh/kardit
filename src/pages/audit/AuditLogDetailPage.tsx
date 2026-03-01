@@ -26,8 +26,8 @@ export default function AuditLogDetailPage() {
   const navigate = useNavigate();
   const { log, isLoading } = useAuditLog(id);
 
-  if (isLoading) return <ProtectedRoute requiredRoles={["Super Admin"]}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
-  if (!log) return <ProtectedRoute requiredRoles={["Super Admin"]}><AppLayout><div className="text-center py-20 text-muted-foreground">Audit log entry not found.</div></AppLayout></ProtectedRoute>;
+  if (isLoading) return <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+  if (!log) return <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}><AppLayout><div className="text-center py-20 text-muted-foreground">Audit log entry not found.</div></AppLayout></ProtectedRoute>;
 
   const entityRoute = log.entityType && log.entityId && entityRoutes[log.entityType]
     ? entityRoutes[log.entityType](log.entityId)
@@ -48,7 +48,7 @@ export default function AuditLogDetailPage() {
   };
 
   return (
-    <ProtectedRoute requiredRoles={["Super Admin"]}>
+    <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in max-w-2xl">
           <PageHeader title={log.actionType} subtitle={`${log.entityType} • ${log.entityId || 'N/A'}`} actions={

@@ -86,7 +86,7 @@ export default function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}><AppLayout>
+      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]} requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}><AppLayout>
         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </AppLayout></ProtectedRoute>
     );
@@ -94,14 +94,14 @@ export default function UserDetailPage() {
 
   if (!user) {
     return (
-      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}><AppLayout>
+      <ProtectedRoute requiredRoles={["Admin", "Super Admin"]} requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}><AppLayout>
         <div className="text-center py-20 text-muted-foreground">User not found.</div>
       </AppLayout></ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}>
+    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]} requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in max-w-3xl">
           <PageHeader

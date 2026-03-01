@@ -78,7 +78,7 @@ export default function CreateUserPage() {
   };
 
   return (
-    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}>
+    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]} requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in max-w-2xl">
           <PageHeader title="Create User" subtitle="Add a new user to the system" />

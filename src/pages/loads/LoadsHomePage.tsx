@@ -17,7 +17,7 @@ export default function LoadsHomePage() {
   const { summary, isLoading } = useLoadSummary();
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader title="Loads" subtitle="Load funds onto cards" />

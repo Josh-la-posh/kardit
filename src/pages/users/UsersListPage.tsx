@@ -31,7 +31,7 @@ export default function UsersListPage() {
   }, [users, search, statusFilter, roleFilter]);
 
   return (
-    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]}>
+    <ProtectedRoute requiredRoles={["Admin", "Super Admin"]} requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

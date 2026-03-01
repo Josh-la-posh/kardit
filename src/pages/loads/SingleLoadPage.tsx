@@ -74,7 +74,7 @@ export default function SingleLoadPage() {
 
   if (result) {
     return (
-      <ProtectedRoute><AppLayout>
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout>
         <div className="animate-fade-in max-w-lg mx-auto">
           <div className="kardit-card p-8 text-center">
             <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
@@ -99,7 +99,7 @@ export default function SingleLoadPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader
