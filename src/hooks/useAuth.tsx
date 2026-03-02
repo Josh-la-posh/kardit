@@ -1,4 +1,20 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import type {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  LoginPasswordChangeRequiredResponse,
+  LoginRequest,
+  LoginResponse,
+  LoginSuccessResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+} from '@/types/authContracts';
+import {
+  ApiError,
+  login as apiLogin,
+  requestPasswordReset as apiRequestPasswordReset,
+  resetPassword as apiResetPassword,
+} from '@/services/authApi';
 
 /**
  * Authentication Context for Kardit
@@ -27,67 +43,6 @@ export interface User {
   tenantId: string;
   tenantName: string;
   avatarUrl?: string;
-}
-
-export type AuthChannel = 'WEB';
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-  channel: AuthChannel;
-  deviceInfo?: {
-    ipAddress?: string;
-    userAgent?: string;
-    deviceFingerprint?: string;
-  };
-}
-
-export interface LoginPasswordChangeRequiredResponse {
-  requiresPasswordChange: true;
-  userId: string;
-  userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
-  message: string;
-}
-
-export interface LoginSuccessResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  user: {
-    userId: string;
-    fullName: string;
-    userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
-    roles: string[];
-    scope: {
-      scopeType: 'AFFILIATE_TENANT' | 'BANK_PORTFOLIO' | 'GLOBAL';
-      tenantId?: string;
-      bankId?: string;
-    };
-  };
-}
-
-export type LoginResponse = LoginPasswordChangeRequiredResponse | LoginSuccessResponse;
-
-export interface ForgotPasswordRequest {
-  username: string;
-  channel: AuthChannel;
-}
-
-export interface ForgotPasswordResponse {
-  resetRequestId: string;
-  deliveryChannel: 'EMAIL' | 'SMS';
-  expiresAt: string;
-}
-
-export interface ResetPasswordRequest {
-  resetRequestId: string;
-  otp: string;
-  newPassword: string;
-}
-
-export interface ResetPasswordResponse {
-  status: 'PASSWORD_RESET_SUCCESS';
-  updatedAt: string;
 }
 
 interface AuthState {
@@ -201,6 +156,36 @@ function toUserType(user: User): 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' {
   return user.stakeholderType ?? 'AFFILIATE';
 }
 
+function toStakeholderType(userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER'): User['stakeholderType'] {
+  return userType;
+}
+
+function shouldUseAuthApi(): boolean {
+  const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  const flag = (import.meta as any).env?.VITE_USE_API_AUTH as string | undefined;
+  return Boolean(baseUrl) && flag === 'true';
+}
+
+function apiUserToInternalUser(username: string, apiUser: LoginSuccessResponse['user']): User {
+  const scope = apiUser.scope;
+  const tenantId =
+    scope.scopeType === 'AFFILIATE_TENANT'
+      ? scope.tenantId || 'tenant_unknown'
+      : scope.scopeType === 'BANK_PORTFOLIO'
+        ? scope.bankId || 'tenant_unknown'
+        : 'tenant_unknown';
+
+  return {
+    id: apiUser.userId,
+    email: username,
+    name: apiUser.fullName,
+    role: apiUser.roles?.[0] ?? 'User',
+    stakeholderType: toStakeholderType(apiUser.userType),
+    tenantId,
+    tenantName: tenantId === 'tenant_unknown' ? 'Unknown' : tenantId,
+  };
+}
+
 function toScope(user: User): LoginSuccessResponse['user']['scope'] {
   const stakeholderType = user.stakeholderType;
   if (stakeholderType === 'BANK') {
@@ -244,13 +229,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const login = useCallback(async (emailOrRequest: string | LoginRequest, password?: string) => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     const request: LoginRequest =
       typeof emailOrRequest === 'string'
-        ? { username: emailOrRequest, password: password ?? '', channel: 'WEB' }
+        ? {
+            username: emailOrRequest,
+            password: password ?? '',
+            channel: 'WEB',
+            deviceInfo: {
+              userAgent: navigator.userAgent,
+            },
+          }
         : emailOrRequest;
+
+    if (shouldUseAuthApi()) {
+      try {
+        const response = await apiLogin(request);
+
+        if ('requiresPasswordChange' in response && response.requiresPasswordChange) {
+          setState({
+            isAuthenticated: true,
+            user: {
+              id: response.userId,
+              email: request.username,
+              name: request.username,
+              role: 'User',
+              stakeholderType: toStakeholderType(response.userType),
+              tenantId: 'tenant_unknown',
+              tenantName: 'Unknown',
+            },
+            passwordMustChange: true,
+            sessionExpired: false,
+          });
+
+          return { success: true as const, response };
+        }
+
+        const internalUser = apiUserToInternalUser(request.username, response.user);
+        setState({
+          isAuthenticated: true,
+          user: internalUser,
+          passwordMustChange: false,
+          sessionExpired: false,
+        });
+
+        return { success: true as const, response };
+      } catch (err) {
+        if (err instanceof ApiError && err.status) {
+          if (err.status === 423) return { success: false as const, error: err.message, status: 423, locked: true };
+          if (err.status === 403) return { success: false as const, error: err.message || 'User inactive', status: 403 };
+          if (err.status === 401)
+            return { success: false as const, error: err.message || 'Invalid username or password', status: 401 };
+          if (err.status === 400) return { success: false as const, error: err.message || 'Missing credentials', status: 400 };
+          return { success: false as const, error: err.message || 'Login failed' };
+        }
+        // If API is enabled but unreachable, fall through to mock behavior.
+      }
+    }
+
+    // Simulate network delay for mock auth only
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     if (!request.username || !request.password) {
       return { success: false as const, error: 'Missing credentials', status: 400 as const };
@@ -307,6 +344,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestPasswordReset = useCallback(async (request: ForgotPasswordRequest) => {
+    if (shouldUseAuthApi()) {
+      try {
+        return await apiRequestPasswordReset(request);
+      } catch (err) {
+        // UX should not disclose account existence; callers already show generic success.
+        if (err instanceof ApiError && err.status) throw err;
+      }
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 800));
     if (!request.username) {
       // Keep it simple in the mock: emulate server-side 400 by throwing.
@@ -321,6 +367,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (request: ResetPasswordRequest) => {
+    if (shouldUseAuthApi()) {
+      try {
+        return await apiResetPassword(request);
+      } catch (err) {
+        if (err instanceof ApiError && err.status) throw err;
+      }
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     if (!request.resetRequestId || !request.otp || !request.newPassword) {
