@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { KarditLogo } from '@/components/KarditLogo';
 import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 
 /**
@@ -15,6 +16,7 @@ import { Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { resetPassword } = useAuth();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -47,11 +49,18 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setIsLoading(false);
-    setIsSuccess(true);
+    try {
+      await resetPassword({
+        resetRequestId: token || '',
+        otp: '123456',
+        newPassword: password,
+      });
+      setIsSuccess(true);
+    } catch (err) {
+      setError((err as Error)?.message || 'Failed to reset password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Invalid token view

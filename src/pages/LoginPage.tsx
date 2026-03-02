@@ -39,15 +39,24 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else if (result.locked) {
-        setIsLocked(true);
-      } else {
-        setError(result.error || 'Login failed');
+      const result = await login({
+        username: email,
+        password,
+        channel: 'WEB',
+        deviceInfo: {
+          userAgent: navigator.userAgent,
+          deviceFingerprint: 'frontend-mock',
+        },
+      });
+
+      if (!result.success) {
+        if (result.locked) setIsLocked(true);
+        else setError(result.error || 'Login failed');
+        return;
       }
+
+      // When requiresPasswordChange=true, the app will redirect via AuthProvider/ProtectedRoute.
+      navigate('/dashboard');
     } catch (err) {
       setError('An unexpected error occurred');
     } finally {

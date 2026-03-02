@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { KarditLogo } from '@/components/KarditLogo';
 import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 
 /**
@@ -13,6 +14,7 @@ import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
  */
 
 export default function ForgotPasswordPage() {
+  const { requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -24,8 +26,14 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      await requestPasswordReset({
+        username: email,
+        channel: 'EMAIL',
+      });
+    } catch {
+      // Intentionally swallow errors: UI should not disclose account existence.
+    }
 
     setIsLoading(false);
     setIsSubmitted(true);

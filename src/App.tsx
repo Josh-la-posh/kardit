@@ -52,6 +52,9 @@ import NotificationDetailPage from "./pages/notifications/NotificationDetailPage
 import AuditLogsListPage from "./pages/audit/AuditLogsListPage";
 import AuditLogDetailPage from "./pages/audit/AuditLogDetailPage";
 
+// Docs
+import SrsPage from "./pages/SrsPage";
+
 // Other
 import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
@@ -114,6 +117,9 @@ const App = () => (
             {/* Audit Logs */}
             <Route path="/audit-logs" element={<AuditLogsListPage />} />
             <Route path="/audit-logs/:id" element={<AuditLogDetailPage />} />
+
+            {/* Docs */}
+            <Route path="/docs/srs" element={<SrsPage />} />
 
             {/* Placeholder Routes */}
             <Route path="/batch-operations" element={<PlaceholderPage title="Batch Operations" description="Bulk processing" />} />
