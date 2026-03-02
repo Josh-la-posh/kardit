@@ -22,6 +22,7 @@ import {
   LogOut,
   Menu,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,9 +49,10 @@ interface AppLayoutProps {
   navVariant?: 'affiliate' | 'bank' | 'service-provider';
 }
 
-type NavItem = { label: string; icon: any; path: string; roles?: string[] };
+type NavItem = { label: string; icon: any; path: string; roles?: string[]; complianceStatus?: boolean; disabled?: boolean };
 
 const affiliateNavItems: NavItem[] = [
+  { label: "Compliance", icon: ShieldCheck, path: "/compliance", complianceStatus: true },
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
@@ -80,6 +82,10 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const { unreadCount } = useRecentNotifications();
 
+  const complianceStatus = user?.complianceStatus || 'not_started';
+  const isComplianceApproved = complianceStatus === 'approved';
+  const isCompliancePending = complianceStatus === 'pending';
+
   const resolvedNavVariant: NonNullable<AppLayoutProps['navVariant']> =
     navVariant ??
     (user?.stakeholderType === 'BANK'
@@ -107,11 +113,28 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
         ? serviceProviderNavItems
         : affiliateNavItems;
 
-  const visibleNavItems = navItems.filter((item) => {
-    if (!item.roles?.length) return true;
-    const role = user?.role;
-    return role ? item.roles.includes(role) : false;
-  });
+  // Determine if compliance is not started or rejected for affiliates
+  const isComplianceIncomplete = ['not_started', 'rejected', 'pending'].includes(complianceStatus);
+  const shouldDisableNavItems = resolvedNavVariant === 'affiliate' && isComplianceIncomplete;
+
+  // Filter and modify nav items
+  const visibleNavItems = navItems
+    .filter((item) => {
+      // Hide Compliance item if compliance status is approved or pending
+      if (item.label === 'Compliance' && ( isComplianceApproved || isCompliancePending)) {
+        return false;
+      }
+      if (!item.roles?.length) return true;
+      const role = user?.role;
+      return role ? item.roles.includes(role) : false;
+    })
+    .map((item) => {
+      // Disable non-essential items if compliance is incomplete
+      if (shouldDisableNavItems && item.label !== 'Compliance' && item.label !== 'Dashboard') {
+        return { ...item, disabled: true };
+      }
+      return item;
+    });
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -168,27 +191,39 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
             <ul className="space-y-1">
               {visibleNavItems.map((item) => (
                 <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
-                      isActive(item.path)
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-                    )}
-                  >
-                    <item.icon className={cn(
-                      'h-5 w-5 flex-shrink-0',
-                      isActive(item.path) && 'text-primary'
-                    )} />
-                    {!sidebarCollapsed && <span>{item.label}</span>}
-                    {item.label === 'Notifications' && unreadCount > 0 && !sidebarCollapsed && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Link>
+                  {item.disabled ? (
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors cursor-not-allowed opacity-50 text-sidebar-foreground'
+                      )}
+                      title="Complete compliance to access this section"
+                    >
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                        isActive(item.path)
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      <item.icon className={cn(
+                        'h-5 w-5 flex-shrink-0',
+                        isActive(item.path) && 'text-primary'
+                      )} />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                      {item.label === 'Notifications' && unreadCount > 0 && !sidebarCollapsed && (
+                        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

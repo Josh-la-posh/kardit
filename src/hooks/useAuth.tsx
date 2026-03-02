@@ -18,6 +18,8 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
  * - locked@kardit.app / any - Account locked
  */
 
+export type ComplianceStatus = 'not_started' | 'pending' | 'rejected' | 'approved';
+
 export interface User {
   id: string;
   email: string;
@@ -27,6 +29,7 @@ export interface User {
   tenantId: string;
   tenantName: string;
   avatarUrl?: string;
+  complianceStatus?: ComplianceStatus;
 }
 
 interface AuthState {
@@ -37,11 +40,12 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; locked?: boolean }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; locked?: boolean; complianceStatus?: ComplianceStatus, stakeholderType?: string }>;
   logout: () => void;
   completePasswordChange: () => void;
   forceSessionExpired: () => void;
   dismissSessionExpired: () => void;
+  updateComplianceStatus: (status: ComplianceStatus) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,6 +62,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+      complianceStatus: 'approved',
     },
   },
   'affiliate@kardit.app': {
@@ -70,6 +75,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+      complianceStatus: 'pending',
     },
   },
   'bank@kardit.app': {
@@ -107,6 +113,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+      complianceStatus: 'not_started',
     },
   },
   'locked@kardit.app': {
@@ -120,6 +127,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       stakeholderType: 'AFFILIATE',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
+      complianceStatus: 'rejected',
     },
   },
 };
@@ -190,6 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateComplianceStatus = useCallback((status: ComplianceStatus) => {
+    setState((prev) => ({
+      ...prev,
+      user: prev.user ? { ...prev.user, complianceStatus: status } : null,
+    }));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -199,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completePasswordChange,
         forceSessionExpired,
         dismissSessionExpired,
+        updateComplianceStatus
       }}
     >
       {children}

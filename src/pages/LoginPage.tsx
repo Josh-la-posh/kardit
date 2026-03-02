@@ -26,6 +26,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
+  const {user} = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -42,7 +44,18 @@ export default function LoginPage() {
       const result = await login(email, password);
       
       if (result.success) {
-        navigate('/dashboard');
+        const complianceStatus = result.complianceStatus || 'not_started';
+        const stakeholderType = result.stakeholderType || user?.stakeholderType;
+
+        if (stakeholderType === 'AFFILIATE') {
+          if (complianceStatus === 'approved' || complianceStatus === 'pending') {
+            navigate('/dashboard');
+          } else {
+            navigate('/compliance');
+          }
+        } else {
+          navigate('/dashboard');
+        }
       } else if (result.locked) {
         setIsLocked(true);
       } else {

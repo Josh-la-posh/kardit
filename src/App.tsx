@@ -12,6 +12,9 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 
+// Compliance Pages
+import CompliancePage from "./pages/compliance/CompliancePage";
+
 // Dashboard
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -73,6 +76,9 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            
+            {/* Compliance Route */}
+            <Route path="/compliance" element={<CompliancePage />} />
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
