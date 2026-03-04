@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRecentNotifications } from '@/hooks/useRecentNotifications';
+import { useAuth } from '@/hooks/useAuth';
 import { X, Bell, AlertTriangle, CheckCircle, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { NotificationSeverity } from '@/services/mockData';
+import { isBankReadOnlyUser } from '@/lib/permissions';
 
 /**
  * NotificationsPanel - Slide-out panel for recent notifications
@@ -29,9 +31,11 @@ const severityConfig: Record<NotificationSeverity, { icon: typeof Info; classNam
 export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
   const navigate = useNavigate();
   const { notifications, isLoading, markAsRead, markAllAsRead, unreadCount } = useRecentNotifications();
+  const { user } = useAuth();
+  const isReadOnly = isBankReadOnlyUser(user);
 
   const handleNotificationClick = (id: string) => {
-    markAsRead(id);
+    if (!isReadOnly) markAsRead(id);
     console.log(`Notification ${id} clicked`);
     // For now, just close the panel
     // Later this could navigate to relevant content
@@ -75,7 +79,11 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={markAllAsRead}
+                onClick={() => {
+                  if (isReadOnly) return;
+                  markAllAsRead();
+                }}
+                disabled={isReadOnly}
                 className="text-xs"
               >
                 Mark all read

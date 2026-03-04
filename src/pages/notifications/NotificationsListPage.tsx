@@ -6,10 +6,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Bell, AlertTriangle, AlertCircle, Info, CheckSquare, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { isBankReadOnlyUser } from '@/lib/permissions';
 
 const severityIcons = { INFO: Info, WARNING: AlertTriangle, ERROR: AlertCircle };
 const severityColors = { INFO: 'text-info', WARNING: 'text-warning', ERROR: 'text-destructive' };
@@ -17,6 +19,8 @@ const severityColors = { INFO: 'text-info', WARNING: 'text-warning', ERROR: 'tex
 export default function NotificationsListPage() {
   const navigate = useNavigate();
   const { notifications, isLoading, markAllAsRead } = useNotifications();
+  const { user } = useAuth();
+  const isReadOnly = isBankReadOnlyUser(user);
   const [severityFilter, setSeverityFilter] = useState('ALL');
   const [readFilter, setReadFilter] = useState('ALL');
 
@@ -30,6 +34,7 @@ export default function NotificationsListPage() {
   }, [notifications, severityFilter, readFilter]);
 
   const handleMarkAll = () => {
+    if (isReadOnly) return;
     markAllAsRead();
     toast.success('All notifications marked as read');
   };
@@ -39,7 +44,9 @@ export default function NotificationsListPage() {
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader title="Notifications" subtitle="View all notifications" actions={
-            <Button variant="outline" size="sm" onClick={handleMarkAll}><CheckSquare className="h-4 w-4 mr-1" /> Mark all read</Button>
+            <Button variant="outline" size="sm" onClick={handleMarkAll} disabled={isReadOnly}>
+              <CheckSquare className="h-4 w-4 mr-1" /> Mark all read
+            </Button>
           } />
 
           <div className="kardit-card p-4 mb-4">

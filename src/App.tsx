@@ -18,6 +18,19 @@ import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 
+// Onboarding (public)
+import OnboardingStartPage from "./pages/onboarding/OnboardingStartPage";
+import OnboardingOrganizationPage from "./pages/onboarding/OnboardingOrganizationPage";
+import OnboardingDocumentsPage from "./pages/onboarding/OnboardingDocumentsPage";
+import OnboardingIssuingBanksPage from "./pages/onboarding/OnboardingIssuingBanksPage";
+import OnboardingReviewSubmitPage from "./pages/onboarding/OnboardingReviewSubmitPage";
+import OnboardingSuccessPage from "./pages/onboarding/OnboardingSuccessPage";
+import OnboardingStatusPage from "./pages/onboarding/OnboardingStatusPage";
+
+// Onboarding (service provider reviewer)
+import OnboardingCasesListPage from "./pages/super-admin/onboarding/OnboardingCasesListPage";
+import OnboardingCaseDetailPage from "./pages/super-admin/onboarding/OnboardingCaseDetailPage";
+
 // User Management
 import UsersListPage from "./pages/users/UsersListPage";
 import CreateUserPage from "./pages/users/CreateUserPage";
@@ -76,11 +89,24 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+
+            {/* Affiliate onboarding (no login) */}
+            <Route path="/onboarding/start" element={<OnboardingStartPage />} />
+            <Route path="/onboarding/:draftId/organization" element={<OnboardingOrganizationPage />} />
+            <Route path="/onboarding/:draftId/documents" element={<OnboardingDocumentsPage />} />
+            <Route path="/onboarding/:draftId/issuing-banks" element={<OnboardingIssuingBanksPage />} />
+            <Route path="/onboarding/:draftId/review" element={<OnboardingReviewSubmitPage />} />
+            <Route path="/onboarding/success/:caseId" element={<OnboardingSuccessPage />} />
+            <Route path="/onboarding/status/:caseId" element={<OnboardingStatusPage />} />
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
+
+            {/* Service provider onboarding review */}
+            <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />
+            <Route path="/super-admin/onboarding/cases/:caseId" element={<OnboardingCaseDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             
             {/* User Management */}

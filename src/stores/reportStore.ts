@@ -56,6 +56,11 @@ export interface AuditLogEntry {
   newValue?: Record<string, any>;
 }
 
+export type CreateAuditLogEntry = Omit<AuditLogEntry, 'id' | 'timestamp'> & {
+  id?: string;
+  timestamp?: string;
+};
+
 // ─── Seed Data ──────────────────────────────────────────────
 
 export const REPORT_DEFINITIONS: ReportDefinition[] = [
@@ -171,4 +176,20 @@ export const reportStore = {
   // Audit Logs
   getAuditLogs: () => [..._auditLogs],
   getAuditLog: (id: string) => _auditLogs.find(a => a.id === id) || null,
+  addAuditLog: (entry: CreateAuditLogEntry): AuditLogEntry => {
+    const next: AuditLogEntry = {
+      id: entry.id || genId('al'),
+      timestamp: entry.timestamp || new Date().toISOString(),
+      userEmail: entry.userEmail,
+      actionType: entry.actionType,
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent,
+      oldValue: entry.oldValue,
+      newValue: entry.newValue,
+    };
+    _auditLogs = [next, ..._auditLogs];
+    return next;
+  },
 };

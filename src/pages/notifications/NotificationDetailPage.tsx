@@ -6,8 +6,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useNotification, useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ArrowLeft, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
+import { isBankReadOnlyUser } from '@/lib/permissions';
 
 const entityRoutes: Record<string, (id: string) => string> = {
   Customer: id => `/customers/${id}`,
@@ -21,6 +23,8 @@ export default function NotificationDetailPage() {
   const navigate = useNavigate();
   const { notification, isLoading } = useNotification(id);
   const { toggleRead } = useNotifications();
+  const { user } = useAuth();
+  const isReadOnly = isBankReadOnlyUser(user);
 
   if (isLoading) {
     return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
@@ -58,7 +62,16 @@ export default function NotificationDetailPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" size="sm" onClick={() => { toggleRead(notification.id); navigate('/notifications'); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isReadOnly}
+                onClick={() => {
+                  if (isReadOnly) return;
+                  toggleRead(notification.id);
+                  navigate('/notifications');
+                }}
+              >
                 {notification.isRead ? <><EyeOff className="h-4 w-4 mr-1" /> Mark as unread</> : <><Eye className="h-4 w-4 mr-1" /> Mark as read</>}
               </Button>
               {relatedRoute && (

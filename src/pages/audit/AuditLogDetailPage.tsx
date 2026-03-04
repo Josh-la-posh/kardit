@@ -12,6 +12,7 @@ const entityRoutes: Record<string, (id: string) => string> = {
   User: id => `/users/${id}`,
   Customer: id => `/customers/${id}`,
   Card: id => `/cards/${id}`,
+  OnboardingCase: id => `/super-admin/onboarding/cases/${id}`,
 };
 
 const SENSITIVE_PATTERNS = /password|secret|token|pan|card.?number/i;

@@ -70,6 +70,7 @@ const bankNavItems: NavItem[] = [
 
 const serviceProviderNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/super-admin/dashboard' },
+  { label: 'Onboarding Cases', icon: Layers, path: '/super-admin/onboarding/cases' },
   { label: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['Super Admin'] },
   { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
 ];

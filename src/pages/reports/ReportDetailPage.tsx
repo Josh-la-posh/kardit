@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useRunReport, useReportDefinitions } from '@/hooks/useReports';
+import { useAuth } from '@/hooks/useAuth';
+import { isBankReadOnlyUser } from '@/lib/permissions';
 import { Loader2, Download, ArrowLeft, Play } from 'lucide-react';
 
 export default function ReportDetailPage() {
@@ -14,6 +16,8 @@ export default function ReportDetailPage() {
   const { definitions } = useReportDefinitions();
   const def = definitions.find(d => d.id === reportDefinitionId);
   const { instance, generate } = useRunReport(reportDefinitionId || '');
+  const { user } = useAuth();
+  const isReadOnly = isBankReadOnlyUser(user);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -22,7 +26,10 @@ export default function ReportDetailPage() {
     return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Report not found.</div></AppLayout></ProtectedRoute>;
   }
 
-  const handleGenerate = () => generate({ dateFrom, dateTo });
+  const handleGenerate = () => {
+    if (isReadOnly) return;
+    generate({ dateFrom, dateTo });
+  };
 
   const handleExport = (format: string) => {
     if (!instance?.previewColumns || !instance?.previewRows) return;
@@ -58,7 +65,11 @@ export default function ReportDetailPage() {
                 <label className="text-sm font-medium mb-1 block">Date To</label>
                 <input type="date" className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={dateTo} onChange={e => setDateTo(e.target.value)} />
               </div>
-              <Button onClick={handleGenerate} disabled={instance?.status === 'QUEUED' || instance?.status === 'RUNNING'} className="w-full">
+              <Button
+                onClick={handleGenerate}
+                disabled={isReadOnly || instance?.status === 'QUEUED' || instance?.status === 'RUNNING'}
+                className="w-full"
+              >
                 {(instance?.status === 'QUEUED' || instance?.status === 'RUNNING') && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Play className="h-4 w-4 mr-1" /> Generate Report
               </Button>
