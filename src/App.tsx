@@ -16,6 +16,8 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
+import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
+import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 
 // Onboarding (public)
@@ -26,6 +28,7 @@ import OnboardingIssuingBanksPage from "./pages/onboarding/OnboardingIssuingBank
 import OnboardingReviewSubmitPage from "./pages/onboarding/OnboardingReviewSubmitPage";
 import OnboardingSuccessPage from "./pages/onboarding/OnboardingSuccessPage";
 import OnboardingStatusPage from "./pages/onboarding/OnboardingStatusPage";
+import OnboardingNotificationsPage from "./pages/onboarding/OnboardingNotificationsPage";
 
 // Onboarding (service provider reviewer)
 import OnboardingCasesListPage from "./pages/super-admin/onboarding/OnboardingCasesListPage";
@@ -46,6 +49,10 @@ import IssueCardPage from "./pages/customers/IssueCardPage";
 // Card Management
 import CardsListPage from "./pages/cards/CardsListPage";
 import CardDetailPage from "./pages/cards/CardDetailPage";
+import CreateCardPage from "./pages/cards/CreateCardPage";
+
+// Batch Operations
+import BatchOperationsPage from "./pages/batch/BatchOperationsPage";
 
 // Loads
 import LoadsHomePage from "./pages/loads/LoadsHomePage";
@@ -98,10 +105,13 @@ const App = () => (
             <Route path="/onboarding/:draftId/review" element={<OnboardingReviewSubmitPage />} />
             <Route path="/onboarding/success/:caseId" element={<OnboardingSuccessPage />} />
             <Route path="/onboarding/status/:caseId" element={<OnboardingStatusPage />} />
+            <Route path="/onboarding/notifications/:caseId" element={<OnboardingNotificationsPage />} />
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
+            <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
+            <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
 
             {/* Service provider onboarding review */}
@@ -123,6 +133,7 @@ const App = () => (
 
             {/* Card Management */}
             <Route path="/cards" element={<CardsListPage />} />
+            <Route path="/cards/create" element={<CreateCardPage />} />
             <Route path="/cards/:cardId" element={<CardDetailPage />} />
 
             {/* Loads */}
@@ -147,8 +158,8 @@ const App = () => (
             {/* Docs */}
             <Route path="/docs/srs" element={<SrsPage />} />
 
-            {/* Placeholder Routes */}
-            <Route path="/batch-operations" element={<PlaceholderPage title="Batch Operations" description="Bulk processing" />} />
+            {/* Batch Operations */}
+            <Route path="/batch-operations" element={<BatchOperationsPage />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

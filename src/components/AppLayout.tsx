@@ -22,6 +22,7 @@ import {
   LogOut,
   Menu,
   X,
+  Building2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ const affiliateNavItems: NavItem[] = [
 
 const bankNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/bank/dashboard' },
+  { label: 'Affiliates', icon: Building2, path: '/bank/affiliates' },
   { label: 'Reports', icon: FileText, path: '/reports' },
   { label: 'Notifications', icon: Bell, path: '/notifications' },
 ];

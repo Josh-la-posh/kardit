@@ -7,8 +7,9 @@ import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useCards } from '@/hooks/useCards';
 import { store } from '@/stores/mockStore';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 export default function CardsListPage() {
   const navigate = useNavigate();
@@ -48,7 +49,15 @@ export default function CardsListPage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
-          <PageHeader title="Cards" subtitle="Manage all issued cards" />
+          <PageHeader
+            title="Cards"
+            subtitle="Manage all issued cards"
+            actions={
+              <Button onClick={() => navigate('/cards/create')}>
+                <Plus className="h-4 w-4 mr-1" /> Create Card
+              </Button>
+            }
+          />
 
           {/* Filter Bar */}
           <div className="kardit-card p-4 mb-4">
