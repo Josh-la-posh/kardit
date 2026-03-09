@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { useAuth } from "@/hooks/useAuth";
-import { Activity, Building2, Shield, Users, CheckCircle, XCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, Eye, CheckCircle, XCircle, } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +17,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
-interface ComplianceAffiliate {
+interface Affiliate {
   id: string;
   affiliateName: string;
   email: string;
@@ -29,7 +29,7 @@ interface ComplianceAffiliate {
 }
 
 // Mock data - Replace with API call
-const mockComplianceAffiliates: ComplianceAffiliate[] = [
+const mockAffiliates: Affiliate[] = [
   {
     id: '1',
     affiliateName: 'TechFlow Solutions',
@@ -37,7 +37,7 @@ const mockComplianceAffiliates: ComplianceAffiliate[] = [
     contactPerson: 'Chioma Okafor',
     submittedDate: '2024-02-28',
     status: 'pending',
-    issuingBank: 'providus', 
+    issuingBank: 'providus',
   },
   {
     id: '2',
@@ -57,33 +57,74 @@ const mockComplianceAffiliates: ComplianceAffiliate[] = [
     status: 'rejected',
     issuingBank: 'wema',
   },
+  {
+    id: '4',
+    affiliateName: 'Digital Commerce Solutions',
+    email: 'support@digitalcommerce.ng',
+    contactPerson: 'Blessing Okonkwo',
+    submittedDate: '2024-02-15',
+    status: 'approved',
+    issuingBank: 'sterling',
+  },
+  {
+    id: '5',
+    affiliateName: 'Tech Innovations Ltd',
+    email: 'info@techinnovations.ng',
+    contactPerson: 'Tunde Adebayo',
+    submittedDate: '2024-02-10',
+    status: 'pending',
+    issuingBank: 'firstbank',
+  },
 ];
 
-export default function SuperAdminDashboardPage() {
-  const { user } = useAuth();
+export default function AffiliatesPage() {
   const navigate = useNavigate();
-  const [affiliates, setAffiliates] = useState<ComplianceAffiliate[]>(mockComplianceAffiliates);
-  const [selectedAffiliate, setSelectedAffiliate] = useState<ComplianceAffiliate | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterBank, setFilterBank] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('');
+
+  const [affiliates, setAffiliates] = useState<Affiliate[]>(mockAffiliates);
+  const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  
+    const pendingCount = affiliates.filter(a => a.status === 'pending').length;
+    const approvedCount = affiliates.filter(a => a.status === 'approved').length;
+  
+    const handleApprove = (affiliateId: string) => {
+      setAffiliates(prev =>
+        prev.map(a => a.id === affiliateId ? { ...a, status: 'approved' as const } : a)
+      );
+      toast.success('Affiliate approved successfully');
+      setIsViewModalOpen(false);
+    };
+  
+    const handleReject = (affiliateId: string) => {
+      setAffiliates(prev =>
+        prev.map(a => a.id === affiliateId ? { ...a, status: 'rejected' as const } : a)
+      );
+      toast.error('Affiliate rejected');
+      setIsViewModalOpen(false);
+    };
+  
 
-  const pendingCount = affiliates.filter(a => a.status === 'pending').length;
-  const approvedCount = affiliates.filter(a => a.status === 'approved').length;
+  const banks = ['providus', 'wema', 'stanbic', 'sterling', 'firstbank'];
+  const statuses = ['pending', 'approved', 'rejected'];
 
-  const handleApprove = (affiliateId: string) => {
-    setAffiliates(prev =>
-      prev.map(a => a.id === affiliateId ? { ...a, status: 'approved' as const } : a)
-    );
-    toast.success('Affiliate approved successfully');
-    setIsViewModalOpen(false);
-  };
+  const filteredAffiliates = useMemo(() => {
+    return mockAffiliates.filter(affiliate => {
+      const matchesSearch = 
+        affiliate.affiliateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        affiliate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        affiliate.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const handleReject = (affiliateId: string) => {
-    setAffiliates(prev =>
-      prev.map(a => a.id === affiliateId ? { ...a, status: 'rejected' as const } : a)
-    );
-    toast.error('Affiliate rejected');
-    setIsViewModalOpen(false);
-  };
+      const matchesStatus = filterStatus === 'all' || affiliate.status === filterStatus;
+      const matchesBank = filterBank === 'all' || affiliate.issuingBank === filterBank;
+      const matchesDate = !filterDate || affiliate.submittedDate === filterDate;
+
+      return matchesSearch && matchesStatus && matchesBank && matchesDate;
+    });
+  }, [searchTerm, filterStatus, filterBank, filterDate]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -112,48 +153,103 @@ export default function SuperAdminDashboardPage() {
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
         <div className="animate-fade-in space-y-6">
-          <PageHeader
-            title={user?.tenantName || "Service Provider"}
-            subtitle="Global oversight dashboard"
-            showBack={false}
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/super-admin/affiliates')}
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/super-admin/dashboard')}
+              className="gap-2"
             >
-              <StatCard title="Total Affiliates" value={affiliates.length.toString()} icon={Users} />
-            </div>
-            <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/super-admin/pending-approval')}
-            >
-              <StatCard title="Pending Approval" value={pendingCount.toString()} icon={Shield} />
-            </div>
-            {/* <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/super-admin/approved')}
-            >
-              <StatCard title="Approved" value={approvedCount.toString()} icon={CheckCircle} />
-            </div> */}
-            <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/super-admin/banks')}
-            >
-              <StatCard title="Banks" value={"5"} icon={Building2} />
-            </div>
-            {/* <StatCard title="Compliance Events" value={"—"} icon={Shield} /> */}
-            <div className="cursor-pointer transition-transform hover:scale-105" onClick={() => navigate('/audit-logs')}>
-              <StatCard title="Platform Activity" value={"—"} icon={Activity} />
-            </div>
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <PageHeader
+              title="All Affiliates"
+              subtitle="View and manage all onboarded affiliates"
+              showBack={false}
+            />
           </div>
 
-          {/* Compliance Affiliates Table */}
+          {/* Filters Section */}
+          <Card className="border-0 shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by name, email, or contact..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="status" className="text-sm font-semibold mb-2 block">Status</Label>
+                <select
+                  id="status"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="all">All Statuses</option>
+                  {statuses.map(status => (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="bank" className="text-sm font-semibold mb-2 block">Issuing Bank</Label>
+                <select
+                  id="bank"
+                  value={filterBank}
+                  onChange={(e) => setFilterBank(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="all">All Banks</option>
+                  {banks.map(bank => (
+                    <option key={bank} value={bank}>
+                      {getBankLabel(bank)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="date" className="text-sm font-semibold mb-2 block">Submitted Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterStatus('all');
+                  setFilterBank('all');
+                  setFilterDate('');
+                }}
+              >
+                Clear Filters
+              </Button>
+              <span className="text-sm text-gray-600 self-center ml-auto">
+                Showing {filteredAffiliates.length} of {mockAffiliates.length} affiliates
+              </span>
+            </div>
+          </Card>
+
+          {/* Affiliates Table */}
           <Card className="border-0 shadow-lg">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Affiliate Onboarding Submissions</h2>
-              
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -168,7 +264,7 @@ export default function SuperAdminDashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {affiliates.map((affiliate) => (
+                    {filteredAffiliates.map((affiliate) => (
                       <tr key={affiliate.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-900">{affiliate.affiliateName}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{affiliate.contactPerson}</td>
@@ -185,7 +281,6 @@ export default function SuperAdminDashboardPage() {
                               setSelectedAffiliate(affiliate);
                               setIsViewModalOpen(true);
                             }}
-                            // disabled={affiliate.status !== 'pending'}
                           >
                             <Eye className="w-4 h-4" />
                             View
@@ -196,10 +291,16 @@ export default function SuperAdminDashboardPage() {
                   </tbody>
                 </table>
               </div>
+
+              {filteredAffiliates.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No affiliates found matching your filters.</p>
+                </div>
+              )}
             </div>
           </Card>
 
-          {/* View/Approve/Reject Modal */}
+           {/* View/Approve/Reject Modal */}
           <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
             <DialogContent className="max-w-lg">
               <DialogHeader>

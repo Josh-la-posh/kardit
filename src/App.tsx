@@ -19,6 +19,11 @@ import BankDashboardPage from "./pages/bank/BankDashboardPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
+import AffiliatesPage from "./pages/super-admin/AffiliatesPage";
+import PendingApprovalPage from "./pages/super-admin/PendingApprovalPage";
+import ApprovedAffiliatesPage from "./pages/super-admin/ApprovedAffiliatesPage";
+import BanksPage from "./pages/super-admin/BanksPage";
+import BankDetailsPage from "./pages/super-admin/BankDetailsPage";
 
 // Onboarding (public)
 import OnboardingStartPage from "./pages/onboarding/OnboardingStartPage";
@@ -113,6 +118,11 @@ const App = () => (
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
+            <Route path="/super-admin/affiliates" element={<AffiliatesPage />} />
+            <Route path="/super-admin/pending-approval" element={<PendingApprovalPage />} />
+            <Route path="/super-admin/approved" element={<ApprovedAffiliatesPage />} />
+            <Route path="/super-admin/banks" element={<BanksPage />} />
+            <Route path="/super-admin/banks/:bankId" element={<BankDetailsPage />} />
 
             {/* Service provider onboarding review */}
             <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />
