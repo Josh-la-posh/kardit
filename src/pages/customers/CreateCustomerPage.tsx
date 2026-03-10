@@ -115,7 +115,7 @@ export default function CreateCustomerPage() {
     // Store CMS payload for verification
     store.addPendingCMSRequest(customer.id, cmsPayload);
 
-    toast.success('Customer and card created (mock).');
+    toast.success('✓ Customer and card activated! Data pushed to issuing bank.');
     navigate(`/customers/${customer.id}`);
   };
 

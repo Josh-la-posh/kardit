@@ -25,6 +25,7 @@ export default function CreateCardPage() {
   const customers = store.getCustomers(tenantScope).filter(c => c.status === 'ACTIVE');
 
   const [form, setForm] = useState({
+    tenantId: '',
     customerId: '',
     embossName: '',
     cardProduct: '',

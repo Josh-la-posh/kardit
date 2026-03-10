@@ -17,6 +17,7 @@ import { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
   title: string;
+  subtitle?: string;
   value: string | number;
   caption?: string;
   icon?: LucideIcon;
@@ -29,7 +30,7 @@ interface StatCardProps {
 }
 
 const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
-  ({ title, value, caption, icon: Icon, trend, className, accentValue = false }, ref) => {
+  ({ title, subtitle, value, caption, icon: Icon, trend, className, accentValue = false }, ref) => {
     return (
       <div
         ref={ref}
@@ -51,6 +52,12 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
             >
               {value}
             </p>
+            {subtitle && (
+              <p className="text-sm font-normal text-muted-foreground">
+                {subtitle}
+              </p>
+            )}
+
           </div>
           {Icon && (
             <div className="rounded-lg bg-primary/10 p-2.5">

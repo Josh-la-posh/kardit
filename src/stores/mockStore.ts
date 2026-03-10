@@ -28,7 +28,7 @@ export interface ManagedUser {
   createdAt: string;
 }
 
-export type CustomerStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
+export type CustomerStatus = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'BLOCKED';
 
 export interface CustomerAddress {
   line1?: string;
@@ -256,6 +256,54 @@ let _customers: Customer[] = [
     dateOfBirth: '1995-06-30', nationality: 'DE', idType: 'national_id', idNumber: 'DE-ID-112233', idExpiryDate: '2031-06-30',
     address: { line1: '10 Berliner Str', city: 'Berlin', country: 'DE', postalCode: '10115' },
   },
+  // Bank portfolio customers
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c6', customerId: 'CUS-10006', firstName: 'Kofi', lastName: 'Mensah', embossName: 'KOFI MENSAH',
+    email: 'kofi.m@example.com', phone: '+233-55-1234567', status: 'ACTIVE', createdAt: '2025-10-10T10:00:00Z',
+    dateOfBirth: '1990-03-15', nationality: 'GH', idType: 'national_id', idNumber: 'GH-NID-234567', idExpiryDate: '2030-03-15',
+    address: { line1: '123 Gold St', city: 'Accra', country: 'GH', postalCode: 'GA-001' },
+    rib: '2345678901234567890123', agencyCode: 'AG003',
+  },
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c7', customerId: 'CUS-10007', firstName: 'Zainab', lastName: 'Hassan', embossName: 'ZAINAB HASSAN',
+    email: 'zainab.h@example.com', phone: '+234-803-9876543', status: 'ACTIVE', createdAt: '2025-09-05T14:00:00Z',
+    dateOfBirth: '1993-07-22', nationality: 'NG', idType: 'passport', idNumber: 'P3456789', idExpiryDate: '2028-07-22',
+    address: { line1: '456 Trade Ave', city: 'Lagos', state: 'LA', country: 'NG', postalCode: 'LG-100' },
+    rib: '3456789012345678901234', agencyCode: 'AG004',
+  },
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c8', customerId: 'CUS-10008', firstName: 'Amara', lastName: 'Diallo', embossName: 'AMARA DIALLO',
+    email: 'amara.d@example.com', phone: '+221-77-1234567', status: 'ACTIVE', createdAt: '2025-12-01T11:00:00Z',
+    dateOfBirth: '1988-11-08', nationality: 'SN', idType: 'national_id', idNumber: 'SN-ID-345678', idExpiryDate: '2029-11-08',
+    address: { line1: '789 Commercial Rd', city: 'Dakar', country: 'SN', postalCode: 'DSK-110' },
+    rib: '4567890123456789012345', agencyCode: 'AG005',
+  },
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c9', customerId: 'CUS-10009', firstName: 'Ibrahim', lastName: 'Sow', embossName: 'IBRAHIM SOW',
+    email: 'ibrahim.s@example.com', phone: '+224-610-234567', status: 'PENDING', createdAt: '2026-02-15T09:00:00Z',
+    dateOfBirth: '1992-05-19', nationality: 'GN', idType: 'passport', idNumber: 'P4567890', idExpiryDate: '2027-05-19',
+    address: { line1: '321 Market St', city: 'Conakry', country: 'GN', postalCode: 'CKY-201' },
+  },
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c10', customerId: 'CUS-10010', firstName: 'Nia', lastName: 'Okoro', embossName: 'NIA OKORO',
+    email: 'nia.o@example.com', phone: '+234-702-5678901', status: 'ACTIVE', createdAt: '2025-08-20T15:30:00Z',
+    dateOfBirth: '1994-09-12', nationality: 'NG', idType: 'driver_license', idNumber: 'DL-567890', idExpiryDate: '2026-09-12',
+    address: { line1: '654 Business Plaza', city: 'Abuja', state: 'FCT', country: 'NG', postalCode: 'ABJ-900' },
+    rib: '5678901234567890123456', agencyCode: 'AG006',
+  },
+  {
+    tenantId: 'tenant_alpha_bank',
+    id: 'c11', customerId: 'CUS-10011', firstName: 'Kwame', lastName: 'Asante', embossName: 'KWAME ASANTE',
+    email: 'kwame.a@example.com', phone: '+233-24-1234567', status: 'ACTIVE', createdAt: '2025-11-03T12:00:00Z',
+    dateOfBirth: '1991-01-25', nationality: 'GH', idType: 'national_id', idNumber: 'GH-NID-456789', idExpiryDate: '2031-01-25',
+    address: { line1: '987 Financial Center', city: 'Kumasi', country: 'GH', postalCode: 'KM-050' },
+    rib: '6789012345678901234567', agencyCode: 'AG007',
+  },
 ];
 
 let _kycDocuments: KycDocument[] = [
@@ -275,6 +323,14 @@ let _cards: Card[] = [
   { tenantId: 'tenant_alpha_affiliate', id: 'card4', customerId: 'c3', maskedPan: '****-****-****-5566', productName: 'Kardit Platinum', productCode: 'KRD_PLT', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 12300.00, createdAt: '2025-07-09T11:00:00Z', embossName: 'CLARA NGUYEN' },
   { tenantId: 'tenant_alpha_affiliate', id: 'card5', customerId: 'c3', maskedPan: '****-****-****-9988', productName: 'Kardit Corporate', productCode: 'KRD_CRP', issuingBankName: 'Gamma Trust', status: 'ACTIVE', currency: 'EUR', currentBalance: 8500.00, createdAt: '2025-09-15T08:00:00Z', embossName: 'CLARA NGUYEN' },
   { tenantId: 'tenant_alpha_affiliate', id: 'card6', customerId: 'c5', maskedPan: '****-****-****-2211', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Gamma Trust', status: 'BLOCKED', currency: 'EUR', currentBalance: 320.50, createdAt: '2025-12-01T14:00:00Z', embossName: 'EVA SCHMIDT' },
+  // Bank portfolio cards
+  { tenantId: 'tenant_alpha_bank', id: 'card7', customerId: 'c6', maskedPan: '****-****-****-6789', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 3500.00, createdAt: '2025-10-11T10:00:00Z', embossName: 'KOFI MENSAH', deliveryMethod: 'BRANCH_PICKUP' },
+  { tenantId: 'tenant_alpha_bank', id: 'card8', customerId: 'c7', maskedPan: '****-****-****-1357', productName: 'Kardit Platinum', productCode: 'KRD_PLT', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 15000.00, createdAt: '2025-09-06T14:00:00Z', embossName: 'ZAINAB HASSAN', deliveryMethod: 'HOME_DELIVERY' },
+  { tenantId: 'tenant_alpha_bank', id: 'card9', customerId: 'c7', maskedPan: '****-****-****-2468', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 2200.00, createdAt: '2025-10-06T14:00:00Z', embossName: 'ZAINAB HASSAN', deliveryMethod: 'HOME_DELIVERY' },
+  { tenantId: 'tenant_alpha_bank', id: 'card10', customerId: 'c8', maskedPan: '****-****-****-3579', productName: 'Kardit Corporate', productCode: 'KRD_CRP', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'EUR', currentBalance: 8800.00, createdAt: '2025-12-02T11:00:00Z', embossName: 'AMARA DIALLO', deliveryMethod: 'BRANCH_PICKUP' },
+  { tenantId: 'tenant_alpha_bank', id: 'card11', customerId: 'c9', maskedPan: '****-****-****-4680', productName: 'Kardit Classic', productCode: 'KRD_CLS', issuingBankName: 'Alpha Bank', status: 'PENDING', currency: 'USD', currentBalance: 0, createdAt: '2026-02-16T09:00:00Z', embossName: 'IBRAHIM SOW' },
+  { tenantId: 'tenant_alpha_bank', id: 'card12', customerId: 'c10', maskedPan: '****-****-****-5791', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 5600.00, createdAt: '2025-08-21T15:30:00Z', embossName: 'NIA OKORO', deliveryMethod: 'HOME_DELIVERY' },
+  { tenantId: 'tenant_alpha_bank', id: 'card13', customerId: 'c11', maskedPan: '****-****-****-6902', productName: 'Kardit Gold', productCode: 'KRD_GLD', issuingBankName: 'Alpha Bank', status: 'ACTIVE', currency: 'USD', currentBalance: 4100.00, createdAt: '2025-11-04T12:00:00Z', embossName: 'KWAME ASANTE', deliveryMethod: 'BRANCH_PICKUP' },
 ];
 
 let _batches: CustomerBatch[] = [
@@ -327,11 +383,18 @@ export const store = {
       ...data,
       id,
       customerId: `CUS-${10000 + _nextId}`,
-      status: 'PENDING',
+      status: 'ACTIVE',
       createdAt: new Date().toISOString(),
     };
     _customers = [..._customers, customer];
     return customer;
+  },
+  updateCustomer: (id: string, patch: Partial<Customer>): Customer | null => {
+    const idx = _customers.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    _customers[idx] = { ..._customers[idx], ...patch };
+    _customers = [..._customers];
+    return _customers[idx];
   },
 
   // KYC Documents
@@ -363,7 +426,7 @@ export const store = {
       ...data,
       id: genId('card'),
       maskedPan: `****-****-****-${last4}`,
-      status: 'PENDING',
+      status: 'ACTIVE',
       currentBalance: 0,
       createdAt: new Date().toISOString(),
     };

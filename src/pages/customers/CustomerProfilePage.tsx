@@ -6,18 +6,46 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useCustomer } from '@/hooks/useCustomers';
 import { store } from '@/stores/mockStore';
 import { CreditCard, Loader2, Mail, Phone, MapPin, Calendar, Globe, FileText, Code, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function CustomerProfilePage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
-  const { customer, kycDocuments, cards, isLoading } = useCustomer(customerId);
+  const { customer, kycDocuments, cards, isLoading, refetch } = useCustomer(customerId);
   const [cmsOpen, setCmsOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const pendingRequests = customerId ? store.getPendingCMSRequests(customerId) : [];
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!customer) return;
+    
+    setStatusLoading(true);
+    try {
+      store.updateCustomer(customer.id, { status: newStatus as any });
+      
+      const statusLabel = {
+        ACTIVE: 'Activated',
+        BLOCKED: 'Blocked',
+        PENDING: 'Set to Pending',
+        REJECTED: 'Rejected'
+      }[newStatus] || newStatus;
+      
+      toast.success(`✓ Customer ${statusLabel}`);
+      
+      // Refetch to update the UI
+      await refetch();
+    } catch (error) {
+      toast.error('Failed to update customer status');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
@@ -35,7 +63,20 @@ export default function CustomerProfilePage() {
             subtitle={customer.customerId}
             actions={
               <div className="flex items-center gap-3">
-                <StatusChip status={customer.status as StatusType} />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                  <Select value={customer.status} onValueChange={handleStatusChange} disabled={statusLoading}>
+                    <SelectTrigger className="w-40 bg-muted border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="BLOCKED">Blocked</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={() => navigate(`/customers/${customer.id}/cards/new`)}>
                   <CreditCard className="h-4 w-4" /> Issue Additional Card
                 </Button>

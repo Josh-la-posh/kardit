@@ -16,6 +16,10 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
+import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
+// import InactiveAffiliatesPage from "./pages/bank/InactiveAffiliatesPage";
+import AffiliateDetailPage from "./pages/bank/AffiliateDetailPage";
+import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
@@ -117,6 +121,10 @@ const App = () => (
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
+            <Route path="/bank/active-affiliates" element={<ActiveAffiliatesPage />} />
+            {/* <Route path="/bank/inactive-affiliates" element={<InactiveAffiliatesPage />} /> */}
+            <Route path="/bank/affiliates/:affiliateId" element={<AffiliateDetailPage />} />
+            <Route path="/bank/customers" element={<CustomersPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
             <Route path="/super-admin/affiliates" element={<AffiliatesPage />} />
             <Route path="/super-admin/pending-approval" element={<PendingApprovalPage />} />
