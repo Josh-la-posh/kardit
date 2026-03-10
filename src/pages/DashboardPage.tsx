@@ -139,18 +139,26 @@ export default function DashboardPage() {
 
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard 
+            <div className='cursor-pointer '
+            onClick={() => navigate('/customers')}
+            >
+              <StatCard 
               title="Total Customers" 
               value={metrics.totalCustomers.toString()} 
               icon={Users}
               trend={{ value: 12, isPositive: true }}
             />
-            <StatCard 
+            </div>
+            <div className='cursor-pointer '
+            onClick={() => navigate('/cards')}
+            >
+              <StatCard 
               title="Total Cards" 
               value={metrics.totalCards.toString()} 
               icon={CreditCard}
               subtitle={`${metrics.activeCards} active`}
-            />
+              />
+            </div>
             <StatCard 
               title="Total Credits" 
               value={formatCurrency(metrics.totalBalance)} 
