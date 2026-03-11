@@ -5,18 +5,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { useAuth } from "@/hooks/useAuth";
-import { Activity, Building2, Shield, Users, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Activity, Building2, Shield, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 interface ComplianceAffiliate {
   id: string;
@@ -63,27 +55,8 @@ export default function SuperAdminDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [affiliates, setAffiliates] = useState<ComplianceAffiliate[]>(mockComplianceAffiliates);
-  const [selectedAffiliate, setSelectedAffiliate] = useState<ComplianceAffiliate | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const pendingCount = affiliates.filter(a => a.status === 'pending').length;
-  const approvedCount = affiliates.filter(a => a.status === 'approved').length;
-
-  const handleApprove = (affiliateId: string) => {
-    setAffiliates(prev =>
-      prev.map(a => a.id === affiliateId ? { ...a, status: 'approved' as const } : a)
-    );
-    toast.success('Affiliate approved successfully');
-    setIsViewModalOpen(false);
-  };
-
-  const handleReject = (affiliateId: string) => {
-    setAffiliates(prev =>
-      prev.map(a => a.id === affiliateId ? { ...a, status: 'rejected' as const } : a)
-    );
-    toast.error('Affiliate rejected');
-    setIsViewModalOpen(false);
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -164,7 +137,7 @@ export default function SuperAdminDashboardPage() {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Bank</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Submitted Date</th>
-                      {/* <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th> */}
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -176,21 +149,17 @@ export default function SuperAdminDashboardPage() {
                         <td className="px-4 py-3 text-sm text-gray-600">{getBankLabel(affiliate.issuingBank)}</td>
                         <td className="px-4 py-3 text-sm">{getStatusBadge(affiliate.status)}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{affiliate.submittedDate}</td>
-                        {/* <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm">
                           <Button
                             variant="outline"
                             size="sm"
                             className="gap-2"
-                            onClick={() => {
-                              setSelectedAffiliate(affiliate);
-                              setIsViewModalOpen(true);
-                            }}
-                            // disabled={affiliate.status !== 'pending'}
+                            onClick={() => navigate(`/super-admin/affiliates/${affiliate.id}`)}
                           >
                             <Eye className="w-4 h-4" />
                             View
                           </Button>
-                        </td> */}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -198,75 +167,6 @@ export default function SuperAdminDashboardPage() {
               </div>
             </div>
           </Card>
-
-          {/* View/Approve/Reject Modal */}
-          <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Affiliate Compliance Review</DialogTitle>
-                <DialogDescription>
-                  Review and approve or reject this affiliate's compliance submission
-                </DialogDescription>
-              </DialogHeader>
-
-              {selectedAffiliate && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Affiliate Name</p>
-                      <p className="font-semibold">{selectedAffiliate.affiliateName}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Contact Person</p>
-                      <p className="font-semibold">{selectedAffiliate.contactPerson}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-semibold text-sm">{selectedAffiliate.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Issuing Bank</p>
-                      <p className="font-semibold">{getBankLabel(selectedAffiliate.issuingBank)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Submitted Date</p>
-                      <p className="font-semibold">{selectedAffiliate.submittedDate}</p>
-                    </div>
-                  </div>
-
-                  {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900">
-                      This affiliate has met the compliance requirements. Click "Approve" to proceed or "Reject" to decline this submission.
-                    </p>
-                  </div> */}
-
-                  <div className="flex gap-3 justify-end pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsViewModalOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => handleReject(selectedAffiliate.id)}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reject
-                    </Button>
-                    <Button
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleApprove(selectedAffiliate.id)}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

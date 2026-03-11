@@ -8,17 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Check, X } from "lucide-react";
-import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ChevronLeft, Eye } from "lucide-react";
 
 interface PendingAffiliate {
   id: string;
@@ -55,9 +45,6 @@ export default function PendingApprovalPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBank, setFilterBank] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
-  const [reviewingId, setReviewingId] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
 
   const banks = ['providus', 'wema', 'stanbic', 'sterling', 'firstbank'];
 
@@ -75,28 +62,7 @@ export default function PendingApprovalPage() {
     });
   }, [searchTerm, filterBank, filterDate, affiliates]);
 
-  const handleApprove = (id: string) => {
-    setReviewingId(id);
-    setActionType('approve');
-    setShowDialog(true);
-  };
 
-  const handleReject = (id: string) => {
-    setReviewingId(id);
-    setActionType('reject');
-    setShowDialog(true);
-  };
-
-  const confirmAction = () => {
-    if (reviewingId && actionType) {
-      const newAffiliates = affiliates.filter(a => a.id !== reviewingId);
-      setAffiliates(newAffiliates);
-      toast.success(actionType === 'approve' ? 'Affiliate approved!' : 'Affiliate rejected!');
-      setShowDialog(false);
-      setReviewingId(null);
-      setActionType(null);
-    }
-  };
 
   const getBankLabel = (bank: string) => {
     const bankMap: { [key: string]: string } = {
@@ -213,25 +179,15 @@ export default function PendingApprovalPage() {
                           <td className="px-4 py-3 text-sm text-gray-600">{getBankLabel(affiliate.issuingBank)}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{affiliate.submittedDate}</td>
                           <td className="px-4 py-3 text-sm">
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                className="gap-2 bg-green-600 hover:bg-green-700"
-                                onClick={() => handleApprove(affiliate.id)}
-                              >
-                                <Check className="w-4 h-4" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="gap-2"
-                                onClick={() => handleReject(affiliate.id)}
-                              >
-                                <X className="w-4 h-4" />
-                                Reject
-                              </Button>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => navigate(`/super-admin/affiliates/${affiliate.id}`)}
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
                           </td>
                         </tr>
                       ))
@@ -248,30 +204,7 @@ export default function PendingApprovalPage() {
             </div>
           </Card>
 
-          {/* Action Confirmation Dialog */}
-          <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {actionType === 'approve' ? 'Approve Affiliate?' : 'Reject Affiliate?'}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {actionType === 'approve' 
-                    ? 'This affiliate will be marked as approved and can proceed with activation.'
-                    : 'This affiliate will be rejected. They can resubmit their application.'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="flex gap-2 justify-end pt-4">
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={confirmAction}
-                  className={actionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-                >
-                  {actionType === 'approve' ? 'Approve' : 'Reject'}
-                </AlertDialogAction>
-              </div>
-            </AlertDialogContent>
-          </AlertDialog>
+
         </div>
       </AppLayout>
     </ProtectedRoute>

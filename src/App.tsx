@@ -23,11 +23,12 @@ import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
-import AffiliatesPage from "./pages/super-admin/AffiliatesPage";
-import PendingApprovalPage from "./pages/super-admin/PendingApprovalPage";
+import AffiliatesPage from "./pages/super-admin/affiliates/AffiliatesPage";
+import SuperAdminAffiliateDetailPage from "./pages/super-admin/affiliates/SuperAdminAffiliateDetailPage";
+import PendingApprovalPage from "./pages/super-admin/affiliates/PendingApprovalPage";
 import ApprovedAffiliatesPage from "./pages/super-admin/ApprovedAffiliatesPage";
-import BanksPage from "./pages/super-admin/BanksPage";
-import BankDetailsPage from "./pages/super-admin/BankDetailsPage";
+import BanksPage from "./pages/super-admin/bank/BanksPage";
+import BankDetailsPage from "./pages/super-admin/bank/BankDetailsPage";
 
 // Onboarding (public)
 import OnboardingStartPage from "./pages/onboarding/OnboardingStartPage";
@@ -127,6 +128,7 @@ const App = () => (
             <Route path="/bank/customers" element={<CustomersPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
             <Route path="/super-admin/affiliates" element={<AffiliatesPage />} />
+            <Route path="/super-admin/affiliates/:affiliateId" element={<SuperAdminAffiliateDetailPage />} />
             <Route path="/super-admin/pending-approval" element={<PendingApprovalPage />} />
             <Route path="/super-admin/approved" element={<ApprovedAffiliatesPage />} />
             <Route path="/super-admin/banks" element={<BanksPage />} />
