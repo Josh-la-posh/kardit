@@ -386,34 +386,10 @@ export default function SuperAdminAffiliateDetailPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 justify-end">
-                        {affiliate.enabled ? (
-                          <Button
-                            variant="destructive"
-                            onClick={handleDeactivate}
-                            disabled={isUpdating}
-                          >
-                            Deactivate Affiliate
-                          </Button>
-                        ) : (
-                          <Button
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={handleActivate}
-                            disabled={isUpdating}
-                          >
-                            Activate Affiliate
-                          </Button>
-                        )}
-                      </div>
+                    
                     </div>
                   </Card>
 
-                  <Card className="bg-blue-50 border-blue-200 p-6">
-                    <p className="text-sm text-blue-900">
-                      <span className="font-semibold">Note:</span> Compliance approval allows the affiliate to be onboarded. Activation/
-                      Deactivation controls whether they can currently operate through your platform.
-                    </p>
-                  </Card>
                 </TabsContent>
               </Tabs>
             </>
