@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useCard } from '@/hooks/useCards';
 import { useCardTransactions, TransactionFilters } from '@/hooks/useTransactions';
 import { store, CARD_ACTION_CODES, CARD_REASON_CODES, CardStatus } from '@/stores/mockStore';
-import { Loader2, CreditCard, DollarSign, Calendar, User, Lock, Unlock, ShieldBan, RefreshCw, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Loader2, CreditCard, DollarSign, Calendar, User, Lock, Unlock, ShieldBan, RefreshCw, ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,24 @@ import { useAuth } from '@/hooks/useAuth';
 type ActionCode = 'L' | 'U' | 'P';
 
 export default function CardDetailPage() {
+    // View balance modal state
+    const [balanceOpen, setBalanceOpen] = useState(false);
+    const [balanceLoading, setBalanceLoading] = useState(false);
+    const [balanceResult, setBalanceResult] = useState<null | { success: boolean; balance: number; status: string; error?: string }>(null);
+      // PIN reset modal state
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinResult, setPinResult] = useState<null | { success: boolean; error?: string }>(null);
+
+    const handleViewBalance = async () => {
+      if (!cardId) return;
+      setBalanceLoading(true);
+      setBalanceOpen(true);
+      setBalanceResult(null);
+      const result = await store.fetchCardBalanceFromCMS(cardId);
+      setBalanceResult(result);
+      setBalanceLoading(false);
+    };
   const { cardId } = useParams<{ cardId: string }>();
   const { card, isLoading, refetch: refetchCard } = useCard(cardId);
   const { user } = useAuth();
@@ -47,17 +65,28 @@ export default function CardDetailPage() {
     if (!cardId || !actionCode || !reasonCode) return;
     setActionLoading(true);
     await new Promise(r => setTimeout(r, 500));
+    let result: any = null;
     const info = CARD_ACTION_CODES[actionCode];
-    store.updateCard(cardId, { status: info.targetStatus });
-    const reasonLabel = CARD_REASON_CODES[actionCode]?.find(r => r.code === reasonCode)?.label || reasonCode;
-    store.addCMSAction({
-      entityType: 'CARD', entityId: cardId,
-      payload: { crt_action: actionCode, crt_reason: reasonCode, reason_label: reasonLabel, target_status: info.targetStatus },
-    });
+    // let reasonLabel = CARD_REASON_CODES[actionCode]?.find(r => r.code === reasonCode)?.label || reasonCode;
+    let errorMsg = '';
+    if (actionCode === 'L') {
+      result = store.freezeCard(cardId, reasonCode);
+      if (!result) errorMsg = 'Temporary lock failed after retries.';
+    } else if (actionCode === 'U') {
+      result = store.unfreezeCard(cardId, reasonCode);
+      if (!result) errorMsg = 'Unlock failed after retries.';
+    } else if (actionCode === 'P') {
+      result = store.terminateCard(cardId, reasonCode);
+      if (!result) errorMsg = 'Permanent lock failed after retries.';
+    }
     setActionLoading(false);
     setActionOpen(false);
     refetchCard();
-    toast.success(`Card ${info.label.toLowerCase()} successful`);
+    if (errorMsg) {
+      toast.error(errorMsg);
+    } else {
+      toast.success(`Card ${info.label.toLowerCase()} successful`);
+    }
   };
 
   if (isLoading) {
@@ -73,6 +102,21 @@ export default function CardDetailPage() {
 
   const availableReasons = actionCode ? (CARD_REASON_CODES[actionCode] || []) : [];
 
+  // Must be after cardId is defined
+  const handlePinReset = async () => {
+    if (!cardId) return;
+    setPinLoading(true);
+    setPinResult(null);
+    const result = await store.resetCardPin(cardId);
+    setPinResult(result);
+    setPinLoading(false);
+    if (result.success) {
+      toast.success('PIN reset successful. SMS sent to cardholder.');
+    } else {
+      toast.error('PIN reset failed after retries.');
+    }
+  };
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
@@ -81,31 +125,117 @@ export default function CardDetailPage() {
             title={card.maskedPan}
             subtitle={`${card.productName} (${card.productCode}) • ${card.issuingBankName}`}
             actions={
-              <div className="flex items-center gap-2 flex-wrap">
-                <StatusChip status={card.status as StatusType} />
-                <Button variant="outline" size="sm" onClick={handleRefresh}>
-                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-                </Button>
-                {card.status === 'ACTIVE' && (
-                  <>
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <StatusChip status={card.status as StatusType} />
+                  <Button variant="outline" size="sm" onClick={handleRefresh}>
+                    <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleViewBalance}>
+                    <DollarSign className="h-4 w-4 mr-1" /> View Balance
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setPinOpen(true)}>
+                    <Lock className="h-4 w-4 mr-1" /> Reset PIN
+                  </Button>
+                </div>
+                <div className="flex items-center justify-end gap-4 flex-wrap">
+                  {/* PIN Reset Modal */}
+                  <Dialog open={pinOpen} onOpenChange={setPinOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reset Card PIN</DialogTitle>
+                        <DialogDescription>
+                          {pinLoading && 'Resetting PIN via CMS...'}
+                          {!pinLoading && pinResult && (
+                            <>
+                              {pinResult.success ? (
+                                <span>PIN reset successful. SMS sent to cardholder.</span>
+                              ) : (
+                                <span className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4 text-warning" /> PIN reset failed after retries.</span>
+                              )}
+                            </>
+                          )}
+                          {!pinLoading && !pinResult && (
+                            <span>Are you sure you want to reset the PIN for this card? This will trigger a new PIN to be sent to the cardholder via SMS.</span>
+                          )}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 text-center">
+                        {pinLoading ? (
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                        ) : null}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setPinOpen(false)}>Close</Button>
+                        {!pinLoading && !pinResult && (
+                          <Button variant="default" onClick={handlePinReset}>Confirm Reset</Button>
+                        )}
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  {/* View Balance Modal */}
+                  <Dialog open={balanceOpen} onOpenChange={setBalanceOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Card Balance</DialogTitle>
+                        <DialogDescription>
+                          {balanceLoading && 'Fetching balance from CMS...'}
+                          {!balanceLoading && balanceResult && (
+                            <>
+                              {balanceResult.success ? (
+                                <span>Current balance fetched from CMS.</span>
+                              ) : (
+                                <span className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4 text-warning" /> CMS unavailable. Showing cached balance.</span>
+                              )}
+                            </>
+                          )}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 text-center">
+                        {balanceLoading ? (
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                        ) : balanceResult && (
+                          <>
+                            <div className="text-2xl font-bold mb-2">{balanceResult.balance.toLocaleString('en-US', { style: 'currency', currency: card.currency })}</div>
+                            <div className="text-sm text-muted-foreground mb-1">Card Status: <StatusChip status={balanceResult.status as StatusType} /></div>
+                            {balanceResult.error && (
+                              <div className="text-xs text-warning mt-2">{balanceResult.error}</div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setBalanceOpen(false)}>Close</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  {card.status === 'ACTIVE' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => openAction('L')}>
+                        <Lock className="h-4 w-4 mr-1" /> Temporarily Lock
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => openAction('P')}>
+                        <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
+                      </Button>
+                    </>
+                  )}
+                  {card.status === 'FROZEN' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => openAction('U')}>
+                        <Unlock className="h-4 w-4 mr-1" /> Unlock
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => openAction('P')}>
+                        <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
+                      </Button>
+                    </>
+                  )}
+                  {card.status === 'PENDING' && (
                     <Button variant="outline" size="sm" onClick={() => openAction('L')}>
                       <Lock className="h-4 w-4 mr-1" /> Temporarily Lock
                     </Button>
-                    <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                      <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
-                    </Button>
-                  </>
-                )}
-                {card.status === 'FROZEN' && (
-                  <>
-                    <Button variant="outline" size="sm" onClick={() => openAction('U')}>
-                      <Unlock className="h-4 w-4 mr-1" /> Unlock
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                      <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
-                    </Button>
-                  </>
-                )}
+                  )}
+                </div>
+                {/* Card creation UI can be added in parent or list page, not detail page */}
               </div>
             }
           />

@@ -20,6 +20,11 @@ import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 
+// Super Admin Bank Management
+import BanksListPage from "./pages/super-admin/banks/BanksListPage";
+import BankDetailPage from "./pages/super-admin/banks/BankDetailPage";
+import AffiliateDetailPage from "./pages/super-admin/banks/AffiliateDetailPage";
+
 // Onboarding (public)
 import OnboardingStartPage from "./pages/onboarding/OnboardingStartPage";
 import OnboardingOrganizationPage from "./pages/onboarding/OnboardingOrganizationPage";
@@ -113,6 +118,11 @@ const App = () => (
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
+
+            {/* Service provider bank management */}
+            <Route path="/super-admin/banks" element={<BanksListPage />} />
+            <Route path="/super-admin/banks/:bankId" element={<BankDetailPage />} />
+            <Route path="/super-admin/banks/:bankId/affiliates/:affiliateId" element={<AffiliateDetailPage />} />
 
             {/* Service provider onboarding review */}
             <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />

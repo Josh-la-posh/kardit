@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -75,7 +75,6 @@ export default function CreateCardPage() {
 
     await createCard({
       customerId: form.customerId,
-      tenantId: user?.tenantId || 'tenant_alpha_affiliate',
       productName: selectedProduct!.name,
       productCode: selectedProduct!.code,
       issuingBankName: selectedBank!.name,
