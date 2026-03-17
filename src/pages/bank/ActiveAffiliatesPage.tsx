@@ -155,7 +155,7 @@ export default function ActiveAffiliatesPage() {
                             variant="outline"
                             size="sm"
                             className="gap-2"
-                            onClick={() => navigate(`/bank/affiliates/${affiliate.id}`)}
+                            onClick={() => navigate(`/bank/active-affiliates/${affiliate.id}`)}
                           >
                             <Eye className="w-4 h-4" />
                             View

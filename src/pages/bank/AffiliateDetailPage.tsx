@@ -15,7 +15,7 @@ interface AffiliateUser {
   id: string;
   fullName: string;
   email: string;
-  role: string;
+  phone?: string;
   status: 'active' | 'inactive';
   createdDate: string;
 }
@@ -82,7 +82,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '1',
       fullName: 'Ahmed Hassan',
       email: 'ahmed@globalpartners.ng',
-      role: 'Admin',
+      phone: '+234 803 234 5678',
       status: 'active',
       createdDate: '2024-02-25',
     },
@@ -90,7 +90,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '2',
       fullName: 'Fatima Hassan',
       email: 'fatima@globalpartners.ng',
-      role: 'Manager',
+      phone: '+234 803 234 5678',
       status: 'active',
       createdDate: '2024-02-26',
     },
@@ -98,7 +98,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '3',
       fullName: 'Yusuf Usman',
       email: 'yusuf@globalpartners.ng',
-      role: 'Officer',
+      phone: '+234 803 234 5678',
       status: 'inactive',
       createdDate: '2024-02-28',
     },
@@ -108,7 +108,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '4',
       fullName: 'Blessing Okonkwo',
       email: 'blessing@digitalcommerce.ng',
-      role: 'Admin',
+      phone: '+234 803 234 5678',
       status: 'active',
       createdDate: '2024-02-15',
     },
@@ -116,7 +116,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '5',
       fullName: 'Chidinma Okafor',
       email: 'chidinma@digitalcommerce.ng',
-      role: 'Manager',
+      phone: '+234 804 234 5678',
       status: 'active',
       createdDate: '2024-02-16',
     },
@@ -126,7 +126,7 @@ const mockAffiliateUsers: { [key: string]: AffiliateUser[] } = {
       id: '6',
       fullName: 'Tunde Adebayo',
       email: 'tunde@techinnovations.ng',
-      role: 'Admin',
+      phone: '+234 803 234 5678',
       status: 'active',
       createdDate: '2024-02-10',
     },
@@ -277,7 +277,7 @@ export default function AffiliateDetailPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/bank/dashboard')}
+              onClick={() => navigate('/bank/active-affiliates')}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -403,7 +403,7 @@ export default function AffiliateDetailPage() {
                       <tr className="border-b border-gray-200">
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Full Name</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Role</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Created Date</th>
                       </tr>
@@ -413,7 +413,7 @@ export default function AffiliateDetailPage() {
                         <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-gray-900">{user.fullName}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{user.role}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{user.phone}</td>
                           <td className="px-4 py-3 text-sm">{getStatusBadge(user.status)}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{user.createdDate}</td>
                         </tr>

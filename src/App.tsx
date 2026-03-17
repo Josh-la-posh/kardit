@@ -123,8 +123,8 @@ const App = () => (
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
             <Route path="/bank/active-affiliates" element={<ActiveAffiliatesPage />} />
+            <Route path="/bank/active-affiliates/:affiliateId" element={<AffiliateDetailPage />} />
             {/* <Route path="/bank/inactive-affiliates" element={<InactiveAffiliatesPage />} /> */}
-            <Route path="/bank/affiliates/:affiliateId" element={<AffiliateDetailPage />} />
             <Route path="/bank/customers" element={<CustomersPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
             <Route path="/super-admin/affiliates" element={<AffiliatesPage />} />

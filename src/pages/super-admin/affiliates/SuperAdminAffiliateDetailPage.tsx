@@ -7,8 +7,131 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ChevronLeft, FileText, User, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Interfaces
+interface AffiliateCustomer {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  status: 'active' | 'inactive';
+  createdDate: string;
+}
+
+interface AffiliateCard {
+  id: string;
+  cardNumber: string;
+  cardHolder: string;
+  cardType: string;
+  status: 'active' | 'blocked' | 'expired';
+  issuedDate: string;
+  balance: number;
+}
+
+// Mock customers data per affiliate (only for approved affiliates)
+const mockAffiliateCustomers: { [key: string]: AffiliateCustomer[] } = {
+  '2': [
+    {
+      id: '1',
+      fullName: 'Ahmed Hassan',
+      email: 'ahmed@globalpartners.ng',
+      phone: '+234 801 234 5678',
+      status: 'active',
+      createdDate: '2024-02-25',
+    },
+    {
+      id: '2',
+      fullName: 'Fatima Hassan',
+      email: 'fatima@globalpartners.ng',
+      phone: '+234 802 234 5678',
+      status: 'active',
+      createdDate: '2024-02-26',
+    },
+    {
+      id: '3',
+      fullName: 'Yusuf Usman',
+      email: 'yusuf@globalpartners.ng',
+      phone: '+234 803 234 5678',
+      status: 'inactive',
+      createdDate: '2024-02-28',
+    },
+  ],
+  '4': [
+    {
+      id: '4',
+      fullName: 'Blessing Okonkwo',
+      email: 'blessing@digitalcommerce.ng',
+      phone: '+234 803 234 5678',
+      status: 'active',
+      createdDate: '2024-02-15',
+    },
+    {
+      id: '5',
+      fullName: 'Chidinma Okafor',
+      email: 'chidinma@digitalcommerce.ng',
+      phone: '+234 804 234 5678',
+      status: 'active',
+      createdDate: '2024-02-16',
+    },
+  ],
+};
+
+// Mock cards data per affiliate (only for approved affiliates)
+const mockAffiliateCards: { [key: string]: AffiliateCard[] } = {
+  '2': [
+    {
+      id: 'CARD001',
+      cardNumber: '****-****-****-1234',
+      cardHolder: 'Ahmed Hassan',
+      cardType: 'Platinum',
+      status: 'active',
+      issuedDate: '2024-02-25',
+      balance: 250000,
+    },
+    {
+      id: 'CARD002',
+      cardNumber: '****-****-****-5678',
+      cardHolder: 'Fatima Hassan',
+      cardType: 'Gold',
+      status: 'active',
+      issuedDate: '2024-02-26',
+      balance: 150000,
+    },
+    {
+      id: 'CARD003',
+      cardNumber: '****-****-****-9012',
+      cardHolder: 'Yusuf Usman',
+      cardType: 'Standard',
+      status: 'blocked',
+      issuedDate: '2024-02-28',
+      balance: 50000,
+    },
+  ],
+  '4': [
+    {
+      id: 'CARD004',
+      cardNumber: '****-****-****-3456',
+      cardHolder: 'Blessing Okonkwo',
+      cardType: 'Platinum',
+      status: 'active',
+      issuedDate: '2024-02-15',
+      balance: 300000,
+    },
+    {
+      id: 'CARD005',
+      cardNumber: '****-****-****-7890',
+      cardHolder: 'Chidinma Okafor',
+      cardType: 'Gold',
+      status: 'active',
+      issuedDate: '2024-02-16',
+      balance: 200000,
+    },
+  ],
+};
 
 // Mock data - This would come from your store/API
 const mockAffiliatesData: Record<string, any> = {
@@ -133,6 +256,39 @@ export default function SuperAdminAffiliateDetailPage() {
     affiliateId ? mockAffiliatesData[affiliateId] : null
   );
   const [isUpdating, setIsUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  const allCustomers = affiliate?.status === 'approved' && affiliateId 
+    ? mockAffiliateCustomers[affiliateId] || [] 
+    : [];
+  const allCards = affiliate?.status === 'approved' && affiliateId
+    ? mockAffiliateCards[affiliateId] || []
+    : [];
+
+  const filteredCustomers = useMemo(() => {
+    return allCustomers.filter(customer => {
+      const matchesSearch = 
+        customer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = filterStatus === 'all' || customer.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [searchTerm, filterStatus, allCustomers]);
+
+  const filteredCards = useMemo(() => {
+    return allCards.filter(card => {
+      const matchesSearch = 
+        card.cardHolder.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.cardNumber.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = filterStatus === 'all' || card.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [searchTerm, filterStatus, allCards]);
 
   const bankMap: { [key: string]: string } = {
     providus: 'Providus Bank',
@@ -206,7 +362,7 @@ export default function SuperAdminAffiliateDetailPage() {
                 actions={
                   <div className="flex items-center gap-2">
                     {getStatusBadge(affiliate.status)}
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={() => navigate('/super-admin/affiliates')}
@@ -214,15 +370,17 @@ export default function SuperAdminAffiliateDetailPage() {
                     >
                       <ChevronLeft className="w-4 h-4" />
                       Back
-                    </Button>
+                    </Button> */}
                   </div>
                 }
               />
 
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="details">Details</TabsTrigger>
                   <TabsTrigger value="documents">Documents</TabsTrigger>
+                  <TabsTrigger value="customers">Customers ({allCustomers.length})</TabsTrigger>
+                  <TabsTrigger value="cards">Cards ({allCards.length})</TabsTrigger>
                   <TabsTrigger value="management">Management</TabsTrigger>
                 </TabsList>
 
@@ -322,6 +480,201 @@ export default function SuperAdminAffiliateDetailPage() {
                       </div>
                     )}
                   </Card>
+                </TabsContent>
+
+                {/* Customers Tab */}
+                <TabsContent value="customers" className="space-y-4">
+                  {affiliate.status === 'approved' ? (
+                    <>
+                      <Card className="border-0 shadow-lg p-6">
+                        <h3 className="text-lg font-semibold mb-4">Filters</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
+                            <Input
+                              id="search"
+                              placeholder="Search by name or email..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status" className="text-sm font-semibold mb-2 block">Status</Label>
+                            <select
+                              id="status"
+                              value={filterStatus}
+                              onChange={(e) => setFilterStatus(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="active">Active</option>
+                              <option value="inactive">Inactive</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSearchTerm('');
+                              setFilterStatus('all');
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                        </div>
+                      </Card>
+
+                      <Card className="border-0 shadow-lg">
+                        <div className="p-6">
+                          <h2 className="text-2xl font-bold mb-4">Customers</h2>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-gray-200">
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Full Name</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Created Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredCustomers.map((customer) => (
+                                  <tr key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm text-gray-900">{customer.fullName}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.email}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.phone || 'N/A'}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                      <Badge className={customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                                        {customer.status === 'active' ? 'Active' : 'Inactive'}
+                                      </Badge>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.createdDate}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {filteredCustomers.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>{allCustomers.length === 0 ? 'No customers assigned to this affiliate.' : 'No customers found matching your filters.'}</p>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </>
+                  ) : (
+                    <Card className="p-6">
+                      <div className="text-center py-8 text-gray-500">
+                        <p>Customers are only available for approved affiliates</p>
+                      </div>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                {/* Cards Tab */}
+                <TabsContent value="cards" className="space-y-4">
+                  {affiliate.status === 'approved' ? (
+                    <>
+                      <Card className="border-0 shadow-lg p-6">
+                        <h3 className="text-lg font-semibold mb-4">Filters</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
+                            <Input
+                              id="search"
+                              placeholder="Search by holder or card number..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status" className="text-sm font-semibold mb-2 block">Status</Label>
+                            <select
+                              id="status"
+                              value={filterStatus}
+                              onChange={(e) => setFilterStatus(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="active">Active</option>
+                              <option value="blocked">Blocked</option>
+                              <option value="expired">Expired</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSearchTerm('');
+                              setFilterStatus('all');
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                        </div>
+                      </Card>
+
+                      <Card className="border-0 shadow-lg">
+                        <div className="p-6">
+                          <h2 className="text-2xl font-bold mb-4">Cards</h2>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-gray-200">
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Card Number</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Card Holder</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Balance</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Issued Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredCards.map((card) => (
+                                  <tr key={card.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{card.cardNumber}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{card.cardHolder}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{card.cardType}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                      <Badge className={
+                                        card.status === 'active' ? 'bg-green-100 text-green-800' :
+                                        card.status === 'blocked' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                      }>
+                                        {card.status === 'active' ? 'Active' : card.status === 'blocked' ? 'Blocked' : 'Expired'}
+                                      </Badge>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">₦{card.balance.toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{card.issuedDate}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {filteredCards.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>{allCards.length === 0 ? 'No cards issued to this affiliate.' : 'No cards found matching your filters.'}</p>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </>
+                  ) : (
+                    <Card className="p-6">
+                      <div className="text-center py-8 text-gray-500">
+                        <p>Cards are only available for approved affiliates</p>
+                      </div>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 {/* Management Tab */}

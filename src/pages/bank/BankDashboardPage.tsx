@@ -109,7 +109,7 @@ export default function BankDashboardPage() {
               className="cursor-pointer transition-transform hover:scale-105"
               onClick={() => navigate('/bank/active-affiliates')}
             >
-              <StatCard title="Active Affiliates" value={metrics.approvedAffiliates.toString()} icon={Building2} subtitle={`${metrics.pendingAffiliates} pending`} />
+              <StatCard title="Active Affiliates" value={metrics.approvedAffiliates.toString() } icon={Building2} subtitle={`${metrics.pendingAffiliates} pending`} />
             </div>
             {/* <StatCard 
               title="Affiliates" 

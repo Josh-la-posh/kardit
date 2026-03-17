@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { useOnboardingCase, useReviewerOnboardingCases } from '@/hooks/useOnboarding';
-import { Loader2, ArrowLeft, Building2, User, FileText, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Building2, User, FileText, CheckCircle, XCircle, HelpCircle, Power, PowerOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -32,6 +32,7 @@ export default function BankAffiliateDetailPage() {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
+  const [isActive, setIsActive] = useState(false);
 
   const handleDecision = async (decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION') => {
     if (!caseId) return;
@@ -44,9 +45,31 @@ export default function BankAffiliateDetailPage() {
         'Clarification requested'
       );
       await refresh();
+      setReason('');
+      setNote('');
+    } catch (err) {
+      toast.error('Failed to process decision');
     } finally {
       setWorking(false);
     }
+  };
+
+  const handleActivate = () => {
+    setWorking(true);
+    setTimeout(() => {
+      setIsActive(true);
+      toast.success('Affiliate activated successfully');
+      setWorking(false);
+    }, 500);
+  };
+
+  const handleDeactivate = () => {
+    setWorking(true);
+    setTimeout(() => {
+      setIsActive(false);
+      toast.error('Affiliate deactivated');
+      setWorking(false);
+    }, 500);
   };
 
   if (isLoading) {
@@ -239,6 +262,45 @@ export default function BankAffiliateDetailPage() {
                       >
                         <XCircle className="h-4 w-4 mr-1" /> Reject
                       </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Affiliate Activation/Deactivation */}
+              {(caseItem.status === 'APPROVED' || caseItem.status === 'PROVISIONED') && (
+                <div className="kardit-card p-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Affiliate Operations</h3>
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-border p-4">
+                      <p className="text-sm font-medium mb-3">Current Status</p>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div
+                          className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-600' : 'bg-gray-400'}`}
+                        />
+                        <span className="text-sm font-medium">
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {!isActive ? (
+                          <Button
+                            className="w-full bg-green-600 hover:bg-green-700"
+                            onClick={handleActivate}
+                            disabled={working}
+                          >
+                            <Power className="h-4 w-4 mr-1" /> Activate Affiliate
+                          </Button>
+                        ) : (
+                          <Button
+                            className="w-full bg-amber-600 hover:bg-amber-700"
+                            onClick={handleDeactivate}
+                            disabled={working}
+                          >
+                            <PowerOff className="h-4 w-4 mr-1" /> Deactivate Affiliate
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -101,6 +101,7 @@ export default function BankAffiliatesListPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Submitted</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate Name</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
@@ -122,6 +123,9 @@ export default function BankAffiliatesListPage() {
                         <td className="px-4 py-3 text-sm max-w-[200px]">
                           <p className="truncate">{affiliate.contact?.contactName || '—'}</p>
                           <p className="text-xs text-muted-foreground truncate">{affiliate.contact?.contactEmail}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {affiliate.contact?.contactPhone|| '—'}
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">
                           {affiliate.organization?.country || '—'}
