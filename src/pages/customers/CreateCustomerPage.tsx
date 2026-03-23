@@ -131,7 +131,7 @@ export default function CreateCustomerPage() {
             title="Create Customer"
             subtitle="Register a new customer with initial card"
             actions={
-              <Button variant="outline" size="sm" onClick={() => navigate('/customers')}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/cards/create')}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
             }
@@ -215,7 +215,7 @@ export default function CreateCustomerPage() {
               </div>
 
               {/* Card Issuance */}
-              <div className="kardit-card p-6 space-y-4">
+              {/* <div className="kardit-card p-6 space-y-4">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Initial Card Issuance</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -259,11 +259,11 @@ export default function CreateCustomerPage() {
                     {errors.issuingBank && <p className="text-xs text-destructive">{errors.issuingBank}</p>}
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Actions */}
               <div className="flex gap-3 justify-end">
-                <Button type="button" variant="outline" onClick={() => navigate('/customers')}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/cards/create')}>Cancel</Button>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Create Customer
@@ -282,9 +282,9 @@ export default function CreateCustomerPage() {
                   <SummaryRow label="Email" value={form.email || '—'} />
                   <SummaryRow label="Mobile" value={form.phone || '—'} />
                   <SummaryRow label="ID Type" value={selectedIdType?.label || '—'} />
-                  <SummaryRow label="Product" value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.code})` : '—'} />
+                  {/* <SummaryRow label="Product" value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.code})` : '—'} />
                   <SummaryRow label="Currency" value={selectedCurrency?.label || '—'} />
-                  <SummaryRow label="Delivery" value={selectedDelivery?.label || '—'} />
+                  <SummaryRow label="Delivery" value={selectedDelivery?.label || '—'} /> */}
                   <SummaryRow label="RIB" value={form.rib || '—'} />
                   <SummaryRow label="Agency" value={form.agencyCode || '—'} />
                   <SummaryRow label="KYC Docs" value={`${kycDocs.length} staged`} />

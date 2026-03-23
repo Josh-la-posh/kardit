@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateCard } from '@/hooks/useCards';
 import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS, store } from '@/stores/mockStore';
-import { Loader2, ArrowLeft, CreditCard } from 'lucide-react';
+import { Plus, Upload, Loader2, ArrowLeft, CreditCard, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -22,6 +22,7 @@ export default function CreateCardPage() {
   const { createCard, isLoading } = useCreateCard();
 
   const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
+  const [refreshKey, setRefreshKey] = useState(0);
   const customers = store.getCustomers(tenantScope).filter(c => c.status === 'ACTIVE');
 
   const [form, setForm] = useState({
@@ -34,6 +35,15 @@ export default function CreateCardPage() {
     issuingBank: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredCustomers = customers.filter(c =>
+    `${c.firstName} ${c.lastName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.customerId.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.email.toLowerCase().includes(customerSearch.toLowerCase())
+  );
 
   const selectedCustomer = customers.find(c => c.id === form.customerId);
 
@@ -76,7 +86,6 @@ export default function CreateCardPage() {
 
     await createCard({
       customerId: form.customerId,
-      tenantId: user?.tenantId || 'tenant_alpha_affiliate',
       productName: selectedProduct!.name,
       productCode: selectedProduct!.code,
       issuingBankName: selectedBank!.name,
@@ -93,6 +102,17 @@ export default function CreateCardPage() {
     <span>{label}{required && <span className="text-destructive ml-0.5">*</span>}</span>
   );
 
+  const handleSelectCustomer = (customerId: string) => {
+    set('customerId', customerId);
+    setCustomerDropdownOpen(false);
+    setCustomerSearch('');
+  };
+
+  const handleCreateNewCustomer = () => {
+    setRefreshKey(prev => prev + 1);
+    navigate('/customers/create', { state: { returnTo: '/cards/create' } });
+  };
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
@@ -101,9 +121,14 @@ export default function CreateCardPage() {
             title="Create Card"
             subtitle="Issue a new card for a customer"
             actions={
+              <div className="flex gap-2">
+              <Button onClick={() => navigate('/customers/create')}>
+                  <Plus className="h-4 w-4" /> Add New Customer
+                </Button>
               <Button variant="outline" size="sm" onClick={() => navigate('/cards')}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
+              </div>
             }
           />
 
@@ -112,24 +137,94 @@ export default function CreateCardPage() {
               {/* Customer Selection */}
               <div className="kardit-card p-6 space-y-4">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Customer</h2>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" ref={dropdownRef} key={refreshKey}>
                   <label className="text-sm font-medium text-foreground">{fieldLabel('Customer', true)}</label>
-                  <Select value={form.customerId} onValueChange={(v) => set('customerId', v)}>
-                    <SelectTrigger className="bg-muted border-border">
-                      <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.length === 0 ? (
-                        <SelectItem value="_none" disabled>No active customers</SelectItem>
-                      ) : (
-                        customers.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.firstName} {c.lastName} ({c.customerId})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-border bg-muted text-sm hover:bg-muted/80 transition-colors"
+                    >
+                      <span className={selectedCustomer ? 'text-foreground font-medium' : 'text-muted-foreground'}>
+                        {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Select a customer'}
+                      </span>
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    </button>
+
+                    {customerDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-md shadow-lg z-50">
+                        <div className="p-3 border-b border-border">
+                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-muted focus-within:ring-1 focus-within:ring-primary">
+                            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <input
+                              type="text"
+                              placeholder="Search customer..."
+                              value={customerSearch}
+                              onChange={(e) => setCustomerSearch(e.target.value)}
+                              autoFocus
+                              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                            />
+                            {customerSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setCustomerSearch('')}
+                                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="max-h-64 overflow-y-auto p-2">
+                          {filteredCustomers.length === 0 ? (
+                            <div className="space-y-2 p-2">
+                              <p className="text-sm text-muted-foreground text-center py-2">
+                                {customerSearch ? 'No customers found' : 'No active customers'}
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              {filteredCustomers.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleSelectCustomer(c.id)}
+                                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm transition-colors"
+                                >
+                                  <p className="font-medium">{c.firstName} {c.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{c.customerId} • {c.email}</p>
+                                </button>
+                              ))}
+                              {customerSearch && (
+                                <div className="border-t border-border mt-2 pt-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleCreateNewCustomer}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" /> Add New Customer
+                                  </Button>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          <div className="border-t border-border mt-2 pt-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleCreateNewCustomer}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" /> Add New Customer
+                                  </Button>
+                                </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {errors.customerId && <p className="text-xs text-destructive">{errors.customerId}</p>}
                 </div>
 

@@ -24,7 +24,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
         )}
       >
         <div className="flex items-center gap-3">
-          {showBack && (
+          {/* {showBack && (
             <button
               onClick={() => navigate(-1)}
               className="flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -32,7 +32,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-          )}
+          )} */}
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               {title}

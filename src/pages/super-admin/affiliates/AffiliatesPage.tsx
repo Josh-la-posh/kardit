@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ChevronLeft, Eye,
+  ChevronLeft, Eye, Download,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Affiliate {
   id: string;
@@ -83,11 +84,25 @@ export default function AffiliatesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBank, setFilterBank] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [downloading, setDownloading] = useState(false);
 
   const [affiliates, setAffiliates] = useState<Affiliate[]>(mockAffiliates);
   
     const pendingCount = affiliates.filter(a => a.status === 'pending').length;
     const approvedCount = affiliates.filter(a => a.status === 'approved').length;
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Affiliates report downloaded successfully');
+      // In a real app, trigger actual file download here
+    } catch (err) {
+      toast.error('Failed to download report');
+    } finally {
+      setDownloading(false);
+    }
+  };
   
 
   const banks = ['providus', 'wema', 'stanbic', 'sterling', 'firstbank'];
@@ -135,21 +150,31 @@ export default function AffiliatesPage() {
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
         <div className="animate-fade-in space-y-6">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/super-admin/dashboard')}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <PageHeader
+                title="All Affiliates"
+                subtitle="View and manage all onboarded affiliates"
+                showBack={false}
+              />
+            </div>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/super-admin/dashboard')}
-              className="gap-2"
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Back
+              <Download className="w-4 h-4" />
+              {downloading ? 'Downloading...' : 'Download Report'}
             </Button>
-            <PageHeader
-              title="All Affiliates"
-              subtitle="View and manage all onboarded affiliates"
-              showBack={false}
-            />
           </div>
 
           {/* Filters Section */}

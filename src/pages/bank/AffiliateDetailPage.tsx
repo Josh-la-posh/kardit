@@ -199,7 +199,7 @@ const mockAffiliateCards: { [key: string]: AffiliateCard[] } = {
   '4': [],
 };
 
-export default function AffiliateDetailPage() {
+export default function AffiliateDetailPages() {
   const { affiliateId } = useParams<{ affiliateId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'users' | 'cards'>('users');
