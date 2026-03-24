@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { useOnboardingCase, useReviewerOnboardingCases } from '@/hooks/useOnboarding';
-import { Loader2, ArrowLeft, Building2, User, FileText, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Building2, User, FileText, CheckCircle, XCircle, HelpCircle, Power, PowerOff, AlertTriangle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -32,20 +32,163 @@ export default function BankAffiliateDetailPage() {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+  const [affiliateStatus, setAffiliateStatus] = useState<'active' | 'inactive' | 'suspended' | 'terminated'>('inactive');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'activate' | 'deactivate' | 'suspend' | 'terminate' | null>(null);
+  const [notifyAffiliate, setNotifyAffiliate] = useState(true);
+
+  // Set affiliate status based on case status when loaded
+  useEffect(() => {
+    if (caseItem?.status === 'APPROVED' || caseItem?.status === 'PROVISIONED') {
+      setAffiliateStatus('active');
+    }
+  }, [caseItem?.status]);
 
   const handleDecision = async (decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION') => {
     if (!caseId) return;
     setWorking(true);
     try {
       await decide(caseId, { decision, reason: reason || undefined, reviewerNote: note || undefined });
-      toast.success(
-        decision === 'APPROVE' ? 'Affiliate approved' :
-        decision === 'REJECT' ? 'Affiliate rejected' :
-        'Clarification requested'
-      );
+      
+      let successMessage = '';
+      if (decision === 'APPROVE') {
+        successMessage = 'Affiliate approved and activated';
+        setAffiliateStatus('active');
+        setIsActive(true);
+      } else if (decision === 'REJECT') {
+        successMessage = 'Affiliate rejected';
+      } else {
+        successMessage = 'Clarification requested';
+      }
+      
+      toast.success(successMessage);
       await refresh();
+      setReason('');
+      setNote('');
+    } catch (err) {
+      toast.error('Failed to process decision');
     } finally {
       setWorking(false);
+    }
+  };
+
+  const openConfirmDialog = (action: 'activate' | 'deactivate' | 'suspend' | 'terminate') => {
+    setConfirmAction(action);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+
+    setWorking(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      let successMessage = '';
+      let affiliateName = caseItem?.organization?.legalName || 'Affiliate';
+
+      if (notifyAffiliate) {
+        // Send notification to affiliate
+        console.log(`Notifying ${affiliateName} about ${confirmAction} action`);
+      }
+
+      switch (confirmAction) {
+        case 'activate':
+          setIsActive(true);
+          setAffiliateStatus('active');
+          successMessage = `${affiliateName} has been activated`;
+          toast.success(successMessage);
+          break;
+        case 'deactivate':
+          setIsActive(false);
+          setAffiliateStatus('inactive');
+          successMessage = `${affiliateName} has been deactivated`;
+          toast.error(successMessage);
+          break;
+        case 'suspend':
+          setAffiliateStatus('suspended');
+          successMessage = `${affiliateName} has been suspended`;
+          toast.warning(successMessage);
+          break;
+        case 'terminate':
+          setAffiliateStatus('terminated');
+          successMessage = `${affiliateName} has been terminated`;
+          toast.error(successMessage);
+          break;
+      }
+    } catch (err) {
+      toast.error('Failed to process action');
+    } finally {
+      setWorking(false);
+      setShowConfirmDialog(false);
+      setConfirmAction(null);
+      setNotifyAffiliate(true);
+    }
+  };
+
+  const getActionMessage = () => {
+    const affiliateName = caseItem?.organization?.legalName || 'this affiliate';
+    switch (confirmAction) {
+      case 'activate':
+        return `Activate ${affiliateName}? This affiliate will be able to perform transactions.`;
+      case 'deactivate':
+        return `Deactivate ${affiliateName}? This affiliate will not be able to perform transactions.`;
+      case 'suspend':
+        return `Suspend ${affiliateName}? This is a temporary restriction and can be reversed.`;
+      case 'terminate':
+        return `Terminate ${affiliateName}? This action is permanent and cannot be reversed.`;
+      default:
+        return '';
+    }
+  };
+
+  const getActionColor = () => {
+    switch (confirmAction) {
+      case 'activate':
+        return 'bg-green-600';
+      case 'deactivate':
+        return 'bg-amber-600';
+      case 'suspend':
+        return 'bg-orange-600';
+      case 'terminate':
+        return 'bg-red-600';
+      default:
+        return 'bg-gray-600';
+    }
+  };
+
+  const getStatusInfo = () => {
+    switch (affiliateStatus) {
+      case 'active':
+        return {
+          label: 'Active',
+          color: 'bg-green-600',
+          icon: <Power className="h-4 w-4" />,
+          textColor: 'text-white'
+        };
+      case 'inactive':
+        return {
+          label: 'Inactive',
+          color: 'bg-gray-400',
+          icon: <PowerOff className="h-4 w-4" />,
+          textColor: 'text-white'
+        };
+      case 'suspended':
+        return {
+          label: 'Suspended',
+          color: 'bg-orange-600',
+          icon: <AlertTriangle className="h-4 w-4" />,
+          textColor: 'text-white'
+        };
+      case 'terminated':
+        return {
+          label: 'Terminated',
+          color: 'bg-red-600',
+          icon: <Trash2 className="h-4 w-4" />,
+          textColor: 'text-white'
+        };
     }
   };
 
@@ -244,6 +387,106 @@ export default function BankAffiliateDetailPage() {
                 </div>
               )}
 
+              {/* Affiliate Activation/Deactivation */}
+              {(caseItem.status === 'APPROVED' || caseItem.status === 'PROVISIONED') && (
+                <div className="kardit-card p-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Affiliate Operations</h3>
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-border p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+                      <p className="text-sm font-medium mb-3 text-muted-foreground">Current Status</p>
+                      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${getStatusInfo().color} mb-4 w-full`}>
+                        <div className={getStatusInfo().textColor}>
+                          {getStatusInfo().icon}
+                        </div>
+                        <span className={`text-sm font-semibold ${getStatusInfo().textColor}`}>
+                          {getStatusInfo().label}
+                        </span>
+                      </div>
+                      
+                      {affiliateStatus !== 'terminated' && (
+                        <div className="space-y-2 mt-4">
+                          <p className="text-sm font-medium mb-3">Actions</p>
+
+                          <div className="space-y-2">
+                            {/* Inactive: Show Activate, Suspend, Terminate */}
+                            {affiliateStatus === 'inactive' && (
+                              <>
+                                <Button
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                  onClick={() => openConfirmDialog('activate')}
+                                  disabled={working}
+                                >
+                                  <Power className="h-4 w-4 mr-1" /> Activate Affiliate
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                                  onClick={() => openConfirmDialog('suspend')}
+                                  disabled={working}
+                                >
+                                  <AlertTriangle className="h-4 w-4 mr-1" /> Suspend Affiliate
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => openConfirmDialog('terminate')}
+                                  disabled={working}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Terminate Affiliate
+                                </Button>
+                              </>
+                            )}
+
+                            {/* Active: Show Suspend, Terminate */}
+                            {affiliateStatus === 'active' && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                                  onClick={() => openConfirmDialog('suspend')}
+                                  disabled={working}
+                                >
+                                  <AlertTriangle className="h-4 w-4 mr-1" /> Suspend Affiliate
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => openConfirmDialog('terminate')}
+                                  disabled={working}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Terminate Affiliate
+                                </Button>
+                              </>
+                            )}
+
+                            {/* Suspended: Show Activate, Terminate */}
+                            {affiliateStatus === 'suspended' && (
+                              <>
+                                <Button
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                  onClick={() => openConfirmDialog('activate')}
+                                  disabled={working}
+                                >
+                                  <Power className="h-4 w-4 mr-1" /> Activate Affiliate
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => openConfirmDialog('terminate')}
+                                  disabled={working}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Terminate Affiliate
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Previous Decision Info */}
               {caseItem.decisionReason && (
                 <div className="kardit-card p-6">
@@ -256,6 +499,62 @@ export default function BankAffiliateDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Confirmation Dialog */}
+          {showConfirmDialog && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg ${getActionColor()} flex items-center justify-center`}>
+                    {confirmAction === 'activate' && <Power className="h-6 w-6 text-white" />}
+                    {confirmAction === 'deactivate' && <PowerOff className="h-6 w-6 text-white" />}
+                    {confirmAction === 'suspend' && <AlertTriangle className="h-6 w-6 text-white" />}
+                    {confirmAction === 'terminate' && <Trash2 className="h-6 w-6 text-white" />}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                      {confirmAction} Affiliate
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-2">{getActionMessage()}</p>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notifyAffiliate}
+                      onChange={(e) => setNotifyAffiliate(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span className="text-sm text-gray-700">Notify affiliate about this action</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowConfirmDialog(false);
+                      setConfirmAction(null);
+                      setNotifyAffiliate(true);
+                    }}
+                    disabled={working}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className={`flex-1 ${getActionColor()} hover:opacity-90`}
+                    onClick={handleConfirmAction}
+                    disabled={working}
+                  >
+                    {working ? 'Processing...' : 'Continue'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </AppLayout>
     </ProtectedRoute>

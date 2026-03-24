@@ -71,13 +71,13 @@ export default function CardDetailPage() {
     let errorMsg = '';
     if (actionCode === 'L') {
       result = store.freezeCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Temporary lock failed after retries.';
+      if (!result) errorMsg = 'Suspending failed after retries.';
     } else if (actionCode === 'U') {
       result = store.unfreezeCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Unlock failed after retries.';
+      if (!result) errorMsg = 'Activation failed after retries.';
     } else if (actionCode === 'P') {
       result = store.terminateCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Permanent lock failed after retries.';
+      if (!result) errorMsg = 'Terminating failed after retries.';
     }
     setActionLoading(false);
     setActionOpen(false);
@@ -212,26 +212,26 @@ export default function CardDetailPage() {
                   {card.status === 'ACTIVE' && (
                     <>
                       <Button variant="outline" size="sm" onClick={() => openAction('L')}>
-                        <Lock className="h-4 w-4 mr-1" /> Temporarily Lock
+                        <Lock className="h-4 w-4 mr-1" /> Suspend
                       </Button>
                       <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                        <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
+                        <ShieldBan className="h-4 w-4 mr-1" /> Terminate
                       </Button>
                     </>
                   )}
                   {card.status === 'FROZEN' && (
                     <>
                       <Button variant="outline" size="sm" onClick={() => openAction('U')}>
-                        <Unlock className="h-4 w-4 mr-1" /> Unlock
+                        <Unlock className="h-4 w-4 mr-1" /> Activate
                       </Button>
                       <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                        <ShieldBan className="h-4 w-4 mr-1" /> Permanently Lock
+                        <ShieldBan className="h-4 w-4 mr-1" /> Terminate
                       </Button>
                     </>
                   )}
                   {card.status === 'PENDING' && (
                     <Button variant="outline" size="sm" onClick={() => openAction('L')}>
-                      <Lock className="h-4 w-4 mr-1" /> Temporarily Lock
+                      <Lock className="h-4 w-4 mr-1" /> Suspend
                     </Button>
                   )}
                 </div>
@@ -283,7 +283,7 @@ export default function CardDetailPage() {
             {card.status === 'BLOCKED' && (
               <div className="kardit-card p-6 space-y-4">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Actions</h3>
-                <p className="text-sm text-destructive">This card has been permanently locked and cannot be used.</p>
+                <p className="text-sm text-destructive">This card has been terminated and cannot be used.</p>
               </div>
             )}
           </div>
@@ -364,9 +364,9 @@ export default function CardDetailPage() {
                 {actionCode ? CARD_ACTION_CODES[actionCode].label : 'Card Action'}
               </DialogTitle>
               <DialogDescription>
-                {actionCode === 'L' && 'Temporarily locking will prevent this card from being used. You can unlock it later.'}
-                {actionCode === 'U' && 'Unlocking will allow this card to be used again, according to program rules.'}
-                {actionCode === 'P' && 'Permanently locking this card will stop it from being used forever. This action cannot be undone.'}
+                {actionCode === 'L' && 'Suspending will prevent this card from being used. You can activate it later.'}
+                {actionCode === 'U' && 'Activating will allow this card to be used again, according to program rules.'}
+                {actionCode === 'P' && 'Terminating this card will stop it from being used forever. This action cannot be undone.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">

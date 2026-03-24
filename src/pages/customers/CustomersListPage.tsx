@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
+
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/useCustomers';
-import { Plus, Upload, Search, Loader2 } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function CustomersListPage() {
@@ -34,20 +34,6 @@ export default function CustomersListPage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
-          <PageHeader
-            title="Customers"
-            subtitle="Manage customer accounts"
-            actions={
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => navigate('/customers/batches')}>
-                  <Upload className="h-4 w-4" /> Batch Upload
-                </Button>
-                <Button onClick={() => navigate('/customers/create')}>
-                  <Plus className="h-4 w-4" /> Create Customer
-                </Button>
-              </div>
-            }
-          />
 
           {/* Filter Bar */}
           <div className="kardit-card p-4 mb-4">

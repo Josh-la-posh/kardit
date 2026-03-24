@@ -16,9 +16,19 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
+import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
+// import InactiveAffiliatesPage from "./pages/bank/InactiveAffiliatesPage";
+import AffiliateDetailPages from "./pages/bank/AffiliateDetailPage";
+import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
+import AffiliatesPage from "./pages/super-admin/affiliates/AffiliatesPage";
+import SuperAdminAffiliateDetailPage from "./pages/super-admin/affiliates/SuperAdminAffiliateDetailPage";
+import PendingApprovalPage from "./pages/super-admin/affiliates/PendingApprovalPage";
+import ApprovedAffiliatesPage from "./pages/super-admin/ApprovedAffiliatesPage";
+import BanksPage from "./pages/super-admin/bank/BanksPage";
+import BankDetailsPage from "./pages/super-admin/bank/BankDetailsPage";
 
 // Super Admin Bank Management
 import BanksListPage from "./pages/super-admin/banks/BanksListPage";
@@ -68,6 +78,7 @@ import LoadBatchesPage from "./pages/loads/LoadBatchesPage";
 // Reports
 import ReportsLandingPage from "./pages/reports/ReportsLandingPage";
 import ReportDetailPage from "./pages/reports/ReportDetailPage";
+import SuperAdminReportsPage from "./pages/super-admin/reports/SuperAdminReportsPage";
 
 // Notifications
 import NotificationsListPage from "./pages/notifications/NotificationsListPage";
@@ -117,7 +128,17 @@ const App = () => (
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
+            <Route path="/bank/active-affiliates" element={<ActiveAffiliatesPage />} />
+            <Route path="/bank/active-affiliates/:affiliateId" element={<AffiliateDetailPages />} />
+            {/* <Route path="/bank/inactive-affiliates" element={<InactiveAffiliatesPage />} /> */}
+            <Route path="/bank/customers" element={<CustomersPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
+            <Route path="/super-admin/affiliates" element={<AffiliatesPage />} />
+            <Route path="/super-admin/affiliates/:affiliateId" element={<SuperAdminAffiliateDetailPage />} />
+            <Route path="/super-admin/pending-approval" element={<PendingApprovalPage />} />
+            <Route path="/super-admin/approved" element={<ApprovedAffiliatesPage />} />
+            {/* <Route path="/super-admin/banks" element={<BanksPage />} />
+            <Route path="/super-admin/banks/:bankId" element={<BankDetailsPage />} /> */}
 
             {/* Service provider bank management */}
             <Route path="/super-admin/banks" element={<BanksListPage />} />
@@ -127,6 +148,10 @@ const App = () => (
             {/* Service provider onboarding review */}
             <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />
             <Route path="/super-admin/onboarding/cases/:caseId" element={<OnboardingCaseDetailPage />} />
+            
+            {/* Super Admin Reports */}
+            <Route path="/super-admin/reports" element={<SuperAdminReportsPage />} />
+            
             <Route path="/profile" element={<ProfilePage />} />
             
             {/* User Management */}

@@ -75,7 +75,8 @@ const serviceProviderNavItems: NavItem[] = [
   { label: 'Banks', icon: Building2, path: '/super-admin/banks' },
   { label: 'Onboarding Cases', icon: Layers, path: '/super-admin/onboarding/cases' },
   { label: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['Super Admin'] },
-  { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
+  { label: 'Reports', icon: FileText, path: '/super-admin/reports' },
+  // { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
 ];
 
 export function AppLayout({ children, navVariant }: AppLayoutProps) {

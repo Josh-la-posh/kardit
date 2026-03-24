@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -8,6 +8,43 @@ import { useAuth } from "@/hooks/useAuth";
 import { useReviewerOnboardingCases } from "@/hooks/useOnboarding";
 import { store } from "@/stores/mockStore";
 import { Building2, CreditCard, Users, FileText, ArrowRight, TrendingUp } from "lucide-react";
+
+interface ApprovedAffiliate {
+  id: string;
+  affiliateName: string;
+  email: string;
+  contactPerson: string;
+  approvedDate: string;
+  status: 'active' | 'inactive';
+}
+
+// Mock data - Replace with API call
+const mockApprovedAffiliates: ApprovedAffiliate[] = [
+  {
+    id: '1',
+    affiliateName: 'Global Trade Partners',
+    email: 'contact@globalpartners.ng',
+    contactPerson: 'Ahmed Hassan',
+    approvedDate: '2024-02-25',
+    status: 'active',
+  },
+  {
+    id: '2',
+    affiliateName: 'Digital Commerce Solutions',
+    email: 'support@digitalcommerce.ng',
+    contactPerson: 'Blessing Okonkwo',
+    approvedDate: '2024-02-15',
+    status: 'active',
+  },
+  {
+    id: '3',
+    affiliateName: 'Tech Innovations Ltd',
+    email: 'info@techinnovations.ng',
+    contactPerson: 'Tunde Adebayo',
+    approvedDate: '2024-02-10',
+    status: 'inactive',
+  },
+];
 
 export default function BankDashboardPage() {
   const navigate = useNavigate();
@@ -24,18 +61,18 @@ export default function BankDashboardPage() {
       c.status === 'SUBMITTED' || c.status === 'UNDER_REVIEW'
     ).length;
     
-    // Get all customers and cards across affiliates (for bank portfolio view)
-    const allCustomers = store.getCustomers();
-    const allCards = store.getCards();
+    // Get customers and cards for current bank
+    const bankCustomers = user?.tenantId ? store.getCustomers(user.tenantId) : [];
+    const bankCards = user?.tenantId ? store.getCards(user.tenantId) : [];
     
-    const totalCustomers = allCustomers.length;
-    const activeCustomers = allCustomers.filter(c => c.status === 'ACTIVE').length;
+    const totalCustomers = bankCustomers.length;
+    const activeCustomers = bankCustomers.filter(c => c.status === 'ACTIVE').length;
     
-    const totalCards = allCards.length;
-    const activeCards = allCards.filter(c => c.status === 'ACTIVE').length;
+    const totalCards = bankCards.length;
+    const activeCards = bankCards.filter(c => c.status === 'ACTIVE').length;
     
     // Total balance across all cards
-    const totalBalance = allCards.reduce((sum, card) => sum + card.currentBalance, 0);
+    const totalBalance = bankCards.reduce((sum, card) => sum + card.currentBalance, 0);
     
     return {
       approvedAffiliates,
@@ -46,7 +83,7 @@ export default function BankDashboardPage() {
       activeCards,
       totalBalance,
     };
-  }, [cases]);
+  }, [cases, user?.tenantId]);
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
@@ -68,18 +105,30 @@ export default function BankDashboardPage() {
 
           {/* Main Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard 
+            <div
+              className="cursor-pointer transition-transform hover:scale-105"
+              onClick={() => navigate('/bank/active-affiliates')}
+            >
+              <StatCard title="Active Affiliates" value={metrics.approvedAffiliates.toString() } icon={Building2} subtitle={`${metrics.pendingAffiliates} pending`} />
+            </div>
+            {/* <StatCard 
               title="Affiliates" 
               value={metrics.approvedAffiliates.toString()} 
               icon={Building2}
               subtitle={`${metrics.pendingAffiliates} pending`}
-            />
-            <StatCard 
+            /> */}
+            <div
+              className="cursor-pointer transition-transform hover:scale-105"
+              onClick={() => navigate('/bank/customers')}
+            >
+              <StatCard title="Total Customers" value={metrics.totalCustomers.toString()} icon={Users}  subtitle={`${metrics.activeCustomers} active`}/>
+            </div>
+            {/* <StatCard 
               title="Total Customers" 
               value={metrics.totalCustomers.toString()} 
               icon={Users}
               subtitle={`${metrics.activeCustomers} active`}
-            />
+            /> */}
             <StatCard 
               title="Cards Issued" 
               value={metrics.totalCards.toString()} 

@@ -8,8 +8,9 @@ import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { store, type PlatformBank } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, RefreshCw } from 'lucide-react';
+import { Search, Building2, Eye, Users, CreditCard, RefreshCw, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -26,6 +27,20 @@ export default function BanksListPage() {
   const banks = store.getPlatformBanks();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Banks report downloaded successfully');
+      // In a real app, trigger actual file download here
+    } catch (err) {
+      toast.error('Failed to download report');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     return banks.filter((bank) => {
@@ -61,9 +76,19 @@ export default function BanksListPage() {
             title="Banks"
             subtitle="Manage all banks on the platform"
             actions={
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+                </Button>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  size="sm" 
+                  onClick={handleDownloadReport}
+                  disabled={downloading}
+                >
+                  <Download className="h-4 w-4 mr-1" /> {downloading ? 'Downloading...' : 'Download Report'}
+                </Button>
+              </div>
             }
           />
 
