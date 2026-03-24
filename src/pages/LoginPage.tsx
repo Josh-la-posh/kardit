@@ -162,12 +162,18 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex justify-between text-center">
             <Link 
               to="/forgot-password" 
               className="text-sm text-secondary hover:text-secondary/80 hover:underline transition-colors"
             >
               Forgot password?
+            </Link>
+            <Link 
+              to="/onboarding/start" 
+              className="text-sm text-primary hover:text-secondary/80 hover:underline transition-colors"
+            >
+              Become an Affiliate?
             </Link>
           </div>
         </div>

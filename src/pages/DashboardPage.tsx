@@ -70,7 +70,7 @@ const modules: Array<{ label: string; icon: any; path: string; description: stri
     icon: UserCog, 
     path: '/users',
     description: 'Manage users and roles',
-    roles: ['Admin', 'Super Admin']
+    roles: ['Admin', ]
   },
 ];
 
