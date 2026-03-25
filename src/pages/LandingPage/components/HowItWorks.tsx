@@ -7,16 +7,11 @@ export default function HowItWorks() {
     },
     {
       number: 2,
-      title: 'Select Issuing Banks',
-      description: 'Add your preferred issuing banks to the platform for card issuance.'
+      title: 'Get Approved',
+      description: 'Get approval from banks and service providers to start issuing cards.'
     },
     {
       number: 3,
-      title: 'Create User Cards',
-      description: 'Onboard users who will receive cards and manage their card details and transactions.'
-    },
-    {
-      number: 4,
       title: 'Start Managing',
       description: 'Manage all card operations, users, and transactions from a single dashboard.'
     }
@@ -34,7 +29,7 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
             <div key={step.number} className="relative">
               <div className="p-6 md:p-8 h-[100%]  bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-orange-600 dark:hover:border-orange-500 hover:shadow-xl dark:hover:shadow-orange-900/20 transition-all text-center">
