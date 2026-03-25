@@ -94,6 +94,7 @@ import SrsPage from "./pages/SrsPage";
 // Other
 import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
+import Page from "./pages/LandingPage/page";
 
 const queryClient = new QueryClient();
 
@@ -107,7 +108,7 @@ const App = () => (
           <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Page/>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
