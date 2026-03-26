@@ -1,3 +1,32 @@
+
+// Request and response types for paginated onboarding case listing
+export interface ListOnboardingCasesRequest {
+  status?: OnboardingCaseStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListOnboardingCasesResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  cases: Array<{
+    caseId: string;
+    affiliateName: string;
+    submittedAt: string;
+    status: OnboardingCaseStatus;
+  }>;
+}
+export interface SaveIssuingBanksRequest {
+  onboardingSessionId: string;
+  selectedBanks: { bankId: string }[];
+}
+
+export interface SaveIssuingBanksResponse {
+  draftId: string;
+  selectedBankCount: number;
+  savedAt: string;
+}
 export type OnboardingDocumentType = 'CERTIFICATE_OF_INCORPORATION' | 'TAX_ID' | 'DIRECTORS_ID' | 'PROOF_OF_ADDRESS' | 'OTHER';
 
 export type OnboardingCaseStatus =
@@ -39,8 +68,11 @@ export interface SaveContactRequest {
 }
 
 export interface UploadOnboardingDocumentRequest {
-  type: OnboardingDocumentType;
+  onboardingSessionId: string;
+  docType: OnboardingDocumentType;
   fileName: string;
+  contentType: string;
+  fileBase64: string;
 }
 
 export interface OnboardingDocument {
@@ -97,15 +129,45 @@ export interface OnboardingCase {
   provisionedTemporaryPassword?: string;
 }
 
+
 export interface DecisionRequest {
   decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
-  reason?: string;
-  reviewerNote?: string;
+  reviewerNotes?: string;
+  decisionReason?: string;
+  selectedBanksApproved?: string[];
 }
 
-export interface ProvisionResponse {
+export interface DecisionResponse {
+  caseId: string;
+  status: OnboardingCaseStatus;
+  decisionAt: string;
+  decisionBy: {
+    userId: string;
+    name: string;
+  };
+}
+
+
+export interface ProvisionOnboardingCaseRequest {
+  adminContact: {
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  deliveryChannels: string[];
+}
+
+export interface ProvisionOnboardingCaseResponse {
+  caseId: string;
+  affiliateId: string;
   tenantId: string;
-  adminEmail: string;
-  temporaryPassword: string;
+  iamProvisioning: {
+    status: string;
+    loginUrl: string;
+  };
+  bankPartnershipRequests: Array<{
+    bankId: string;
+    status: string;
+  }>;
   provisionedAt: string;
 }

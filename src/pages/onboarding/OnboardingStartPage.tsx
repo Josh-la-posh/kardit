@@ -25,8 +25,13 @@ export default function OnboardingStartPage() {
       setLocalError('You must accept consent to continue');
       return;
     }
-    const res = await create({ channel: 'web', email, phone, consentAccepted });
-    navigate(`/onboarding/${res.draftId}/organization`);
+    try {
+      const res = await create({ channel: 'web', email, phone, consentAccepted });
+      console.log('Created onboarding session:', res);
+      navigate(`/onboarding/${res.draftId}/organization`);
+    } catch (err: any) {
+      setLocalError((err as Error)?.message || 'Failed to start onboarding');
+    }
   };
 
   return (

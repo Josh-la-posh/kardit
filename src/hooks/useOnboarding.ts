@@ -190,14 +190,10 @@ export function useReviewerOnboardingCases() {
   }, [refresh]);
 
   const decide = useCallback(async (caseId: string, payload: DecisionRequest) => {
-    const actor = {
-      userEmail: user?.email || 'superadmin@kardit.app',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-    };
-    const updated = await decideOnboardingCase(caseId, payload, actor);
-    setCases((prev) => prev.map((c) => (c.caseId === updated.caseId ? updated : c)));
+    const updated = await decideOnboardingCase(caseId, payload);
+    setCases((prev) => prev.map((c) => (c.caseId === updated.caseId ? { ...c, status: updated.status } : c)));
     return updated;
-  }, [user?.email]);
+  }, []);
 
   const provision = useCallback(async (caseId: string): Promise<ProvisionResponse> => {
     const actor = {

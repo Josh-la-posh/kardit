@@ -4,14 +4,18 @@ import type {
   CreateOnboardingSessionRequest,
   CreateOnboardingSessionResponse,
   DecisionRequest,
+  DecisionResponse,
   OnboardingCase,
   OnboardingDraft,
-  ProvisionResponse,
+  ProvisionOnboardingCaseRequest,
+  ProvisionOnboardingCaseResponse,
   SaveContactRequest,
   SaveOrganizationRequest,
   SubmitOnboardingDraftRequest,
   SubmitOnboardingDraftResponse,
   UploadOnboardingDocumentRequest,
+  SaveIssuingBanksRequest,
+  SaveIssuingBanksResponse,
 } from '@/types/onboardingContracts';
 
 type AuditActor = {
@@ -22,16 +26,15 @@ type AuditActor = {
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
+
 const getApiBaseUrl = () => {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  console.log('[API] Using base URL:', base);
   return base ? normalizeBaseUrl(base) : '';
 };
 
-function shouldUseOnboardingApi(): boolean {
-  const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  const flag = (import.meta as any).env?.VITE_USE_API_ONBOARDING as string | undefined;
-  return Boolean(baseUrl) && flag === 'true';
-}
+
+// All API calls now always use the real backend. No mock/local fallback.
 
 const safeJson = async (res: Response) => {
   const text = await res.text();
@@ -143,255 +146,85 @@ function setCase(c: OnboardingCase) {
 
 // ---------- API surface (SRS-aligned) ----------
 
-export async function createOnboardingSession(
-  request: CreateOnboardingSessionRequest
-): Promise<CreateOnboardingSessionResponse> {
-  if (shouldUseOnboardingApi()) {
-    return postJson<CreateOnboardingSessionResponse>('/api/v1/onboarding/sessions', request);
-  }
 
-  if (!request.consentAccepted) {
-    throw new ApiError('Consent is required', 400, { message: 'consentAccepted must be true' });
-  }
-
-  const onboardingSessionId = genId('onb_sess');
-  const draftId = genId('onb_draft');
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-  const draft: OnboardingDraft = {
-    draftId,
-    onboardingSessionId,
-    expiresAt,
-    email: request.email,
-    phone: request.phone,
-    consentAccepted: request.consentAccepted,
-    documents: [],
-    issuingBankIds: [],
-  };
-  setDraft(draft);
-
-  return { onboardingSessionId, draftId, expiresAt };
+export async function createOnboardingSession(request: CreateOnboardingSessionRequest): Promise<CreateOnboardingSessionResponse> {
+  return postJson<CreateOnboardingSessionResponse>('/onboarding/sessions', request);
 }
+
 
 export async function getOnboardingDraft(draftId: string): Promise<OnboardingDraft> {
-  if (shouldUseOnboardingApi()) {
-    return getJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}`);
-  }
-
-  const draft = getDrafts()[draftId];
-  if (!draft) throw new ApiError('Draft not found', 404, { draftId });
-  return draft;
+  return getJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}`);
 }
+
 
 export async function saveOrganization(draftId: string, org: SaveOrganizationRequest): Promise<OnboardingDraft> {
-  if (shouldUseOnboardingApi()) {
-    return putJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/organization`, org);
-  }
-
-  const draft = await getOnboardingDraft(draftId);
-  const next: OnboardingDraft = { ...draft, organization: org };
-  setDraft(next);
-  return next;
+  return putJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/organization`, org);
 }
 
-export async function saveContact(draftId: string, contact: SaveContactRequest): Promise<OnboardingDraft> {
-  if (shouldUseOnboardingApi()) {
-    return putJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/contact`, contact);
-  }
 
-  const draft = await getOnboardingDraft(draftId);
-  const next: OnboardingDraft = { ...draft, contact };
-  setDraft(next);
-  return next;
+export async function saveContact(draftId: string, contact: SaveContactRequest): Promise<OnboardingDraft> {
+  return putJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/contact`, contact);
 }
 
 export async function uploadDocument(
   draftId: string,
   payload: UploadOnboardingDocumentRequest
 ): Promise<OnboardingDraft> {
-  if (shouldUseOnboardingApi()) {
-    return postJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/documents`, payload);
-  }
-
-  const draft = await getOnboardingDraft(draftId);
-  const doc = {
-    documentId: genId('doc'),
-    type: payload.type,
-    fileName: payload.fileName,
-    uploadedAt: nowIso(),
-  };
-  const next: OnboardingDraft = { ...draft, documents: [...draft.documents, doc] };
-  setDraft(next);
-  return next;
+  // Always use real API, send docType, onboardingSessionId, contentType, fileBase64
+  return postJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/documents`, payload);
 }
 
+
+// This endpoint should be implemented in the backend. Placeholder for real API call if available.
 export async function removeDocument(draftId: string, documentId: string): Promise<OnboardingDraft> {
-  const draft = await getOnboardingDraft(draftId);
-  const next: OnboardingDraft = { ...draft, documents: draft.documents.filter((d) => d.documentId !== documentId) };
-  setDraft(next);
-  return next;
+  throw new Error('removeDocument API not implemented. Use backend endpoint.');
 }
 
-export async function saveIssuingBanks(draftId: string, issuingBankIds: string[]): Promise<OnboardingDraft> {
-  if (shouldUseOnboardingApi()) {
-    return putJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`, {
-      issuingBankIds,
-    });
-  }
-
-  const draft = await getOnboardingDraft(draftId);
-  const next: OnboardingDraft = { ...draft, issuingBankIds };
-  setDraft(next);
-  return next;
+export async function saveIssuingBanks(
+  draftId: string,
+  request: SaveIssuingBanksRequest
+): Promise<SaveIssuingBanksResponse> {
+  // Always use real API
+  return putJson<SaveIssuingBanksResponse>(`/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`, request);
 }
+
 
 export async function submitOnboardingDraft(
   draftId: string,
   request: SubmitOnboardingDraftRequest
 ): Promise<SubmitOnboardingDraftResponse> {
-  if (shouldUseOnboardingApi()) {
-    return postJson<SubmitOnboardingDraftResponse>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/submit`, request);
-  }
-
-  const draft = await getOnboardingDraft(draftId);
-  if (draft.onboardingSessionId !== request.onboardingSessionId) {
-    throw new ApiError('Invalid onboarding session', 400, { message: 'onboardingSessionId mismatch' });
-  }
-  if (!draft.organization || !draft.contact) {
-    throw new ApiError('Missing required details', 400, { message: 'organization and contact are required' });
-  }
-  if (!request.declarations.infoAccurate || !request.declarations.authorizedSigner) {
-    throw new ApiError('Declarations required', 400, { message: 'declarations must be accepted' });
-  }
-
-  const submittedAt = nowIso();
-  const caseId = genId('case');
-  const affiliateId = `AFF-PENDING-${Math.floor(Math.random() * 90000 + 10000)}`;
-
-  const c: OnboardingCase = {
-    caseId,
-    draftId: draft.draftId,
-    onboardingSessionId: draft.onboardingSessionId,
-    status: 'SUBMITTED',
-    submittedAt,
-    updatedAt: submittedAt,
-    organization: draft.organization,
-    contact: draft.contact,
-    documents: draft.documents,
-    issuingBankIds: draft.issuingBankIds,
-  };
-  setCase(c);
-
-  setDraft({ ...draft, submittedCaseId: caseId });
-  return { caseId, affiliateId, status: 'SUBMITTED', submittedAt };
+  return postJson<SubmitOnboardingDraftResponse>(`/onboarding/drafts/${encodeURIComponent(draftId)}/submit`, request);
 }
+
 
 export async function getOnboardingCase(caseId: string): Promise<OnboardingCase> {
-  if (shouldUseOnboardingApi()) {
-    return getJson<OnboardingCase>(`/api/v1/onboarding/cases/${encodeURIComponent(caseId)}`);
-  }
-
-  const c = getCases()[caseId];
-  if (!c) throw new ApiError('Case not found', 404, { caseId });
-  return c;
+  return getJson<OnboardingCase>(`/onboarding/cases/${encodeURIComponent(caseId)}`);
 }
 
-export async function listOnboardingCases(): Promise<OnboardingCase[]> {
-  if (shouldUseOnboardingApi()) {
-    return getJson<OnboardingCase[]>('/api/v1/admin/onboarding/cases');
-  }
-  return Object.values(getCases()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+
+import type { ListOnboardingCasesRequest, ListOnboardingCasesResponse } from '@/types/onboardingContracts';
+
+export async function listOnboardingCases(
+  request: ListOnboardingCasesRequest
+): Promise<ListOnboardingCasesResponse> {
+  return postJson<ListOnboardingCasesResponse>('/admin/onboarding/cases', request);
 }
+
+
 
 export async function decideOnboardingCase(
   caseId: string,
-  request: DecisionRequest,
-  actor?: AuditActor
-): Promise<OnboardingCase> {
-  if (shouldUseOnboardingApi()) {
-    return postJson<OnboardingCase>(`/api/v1/admin/onboarding/cases/${encodeURIComponent(caseId)}/decision`, request);
-  }
-
-  const c = await getOnboardingCase(caseId);
-  const updatedAt = nowIso();
-  const status =
-    request.decision === 'APPROVE'
-      ? 'APPROVED'
-      : request.decision === 'REJECT'
-        ? 'REJECTED'
-        : 'CLARIFICATION_REQUESTED';
-
-  const next: OnboardingCase = {
-    ...c,
-    status,
-    updatedAt,
-    reviewerNote: request.reviewerNote,
-    decisionReason: request.reason,
-  };
-
-  reportStore.addAuditLog({
-    userEmail: actor?.userEmail || 'superadmin@kardit.app',
-    actionType: 'ONBOARDING_DECISION',
-    entityType: 'OnboardingCase',
-    entityId: caseId,
-    ipAddress: actor?.ipAddress,
-    userAgent: actor?.userAgent,
-    oldValue: {
-      status: c.status,
-      reviewerNote: c.reviewerNote,
-      decisionReason: c.decisionReason,
-    },
-    newValue: {
-      status: next.status,
-      decision: request.decision,
-      reviewerNote: request.reviewerNote,
-      decisionReason: request.reason,
-    },
-  });
-
-  setCase(next);
-  return next;
+  request: DecisionRequest
+): Promise<DecisionResponse> {
+  return postJson<DecisionResponse>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}/decision`, request);
 }
 
-export async function provisionOnboardingCase(caseId: string, actor?: AuditActor): Promise<ProvisionResponse> {
-  if (shouldUseOnboardingApi()) {
-    return postJson<ProvisionResponse>(`/api/v1/admin/onboarding/cases/${encodeURIComponent(caseId)}/provision`, {});
-  }
 
-  const c = await getOnboardingCase(caseId);
-  if (c.status !== 'APPROVED') {
-    throw new ApiError('Case must be approved before provisioning', 400, { status: c.status });
-  }
 
-  const tenantId = `TNT-AFF-${Math.floor(Math.random() * 90000 + 10000)}`;
-  const adminEmail = c.contact?.contactEmail || `admin@${tenantId.toLowerCase()}.example`;
-  const temporaryPassword = `Temp#${Math.floor(Math.random() * 900000 + 100000)}`;
-  const provisionedAt = nowIso();
-
-  reportStore.addAuditLog({
-    userEmail: actor?.userEmail || 'superadmin@kardit.app',
-    actionType: 'ONBOARDING_PROVISION',
-    entityType: 'OnboardingCase',
-    entityId: caseId,
-    ipAddress: actor?.ipAddress,
-    userAgent: actor?.userAgent,
-    oldValue: { status: c.status },
-    newValue: {
-      status: 'PROVISIONED',
-      tenantId,
-      adminEmail,
-      provisionedAt,
-    },
-  });
-
-  setCase({
-    ...c,
-    status: 'PROVISIONED',
-    updatedAt: provisionedAt,
-    provisionedTenantId: tenantId,
-    provisionedAdminEmail: adminEmail,
-    provisionedTemporaryPassword: temporaryPassword,
-  });
-
-  return { tenantId, adminEmail, temporaryPassword, provisionedAt };
+export async function provisionOnboardingCase(
+  caseId: string,
+  request: ProvisionOnboardingCaseRequest
+): Promise<ProvisionOnboardingCaseResponse> {
+  return postJson<ProvisionOnboardingCaseResponse>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}/provision`, request);
 }
