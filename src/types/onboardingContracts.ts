@@ -23,13 +23,27 @@ export interface CreateOnboardingSessionResponse {
 }
 
 export interface SaveOrganizationRequest {
+  onboardingSessionId: string;
   legalName: string;
+  tradingName?: string;
   registrationNumber: string;
-  country: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city?: string;
-  state?: string;
+  address: {
+    line1:string;
+    city?: string;
+    state?: string;
+    country: string;
+  }
+  primaryContact: {
+    fullName: string;
+    email: string;
+    phone: string;
+  }
+}
+
+export interface SaveOrganizationResponse {
+  draftId: string;
+  status: string;
+  savedAt: string;
 }
 
 export interface SaveContactRequest {
@@ -39,8 +53,30 @@ export interface SaveContactRequest {
 }
 
 export interface UploadOnboardingDocumentRequest {
-  type: OnboardingDocumentType;
+  onboardingSessionId: string;
+  docType: OnboardingDocumentType;
   fileName: string;
+  contentType: string;
+  fileBase64: string;
+}
+
+export interface UploadOnboardingDocumentResponse {
+  documentId: string;
+  draftId: string;
+  docType: OnboardingDocumentType;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | string;
+  uploadedAt: string;
+}
+
+export interface SelectedIssuingBanksRequest{
+onboardingSessionId: string;
+selectedBanks: Array<{bankId: string}>;
+}
+
+export interface SelectedIssuingBanksResponse{
+  draftId: string;
+  selectedBankCount: number;
+  savedAt: string;
 }
 
 export interface OnboardingDocument {
@@ -79,6 +115,22 @@ export interface SubmitOnboardingDraftResponse {
   submittedAt: string;
 }
 
+export interface OnboardingCaseTimeline{
+  status: OnboardingCaseStatus;
+  at: string;
+}
+export interface OnboardingCaseMessage{
+  from: string;
+  type: string;
+  text: string;
+  at: string;
+}
+// export interface OnboardingCaseResponse {
+//   caseId: string;
+//   status: string;
+//   timeline: OnboardingCaseTimeline[];
+//   messages: OnboaedingCaseMessage[];
+// }
 export interface OnboardingCase {
   caseId: string;
   draftId: string;
@@ -90,22 +142,52 @@ export interface OnboardingCase {
   contact?: SaveContactRequest;
   documents: OnboardingDocument[];
   issuingBankIds: string[];
+  timeline: OnboardingCaseTimeline[];
+  messages: OnboardingCaseMessage[];
   reviewerNote?: string;
   decisionReason?: string;
   provisionedTenantId?: string;
   provisionedAdminEmail?: string;
   provisionedTemporaryPassword?: string;
+  affiliateName?: string;
+  decisionAt: string;
+  decisionBy: {
+    userId: string;
+    name: string;
+  }
+}
+
+export interface ListOnboardingCasesRequest{
+  status?: OnboardingCaseStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListOnboardingCasesResponse{
+  page: number;
+  pageSize: number;
+  total: number;
+  cases: OnboardingCase[];
 }
 
 export interface DecisionRequest {
   decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
-  reason?: string;
   reviewerNote?: string;
+  decisionReason?: string;
+  selectedBanksApproved?: Array<{bankId: string}>;
 }
 
 export interface ProvisionResponse {
+  caseId: string;
+  affiliateId: string;
   tenantId: string;
-  adminEmail: string;
-  temporaryPassword: string;
+  iamProvisioning: {
+    status: "TRIGGERED" | string;
+    loginUrl?: string;
+  };
+  bankPartnershipRequests: Array<{
+    bankId: string;
+    status: "PENDING_BANK_APPROVAL" | string;
+  }>;
   provisionedAt: string;
 }

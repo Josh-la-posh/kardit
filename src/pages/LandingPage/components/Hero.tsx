@@ -16,7 +16,7 @@ export default function Hero() {
             <a href="https://kardit-app.vercel.app/onboarding/start" className="px-8 py-4 bg-orange-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity text-center" target="_blank" rel="noopener noreferrer">
               Get Started as an Affiliate
             </a>
-            <a href="#" className="px-8 py-4 bg-transparent text-orange-600 dark:text-orange-400 font-semibold rounded-lg border-2 border-orange-600 dark:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors text-center">
+            <a href="https://kardit-app.vercel.app/login" className="px-8 py-4 bg-transparent text-orange-600 dark:text-orange-400 font-semibold rounded-lg border-2 border-orange-600 dark:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors text-center">
               Login
             </a>
           </div>
