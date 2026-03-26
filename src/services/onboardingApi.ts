@@ -4,21 +4,29 @@ import type {
   CreateOnboardingSessionRequest,
   CreateOnboardingSessionResponse,
   DecisionRequest,
+  ListOnboardingCasesRequest,
+  ListOnboardingCasesResponse,
   OnboardingCase,
   OnboardingDraft,
   ProvisionResponse,
   SaveContactRequest,
   SaveOrganizationRequest,
+  SaveOrganizationResponse,
+  SelectedIssuingBanksRequest,
+  SelectedIssuingBanksResponse,
   SubmitOnboardingDraftRequest,
   SubmitOnboardingDraftResponse,
   UploadOnboardingDocumentRequest,
+  UploadOnboardingDocumentResponse,
 } from '@/types/onboardingContracts';
 
 type AuditActor = {
+  userId: string;
+  name: string;
   userEmail?: string;
   ipAddress?: string;
   userAgent?: string;
-};
+}; 
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
@@ -154,6 +162,10 @@ export async function createOnboardingSession(
     throw new ApiError('Consent is required', 400, { message: 'consentAccepted must be true' });
   }
 
+  if (!request.email && !request.phone) {
+    throw new ApiError('Contact information is required', 400, { message: 'email or phone must be provided' });
+  }
+
   const onboardingSessionId = genId('onb_sess');
   const draftId = genId('onb_draft');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -183,15 +195,15 @@ export async function getOnboardingDraft(draftId: string): Promise<OnboardingDra
   return draft;
 }
 
-export async function saveOrganization(draftId: string, org: SaveOrganizationRequest): Promise<OnboardingDraft> {
+export async function saveOrganization(draftId: string, org: SaveOrganizationRequest): Promise<SaveOrganizationResponse> {
   if (shouldUseOnboardingApi()) {
-    return putJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/organization`, org);
+    return putJson<SaveOrganizationResponse>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/organization`, org);
   }
 
   const draft = await getOnboardingDraft(draftId);
   const next: OnboardingDraft = { ...draft, organization: org };
   setDraft(next);
-  return next;
+  return { ...next, status: 'DRAFT', savedAt: new Date().toISOString() };
 }
 
 export async function saveContact(draftId: string, contact: SaveContactRequest): Promise<OnboardingDraft> {
@@ -208,21 +220,21 @@ export async function saveContact(draftId: string, contact: SaveContactRequest):
 export async function uploadDocument(
   draftId: string,
   payload: UploadOnboardingDocumentRequest
-): Promise<OnboardingDraft> {
+): Promise<UploadOnboardingDocumentResponse> {
   if (shouldUseOnboardingApi()) {
-    return postJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/documents`, payload);
+    return postJson<UploadOnboardingDocumentResponse>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/documents`, payload);
   }
 
   const draft = await getOnboardingDraft(draftId);
   const doc = {
     documentId: genId('doc'),
-    type: payload.type,
+    type: payload.docType,
     fileName: payload.fileName,
     uploadedAt: nowIso(),
   };
   const next: OnboardingDraft = { ...draft, documents: [...draft.documents, doc] };
   setDraft(next);
-  return next;
+  return {documentId: doc.documentId, draftId, docType: doc.type, verificationStatus: 'PENDING', uploadedAt: doc.uploadedAt};
 }
 
 export async function removeDocument(draftId: string, documentId: string): Promise<OnboardingDraft> {
@@ -232,17 +244,20 @@ export async function removeDocument(draftId: string, documentId: string): Promi
   return next;
 }
 
-export async function saveIssuingBanks(draftId: string, issuingBankIds: string[]): Promise<OnboardingDraft> {
+export async function saveIssuingBanks(draftId: string, issuingBankIds: string[], onboardingSessionId: string): Promise<SelectedIssuingBanksResponse> {
+  const payload:SelectedIssuingBanksRequest = {
+  onboardingSessionId: onboardingSessionId || "",
+  selectedBanks: issuingBankIds.map(id => ({ bankId: id })),
+};
   if (shouldUseOnboardingApi()) {
-    return putJson<OnboardingDraft>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`, {
-      issuingBankIds,
-    });
+    return putJson<SelectedIssuingBanksResponse>(`/api/v1/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`, payload
+    );
   }
 
   const draft = await getOnboardingDraft(draftId);
   const next: OnboardingDraft = { ...draft, issuingBankIds };
   setDraft(next);
-  return next;
+  return {draftId: draftId, selectedBankCount: issuingBankIds.length, savedAt: nowIso()};
 }
 
 export async function submitOnboardingDraft(
@@ -279,6 +294,10 @@ export async function submitOnboardingDraft(
     contact: draft.contact,
     documents: draft.documents,
     issuingBankIds: draft.issuingBankIds,
+    timeline: [{ status: 'SUBMITTED', at: submittedAt }],
+    messages: [],
+    decisionAt: undefined,
+    decisionBy: undefined,
   };
   setCase(c);
 
@@ -293,14 +312,17 @@ export async function getOnboardingCase(caseId: string): Promise<OnboardingCase>
 
   const c = getCases()[caseId];
   if (!c) throw new ApiError('Case not found', 404, { caseId });
-  return c;
+  return { ...c , timeline: c.timeline || [], messages: c.messages || [] };
 }
 
-export async function listOnboardingCases(): Promise<OnboardingCase[]> {
+export async function listOnboardingCases(request: ListOnboardingCasesRequest ={}): Promise<ListOnboardingCasesResponse> {
   if (shouldUseOnboardingApi()) {
-    return getJson<OnboardingCase[]>('/api/v1/admin/onboarding/cases');
+    return getJson<ListOnboardingCasesResponse>('/api/v1/admin/onboarding/cases');
   }
-  return Object.values(getCases()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const {page = 1, pageSize = 25} = request;
+
+  return{page, pageSize, total:0, cases:[]} 
+  // return Object.values(getCases()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function decideOnboardingCase(
@@ -326,7 +348,13 @@ export async function decideOnboardingCase(
     status,
     updatedAt,
     reviewerNote: request.reviewerNote,
-    decisionReason: request.reason,
+    decisionReason: request.decisionReason,
+    decisionBy: {
+      userId: actor?.userId,
+      name: actor?.name,
+    },
+    timeline: [...c.timeline, { status, at: updatedAt }],
+    messages: c.messages || [],
   };
 
   reportStore.addAuditLog({
@@ -345,7 +373,7 @@ export async function decideOnboardingCase(
       status: next.status,
       decision: request.decision,
       reviewerNote: request.reviewerNote,
-      decisionReason: request.reason,
+      decisionReason: request.decisionReason,
     },
   });
 
@@ -360,13 +388,22 @@ export async function provisionOnboardingCase(caseId: string, actor?: AuditActor
 
   const c = await getOnboardingCase(caseId);
   if (c.status !== 'APPROVED') {
-    throw new ApiError('Case must be approved before provisioning', 400, { status: c.status });
+    throw new ApiError('Case must be approved before provisioning', 409, { status: c.status });
   }
 
   const tenantId = `TNT-AFF-${Math.floor(Math.random() * 90000 + 10000)}`;
   const adminEmail = c.contact?.contactEmail || `admin@${tenantId.toLowerCase()}.example`;
   const temporaryPassword = `Temp#${Math.floor(Math.random() * 900000 + 100000)}`;
   const provisionedAt = nowIso();
+  const iamProvisioning = {
+    status: 'TRIGGERED',
+    loginUrl: ``,
+  };
+  const affiliateId = `AFF-${Math.floor(Math.random() * 90000 + 10000)}`;
+  const bankPartnershipRequests = c.issuingBankIds.map(bankId => ({
+    bankId,
+    status: 'PENDING_BANK_APPROVAL',
+  }));
 
   reportStore.addAuditLog({
     userEmail: actor?.userEmail || 'superadmin@kardit.app',
@@ -381,6 +418,8 @@ export async function provisionOnboardingCase(caseId: string, actor?: AuditActor
       tenantId,
       adminEmail,
       provisionedAt,
+      iamProvisioning,
+      bankPartnershipRequests,
     },
   });
 
@@ -393,5 +432,5 @@ export async function provisionOnboardingCase(caseId: string, actor?: AuditActor
     provisionedTemporaryPassword: temporaryPassword,
   });
 
-  return { tenantId, adminEmail, temporaryPassword, provisionedAt };
+  return { caseId:c.caseId, tenantId, affiliateId, iamProvisioning, bankPartnershipRequests, provisionedAt };
 }

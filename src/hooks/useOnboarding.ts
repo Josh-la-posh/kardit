@@ -53,7 +53,7 @@ export function useOnboardingDraft(draftId: string | undefined) {
     async (org: SaveOrganizationRequest) => {
       if (!draftId) return null;
       const next = await saveOrganization(draftId, org);
-      setDraft(next);
+      setDraft(prev => ({...prev!, ...next}));
       return next;
     },
     [draftId]
@@ -73,7 +73,7 @@ export function useOnboardingDraft(draftId: string | undefined) {
     async (payload: UploadOnboardingDocumentRequest) => {
       if (!draftId) return null;
       const next = await uploadDocument(draftId, payload);
-      setDraft(next);
+      setDraft(prev => ({...prev!, ...next}));
       return next;
     },
     [draftId]
@@ -90,10 +90,11 @@ export function useOnboardingDraft(draftId: string | undefined) {
   );
 
   const updateIssuingBanks = useCallback(
-    async (issuingBankIds: string[]) => {
+    async (issuingBankIds: string[], onboardingSessionId: string) => {
       if (!draftId) return null;
-      const next = await saveIssuingBanks(draftId, issuingBankIds);
-      setDraft(next);
+      const next = await saveIssuingBanks(draftId, issuingBankIds, onboardingSessionId);
+      // setDraft(next);
+      setDraft(prev => ({...prev!, issuingBankIds}))
       return next;
     },
     [draftId]
@@ -177,7 +178,9 @@ export function useReviewerOnboardingCases() {
     setIsLoading(true);
     setError(null);
     try {
-      setCases(await listOnboardingCases());
+      const response = await listOnboardingCases();
+      setCases(response.cases || []);
+      // setCases(await listOnboardingCases());
     } catch (e: any) {
       setError(e?.message || 'Failed to load cases');
     } finally {
@@ -191,6 +194,8 @@ export function useReviewerOnboardingCases() {
 
   const decide = useCallback(async (caseId: string, payload: DecisionRequest) => {
     const actor = {
+      userId: user?.id || 'SR-SP-0007',
+      name: user?.name || 'Chamsswitch Super Admin',
       userEmail: user?.email || 'superadmin@kardit.app',
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     };
@@ -201,6 +206,8 @@ export function useReviewerOnboardingCases() {
 
   const provision = useCallback(async (caseId: string): Promise<ProvisionResponse> => {
     const actor = {
+      userId: user?.id || 'SR-SP-0007',
+      name: user?.name || 'Chamsswitch Super Admin',
       userEmail: user?.email || 'superadmin@kardit.app',
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     };
