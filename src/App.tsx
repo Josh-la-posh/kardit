@@ -35,6 +35,15 @@ import BanksListPage from "./pages/super-admin/banks/BanksListPage";
 import BankDetailPage from "./pages/super-admin/banks/BankDetailPage";
 import AffiliateDetailPage from "./pages/super-admin/banks/AffiliateDetailPage";
 
+// Issuing Banks (Service Provider)
+import IssuingBanksListPage from "./pages/issuing-banks/IssuingBanksListPage";
+import IssuingBankCreatePage from "./pages/issuing-banks/IssuingBankCreatePage";
+import IssuingBankReviewPage from "./pages/issuing-banks/IssuingBankReviewPage";
+import IssuingBankProvisioningPage from "./pages/issuing-banks/IssuingBankProvisioningPage";
+import IssuingBankSuccessPage from "./pages/issuing-banks/IssuingBankSuccessPage";
+import IssuingBankFailurePage from "./pages/issuing-banks/IssuingBankFailurePage";
+import IssuingBankDetailPage from "./pages/issuing-banks/IssuingBankDetailPage";
+
 // Onboarding (public)
 import OnboardingStartPage from "./pages/onboarding/OnboardingStartPage";
 import OnboardingOrganizationPage from "./pages/onboarding/OnboardingOrganizationPage";
@@ -145,6 +154,15 @@ const App = () => (
             <Route path="/super-admin/banks" element={<BanksListPage />} />
             <Route path="/super-admin/banks/:bankId" element={<BankDetailPage />} />
             <Route path="/super-admin/banks/:bankId/affiliates/:affiliateId" element={<AffiliateDetailPage />} />
+
+            {/* Issuing Banks (Service Provider) */}
+            <Route path="/issuing-banks" element={<IssuingBanksListPage />} />
+            <Route path="/issuing-banks/new" element={<IssuingBankCreatePage />} />
+            <Route path="/issuing-banks/:sessionId/review" element={<IssuingBankReviewPage />} />
+            <Route path="/issuing-banks/:sessionId/provisioning" element={<IssuingBankProvisioningPage />} />
+            <Route path="/issuing-banks/:sessionId/success" element={<IssuingBankSuccessPage />} />
+            <Route path="/issuing-banks/:sessionId/failure" element={<IssuingBankFailurePage />} />
+            <Route path="/issuing-banks/:bankId/details" element={<IssuingBankDetailPage />} />
 
             {/* Service provider onboarding review */}
             <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />

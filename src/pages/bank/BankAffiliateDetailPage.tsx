@@ -49,7 +49,7 @@ export default function BankAffiliateDetailPage() {
     if (!caseId) return;
     setWorking(true);
     try {
-      await decide(caseId, { decision, reason: reason || undefined, reviewerNote: note || undefined });
+      await decide(caseId, { decision, decisionReason: reason || undefined, reviewerNote: note || undefined });
       
       let successMessage = '';
       if (decision === 'APPROVE') {
@@ -255,13 +255,13 @@ export default function BankAffiliateDetailPage() {
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Country</dt>
-                    <dd className="font-medium">{caseItem.organization?.country || '—'}</dd>
+                    <dd className="font-medium">{caseItem.organization?.address?.country || '—'}</dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Address</dt>
                     <dd className="font-medium">
-                      {caseItem.organization?.addressLine1 || '—'}
-                      {caseItem.organization?.city && `, ${caseItem.organization.city}`}
+                      {caseItem.organization?.address?.line1 || '—'}
+                      {caseItem.organization?.address?.city && `, ${caseItem.organization?.address?.city}`}
                     </dd>
                   </div>
                 </dl>
