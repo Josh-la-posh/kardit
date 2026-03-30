@@ -27,12 +27,15 @@ export interface SaveIssuingBanksResponse {
   selectedBankCount: number;
   savedAt: string;
 }
+
 export type OnboardingDocumentType = 'CERTIFICATE_OF_INCORPORATION' | 'TAX_ID' | 'DIRECTORS_ID' | 'PROOF_OF_ADDRESS' | 'OTHER';
 
 export type OnboardingCaseStatus =
   | 'DRAFT'
   | 'SUBMITTED'
+  | 'IN_REVIEW'
   | 'UNDER_REVIEW'
+  | 'CLARIFICATION_REQUIRED'
   | 'CLARIFICATION_REQUESTED'
   | 'REJECTED'
   | 'APPROVED'
@@ -52,13 +55,31 @@ export interface CreateOnboardingSessionResponse {
 }
 
 export interface SaveOrganizationRequest {
+  onboardingSessionId: string;
   legalName: string;
+  tradingName?: string;
   registrationNumber: string;
-  country: string;
-  addressLine1: string;
-  addressLine2?: string;
+  addressLine1?: string;
   city?: string;
   state?: string;
+  country?: string;
+  address: {
+    line1:string;
+    city?: string;
+    state?: string;
+    country: string;
+  }
+  primaryContact: {
+    fullName: string;
+    email: string;
+    phone: string;
+  }
+}
+
+export interface SaveOrganizationResponse {
+  draftId: string;
+  status: string;
+  savedAt: string;
 }
 
 export interface SaveContactRequest {
@@ -75,11 +96,20 @@ export interface UploadOnboardingDocumentRequest {
   fileBase64: string;
 }
 
+export interface UploadOnboardingDocumentResponse {
+  documentId: string;
+  draftId: string;
+  docType: OnboardingDocumentType;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | string;
+  uploadedAt: string;
+}
+
 export interface OnboardingDocument {
   documentId: string;
   type: OnboardingDocumentType;
   fileName: string;
   uploadedAt: string;
+  verificationStatus?: string;
 }
 
 export interface OnboardingDraft {
@@ -111,10 +141,22 @@ export interface SubmitOnboardingDraftResponse {
   submittedAt: string;
 }
 
+export interface OnboardingCaseTimeline {
+  status: OnboardingCaseStatus;
+  at: string;
+}
+
+export interface OnboardingCaseMessage {
+  from: string;
+  type: string;
+  text: string;
+  at: string;
+}
+
 export interface OnboardingCase {
   caseId: string;
-  draftId: string;
-  onboardingSessionId: string;
+  draftId?: string;
+  onboardingSessionId?: string;
   status: OnboardingCaseStatus;
   submittedAt: string;
   updatedAt: string;
@@ -122,6 +164,8 @@ export interface OnboardingCase {
   contact?: SaveContactRequest;
   documents: OnboardingDocument[];
   issuingBankIds: string[];
+  timeline: OnboardingCaseTimeline[];
+  messages: OnboardingCaseMessage[];
   reviewerNote?: string;
   decisionReason?: string;
   provisionedTenantId?: string;
@@ -132,6 +176,8 @@ export interface OnboardingCase {
 
 export interface DecisionRequest {
   decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
+  reason?: string;
+  reviewerNote?: string;
   reviewerNotes?: string;
   decisionReason?: string;
   selectedBanksApproved?: string[];
@@ -149,6 +195,7 @@ export interface DecisionResponse {
 
 
 export interface ProvisionOnboardingCaseRequest {
+  userEmail?: string;
   adminContact: {
     fullName: string;
     email: string;
@@ -171,3 +218,5 @@ export interface ProvisionOnboardingCaseResponse {
   }>;
   provisionedAt: string;
 }
+
+export type ProvisionResponse = ProvisionOnboardingCaseResponse;

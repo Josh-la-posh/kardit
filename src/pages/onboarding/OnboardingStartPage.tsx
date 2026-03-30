@@ -27,7 +27,6 @@ export default function OnboardingStartPage() {
     }
     try {
       const res = await create({ channel: 'web', email, phone, consentAccepted });
-      console.log('Created onboarding session:', res);
       navigate(`/onboarding/${res.draftId}/organization`);
     } catch (err: any) {
       setLocalError((err as Error)?.message || 'Failed to start onboarding');

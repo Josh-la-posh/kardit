@@ -3,7 +3,6 @@ import type {
   CreateOnboardingSessionRequest,
   OnboardingCase,
   OnboardingDraft,
-  SaveContactRequest,
   SaveOrganizationRequest,
   SubmitOnboardingDraftRequest,
   UploadOnboardingDocumentRequest,
@@ -14,11 +13,10 @@ import {
   createOnboardingSession,
   decideOnboardingCase,
   getOnboardingCase,
-  getOnboardingDraft,
+  getStoredOnboardingDraft,
+  getStoredOnboardingSessionIdForCase,
   listOnboardingCases,
   provisionOnboardingCase,
-  removeDocument,
-  saveContact,
   saveIssuingBanks,
   saveOrganization,
   submitOnboardingDraft,
@@ -36,7 +34,7 @@ export function useOnboardingDraft(draftId: string | undefined) {
     setIsLoading(true);
     setError(null);
     try {
-      setDraft(await getOnboardingDraft(draftId));
+      setDraft(getStoredOnboardingDraft(draftId));
     } catch (e: any) {
       setError(e?.message || 'Failed to load draft');
       setDraft(null);
@@ -52,19 +50,9 @@ export function useOnboardingDraft(draftId: string | undefined) {
   const updateOrganization = useCallback(
     async (org: SaveOrganizationRequest) => {
       if (!draftId) return null;
-      const next = await saveOrganization(draftId, org);
-      setDraft(next);
-      return next;
-    },
-    [draftId]
-  );
-
-  const updateContact = useCallback(
-    async (contact: SaveContactRequest) => {
-      if (!draftId) return null;
-      const next = await saveContact(draftId, contact);
-      setDraft(next);
-      return next;
+      const res = await saveOrganization(draftId, org);
+      setDraft(getStoredOnboardingDraft(draftId));
+      return res;
     },
     [draftId]
   );
@@ -72,29 +60,23 @@ export function useOnboardingDraft(draftId: string | undefined) {
   const addDocument = useCallback(
     async (payload: UploadOnboardingDocumentRequest) => {
       if (!draftId) return null;
-      const next = await uploadDocument(draftId, payload);
-      setDraft(next);
-      return next;
-    },
-    [draftId]
-  );
-
-  const deleteDocument = useCallback(
-    async (documentId: string) => {
-      if (!draftId) return null;
-      const next = await removeDocument(draftId, documentId);
-      setDraft(next);
-      return next;
+      const result = await uploadDocument(draftId, payload);
+      setDraft(getStoredOnboardingDraft(draftId));
+      return result;
     },
     [draftId]
   );
 
   const updateIssuingBanks = useCallback(
-    async (issuingBankIds: string[]) => {
+    async (issuingBankIds: string[], onboardingSessionId: string) => {
       if (!draftId) return null;
-      const next = await saveIssuingBanks(draftId, issuingBankIds);
-      setDraft(next);
-      return next;
+      const req = {
+        onboardingSessionId,
+        selectedBanks: issuingBankIds.map(bankId => ({ bankId })),
+      };
+      const res = await saveIssuingBanks(draftId, req);
+      setDraft(getStoredOnboardingDraft(draftId));
+      return res;
     },
     [draftId]
   );
@@ -113,9 +95,7 @@ export function useOnboardingDraft(draftId: string | undefined) {
     error,
     refresh,
     updateOrganization,
-    updateContact,
     addDocument,
-    deleteDocument,
     updateIssuingBanks,
     submit,
   };
@@ -151,7 +131,11 @@ export function useOnboardingCase(caseId: string | undefined) {
     setIsLoading(true);
     setError(null);
     try {
-      setCaseItem(await getOnboardingCase(caseId));
+      const onboardingSessionId = getStoredOnboardingSessionIdForCase(caseId);
+      if (!onboardingSessionId) {
+        throw new Error('Missing onboarding session. Please restart onboarding from the original device.');
+      }
+      setCaseItem(await getOnboardingCase(caseId, onboardingSessionId));
     } catch (e: any) {
       setError(e?.message || 'Failed to load case');
       setCaseItem(null);
@@ -173,13 +157,40 @@ export function useReviewerOnboardingCases() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      setCases(await listOnboardingCases());
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load cases');
+      const response = await listOnboardingCases({ page: 1, pageSize: 25 });
+      setCases(
+        response.cases.map((item) => ({
+          caseId: item.caseId,
+          status: item.status,
+          submittedAt: item.submittedAt,
+          updatedAt: item.submittedAt,
+          organization: {
+            onboardingSessionId: '',
+            legalName: item.affiliateName,
+            registrationNumber: '',
+            address: {
+              line1: '',
+              country: '',
+            },
+            primaryContact: {
+              fullName: '',
+              email: '',
+              phone: '',
+            },
+          },
+          documents: [],
+          issuingBankIds: [],
+          timeline: [],
+          messages: [],
+        }))
+      );
+    } catch (e) {
+      setError((e as Error)?.message || 'Failed to load cases');
     } finally {
       setIsLoading(false);
     }
@@ -195,15 +206,24 @@ export function useReviewerOnboardingCases() {
     return updated;
   }, []);
 
-  const provision = useCallback(async (caseId: string): Promise<ProvisionResponse> => {
-    const actor = {
-      userEmail: user?.email || 'superadmin@kardit.app',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+
+  const provision = useCallback(async (
+    caseId: string,
+    adminContact: { fullName: string; email: string; phone: string } = {
+      fullName: 'Platform Admin',
+      email: user?.email || 'admin@kardit.app',
+      phone: '+2340000000000',
+    },
+    deliveryChannels: string[] = ['EMAIL']
+  ): Promise<ProvisionResponse> => {
+    const req = {
+      adminContact,
+      deliveryChannels,
     };
-    const res = await provisionOnboardingCase(caseId, actor);
+    const res = await provisionOnboardingCase(caseId, req);
     await refresh();
     return res;
-  }, [refresh, user?.email]);
+  }, [refresh]);
 
   return { cases, isLoading, error, refresh, decide, provision };
 }

@@ -1,30 +1,21 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CreditCard, Loader2, Plus, Search, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCard } from '@/hooks/useCards';
-import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS, store } from '@/stores/mockStore';
-import { Plus, Upload, Loader2, ArrowLeft, CreditCard, Search, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS } from '@/stores/mockStore';
 
-/**
- * CreateCardPage - Create a card for any customer, selecting customer and bank
- * Affiliates can create cards for different customers across different banks
- */
 export default function CreateCardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { createCard, isLoading } = useCreateCard();
-
-  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
   const [refreshKey, setRefreshKey] = useState(0);
-  const customers = store.getCustomers(tenantScope).filter(c => c.status === 'ACTIVE');
-
   const [form, setForm] = useState({
     tenantId: '',
     customerId: '',
@@ -38,47 +29,49 @@ export default function CreateCardPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { customers, isLoading: customersLoading } = useCustomers(customerDropdownOpen ? customerSearch : '');
 
-  const filteredCustomers = customers.filter(c =>
-    `${c.firstName} ${c.lastName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.customerId.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.email.toLowerCase().includes(customerSearch.toLowerCase())
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.fullName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.customerId.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.email.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.phone.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
-  const selectedCustomer = customers.find(c => c.id === form.customerId);
+  const selectedCustomer = customers.find((customer) => customer.id === form.customerId);
 
   const set = (key: string, val: string) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    setErrors((p) => ({ ...p, [key]: '' }));
+    setForm((prev) => ({ ...prev, [key]: val }));
+    setErrors((prev) => ({ ...prev, [key]: '' }));
 
-    // Auto-fill emboss name when customer is selected
     if (key === 'customerId') {
-      const cust = customers.find(c => c.id === val);
-      if (cust) {
-        setForm(f => ({
-          ...f,
+      const customer = customers.find((item) => item.id === val);
+      if (customer) {
+        setForm((prev) => ({
+          ...prev,
           customerId: val,
-          embossName: cust.embossName || `${cust.firstName} ${cust.lastName}`.toUpperCase(),
+          embossName: customer.fullName.toUpperCase(),
         }));
       }
     }
   };
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.customerId) e.customerId = 'Required';
-    if (!form.embossName.trim()) e.embossName = 'Required';
-    if (!form.cardProduct) e.cardProduct = 'Required';
-    if (!form.currency) e.currency = 'Required';
-    if (!form.deliveryMethod) e.deliveryMethod = 'Required';
-    if (!form.issuingBank) e.issuingBank = 'Required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const nextErrors: Record<string, string> = {};
+    if (!form.customerId) nextErrors.customerId = 'Required';
+    if (!form.embossName.trim()) nextErrors.embossName = 'Required';
+    if (!form.cardProduct) nextErrors.cardProduct = 'Required';
+    if (!form.currency) nextErrors.currency = 'Required';
+    if (!form.deliveryMethod) nextErrors.deliveryMethod = 'Required';
+    if (!form.issuingBank) nextErrors.issuingBank = 'Required';
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const selectedProduct = CARD_PRODUCTS.find(p => p.id === form.cardProduct);
-  const selectedBank = ISSUING_BANKS.find(b => b.id === form.issuingBank);
-  const selectedDelivery = DELIVERY_METHODS.find(d => d.id === form.deliveryMethod);
+  const selectedProduct = CARD_PRODUCTS.find((product) => product.id === form.cardProduct);
+  const selectedBank = ISSUING_BANKS.find((bank) => bank.id === form.issuingBank);
+  const selectedDelivery = DELIVERY_METHODS.find((method) => method.id === form.deliveryMethod);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +92,10 @@ export default function CreateCardPage() {
   };
 
   const fieldLabel = (label: string, required = false) => (
-    <span>{label}{required && <span className="text-destructive ml-0.5">*</span>}</span>
+    <span>
+      {label}
+      {required && <span className="ml-0.5 text-destructive">*</span>}
+    </span>
   );
 
   const handleSelectCustomer = (customerId: string) => {
@@ -109,7 +105,7 @@ export default function CreateCardPage() {
   };
 
   const handleCreateNewCustomer = () => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     navigate('/customers/create', { state: { returnTo: '/cards/create' } });
   };
 
@@ -122,53 +118,52 @@ export default function CreateCardPage() {
             subtitle="Issue a new card for a customer"
             actions={
               <div className="flex gap-2">
-              <Button onClick={() => navigate('/customers/create')}>
+                <Button onClick={() => navigate('/customers/create')}>
                   <Plus className="h-4 w-4" /> Add New Customer
                 </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/cards')}>
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
-              </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/cards')}>
+                  <ArrowLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
               </div>
             }
           />
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-6">
-              {/* Customer Selection */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Customer</h2>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <form onSubmit={handleSubmit} className="space-y-6 xl:col-span-2">
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Select Customer</h2>
                 <div className="space-y-1.5" ref={dropdownRef} key={refreshKey}>
                   <label className="text-sm font-medium text-foreground">{fieldLabel('Customer', true)}</label>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-border bg-muted text-sm hover:bg-muted/80 transition-colors"
+                      className="flex w-full items-center justify-between rounded-md border border-border bg-muted px-3 py-2 text-sm transition-colors hover:bg-muted/80"
                     >
-                      <span className={selectedCustomer ? 'text-foreground font-medium' : 'text-muted-foreground'}>
-                        {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Select a customer'}
+                      <span className={selectedCustomer ? 'font-medium text-foreground' : 'text-muted-foreground'}>
+                        {selectedCustomer ? selectedCustomer.fullName : 'Select a customer'}
                       </span>
                       <Search className="h-4 w-4 text-muted-foreground" />
                     </button>
 
                     {customerDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-md shadow-lg z-50">
-                        <div className="p-3 border-b border-border">
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-muted focus-within:ring-1 focus-within:ring-primary">
-                            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-md border border-border bg-white shadow-lg">
+                        <div className="border-b border-border p-3">
+                          <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-2 py-1.5 focus-within:ring-1 focus-within:ring-primary">
+                            <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                             <input
                               type="text"
                               placeholder="Search customer..."
                               value={customerSearch}
                               onChange={(e) => setCustomerSearch(e.target.value)}
                               autoFocus
-                              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                             />
                             {customerSearch && (
                               <button
                                 type="button"
                                 onClick={() => setCustomerSearch('')}
-                                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                                className="flex-shrink-0 text-muted-foreground hover:text-foreground"
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -177,50 +172,46 @@ export default function CreateCardPage() {
                         </div>
 
                         <div className="max-h-64 overflow-y-auto p-2">
-                          {filteredCustomers.length === 0 ? (
+                          {customersLoading ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            </div>
+                          ) : filteredCustomers.length === 0 ? (
                             <div className="space-y-2 p-2">
-                              <p className="text-sm text-muted-foreground text-center py-2">
-                                {customerSearch ? 'No customers found' : 'No active customers'}
+                              <p className="py-2 text-center text-sm text-muted-foreground">
+                                {customerSearch ? 'No customers found' : 'No customers available'}
                               </p>
                             </div>
                           ) : (
                             <>
-                              {filteredCustomers.map((c) => (
+                              {filteredCustomers.map((customer) => (
                                 <button
-                                  key={c.id}
+                                  key={customer.id}
                                   type="button"
-                                  onClick={() => handleSelectCustomer(c.id)}
-                                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm transition-colors"
+                                  onClick={() => handleSelectCustomer(customer.id)}
+                                  className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
                                 >
-                                  <p className="font-medium">{c.firstName} {c.lastName}</p>
-                                  <p className="text-xs text-muted-foreground">{c.customerId} • {c.email}</p>
+                                  <p className="font-medium">{customer.fullName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {customer.customerId} • {customer.email}
+                                  </p>
                                 </button>
                               ))}
                               {customerSearch && (
-                                <div className="border-t border-border mt-2 pt-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={handleCreateNewCustomer}
-                                  >
-                                    <Plus className="h-4 w-4 mr-1" /> Add New Customer
+                                <div className="mt-2 border-t border-border pt-2">
+                                  <Button type="button" variant="outline" className="w-full" onClick={handleCreateNewCustomer}>
+                                    <Plus className="mr-1 h-4 w-4" /> Add New Customer
                                   </Button>
                                 </div>
                               )}
                             </>
                           )}
 
-                          <div className="border-t border-border mt-2 pt-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={handleCreateNewCustomer}
-                                  >
-                                    <Plus className="h-4 w-4 mr-1" /> Add New Customer
-                                  </Button>
-                                </div>
+                          <div className="mt-2 border-t border-border pt-2">
+                            <Button type="button" variant="outline" className="w-full" onClick={handleCreateNewCustomer}>
+                              <Plus className="mr-1 h-4 w-4" /> Add New Customer
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -230,15 +221,14 @@ export default function CreateCardPage() {
 
                 {selectedCustomer && (
                   <div className="rounded-md border border-border bg-muted/50 p-3">
-                    <p className="text-sm font-medium">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
+                    <p className="text-sm font-medium">{selectedCustomer.fullName}</p>
                     <p className="text-xs text-muted-foreground">{selectedCustomer.email}</p>
                   </div>
                 )}
               </div>
 
-              {/* Card Details */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Details</h2>
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Card Details</h2>
                 <TextField
                   label={fieldLabel('Emboss Name', true)}
                   value={form.embossName}
@@ -247,16 +237,18 @@ export default function CreateCardPage() {
                   placeholder="Name on card"
                   disabled={!form.customerId}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
-                    <Select value={form.issuingBank} onValueChange={(v) => set('issuingBank', v)} disabled={!form.customerId}>
-                      <SelectTrigger className="bg-muted border-border">
+                    <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
                         <SelectValue placeholder="Select bank" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ISSUING_BANKS.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        {ISSUING_BANKS.map((bank) => (
+                          <SelectItem key={bank.id} value={bank.id}>
+                            {bank.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -264,13 +256,15 @@ export default function CreateCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Card Product', true)}</label>
-                    <Select value={form.cardProduct} onValueChange={(v) => set('cardProduct', v)} disabled={!form.customerId}>
-                      <SelectTrigger className="bg-muted border-border">
+                    <Select value={form.cardProduct} onValueChange={(value) => set('cardProduct', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
                         <SelectValue placeholder="Select product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CARD_PRODUCTS.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name} ({p.code})</SelectItem>
+                        {CARD_PRODUCTS.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} ({product.code})
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -278,13 +272,15 @@ export default function CreateCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Currency', true)}</label>
-                    <Select value={form.currency} onValueChange={(v) => set('currency', v)} disabled={!form.customerId}>
-                      <SelectTrigger className="bg-muted border-border">
+                    <Select value={form.currency} onValueChange={(value) => set('currency', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
                         <SelectValue placeholder="Select currency" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CURRENCIES.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                        {CURRENCIES.map((currency) => (
+                          <SelectItem key={currency.code} value={currency.code}>
+                            {currency.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -292,13 +288,15 @@ export default function CreateCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId}>
-                      <SelectTrigger className="bg-muted border-border">
+                    <Select value={form.deliveryMethod} onValueChange={(value) => set('deliveryMethod', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
                         <SelectValue placeholder="Select delivery" />
                       </SelectTrigger>
                       <SelectContent>
-                        {DELIVERY_METHODS.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
+                        {DELIVERY_METHODS.map((method) => (
+                          <SelectItem key={method.id} value={method.id}>
+                            {method.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -307,40 +305,40 @@ export default function CreateCardPage() {
                 </div>
               </div>
 
-              {/* Submit */}
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => navigate('/cards')}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/cards')}>
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={isLoading || !form.customerId}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                  {isLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CreditCard className="mr-1 h-4 w-4" />}
                   Create Card
                 </Button>
               </div>
             </form>
 
-            {/* Summary Sidebar */}
             <div className="space-y-4">
               <div className="kardit-card p-6">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Summary</h3>
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Summary</h3>
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Customer</dt>
-                    <dd>{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : '—'}</dd>
+                    <dd>{selectedCustomer ? selectedCustomer.fullName : '-'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Bank</dt>
-                    <dd>{selectedBank?.name || '—'}</dd>
+                    <dd>{selectedBank?.name || '-'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Product</dt>
-                    <dd>{selectedProduct?.name || '—'}</dd>
+                    <dd>{selectedProduct?.name || '-'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Currency</dt>
-                    <dd>{form.currency || '—'}</dd>
+                    <dd>{form.currency || '-'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Emboss Name</dt>
-                    <dd className="font-mono text-xs">{form.embossName || '—'}</dd>
+                    <dd className="font-mono text-xs">{form.embossName || '-'}</dd>
                   </div>
                 </dl>
               </div>

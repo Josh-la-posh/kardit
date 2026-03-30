@@ -53,6 +53,7 @@ type NavItem = { label: string; icon: any; path: string; roles?: string[] };
 
 const affiliateNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Banks', icon: Building2, path: '/banks' },
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
   { label: 'Loads', icon: Wallet, path: '/loads' },

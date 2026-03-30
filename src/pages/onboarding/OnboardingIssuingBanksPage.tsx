@@ -29,10 +29,10 @@ export default function OnboardingIssuingBanksPage() {
   };
 
   const onNext = async () => {
-    if (!draftId) return;
+    if (!draftId || !draft?.onboardingSessionId) return;
     setSaving(true);
     try {
-      await updateIssuingBanks(Array.from(selected));
+      await updateIssuingBanks(Array.from(selected), draft.onboardingSessionId);
       navigate(`/onboarding/${draftId}/review`);
     } finally {
       setSaving(false);

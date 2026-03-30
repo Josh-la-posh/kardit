@@ -1,40 +1,35 @@
 import { ApiError } from '@/services/authApi';
-import { reportStore } from '@/stores/reportStore';
 import type {
   CreateOnboardingSessionRequest,
   CreateOnboardingSessionResponse,
   DecisionRequest,
   DecisionResponse,
+  ListOnboardingCasesRequest,
+  ListOnboardingCasesResponse,
   OnboardingCase,
   OnboardingDraft,
   ProvisionOnboardingCaseRequest,
   ProvisionOnboardingCaseResponse,
+  SaveIssuingBanksRequest,
+  SaveIssuingBanksResponse,
   SaveContactRequest,
   SaveOrganizationRequest,
+  SaveOrganizationResponse,
   SubmitOnboardingDraftRequest,
   SubmitOnboardingDraftResponse,
   UploadOnboardingDocumentRequest,
-  SaveIssuingBanksRequest,
-  SaveIssuingBanksResponse,
+  UploadOnboardingDocumentResponse,
 } from '@/types/onboardingContracts';
 
-type AuditActor = {
-  userEmail?: string;
-  ipAddress?: string;
-  userAgent?: string;
-};
+const LS_DRAFTS = 'kardit.onboarding.drafts.v2';
+const LS_CASE_SESSIONS = 'kardit.onboarding.case-sessions.v1';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
-
 const getApiBaseUrl = () => {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  console.log('[API] Using base URL:', base);
   return base ? normalizeBaseUrl(base) : '';
 };
-
-
-// All API calls now always use the real backend. No mock/local fallback.
 
 const safeJson = async (res: Response) => {
   const text = await res.text();
@@ -69,8 +64,8 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
   if (!res.ok) {
     const errorBody = await safeJson(res);
     const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as any)
-        ? String((errorBody as any).message)
+      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
+        ? String((errorBody as Record<string, unknown>).message)
         : undefined) || `Request failed (${res.status})`;
     throw new ApiError(message, res.status, errorBody);
   }
@@ -89,25 +84,12 @@ async function putJson<TResponse>(path: string, body: unknown, init?: RequestIni
   if (!res.ok) {
     const errorBody = await safeJson(res);
     const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as any)
-        ? String((errorBody as any).message)
+      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
+        ? String((errorBody as Record<string, unknown>).message)
         : undefined) || `Request failed (${res.status})`;
     throw new ApiError(message, res.status, errorBody);
   }
   return (await res.json()) as TResponse;
-}
-
-// ---------- Local mock (localStorage) ----------
-
-const LS_DRAFTS = 'kardit.onboarding.drafts.v1';
-const LS_CASES = 'kardit.onboarding.cases.v1';
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function genId(prefix: string) {
-  return `${prefix}_${Math.random().toString(16).slice(2, 10)}_${Date.now().toString(16)}`;
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -128,99 +110,248 @@ function getDrafts(): Record<string, OnboardingDraft> {
   return readJson<Record<string, OnboardingDraft>>(LS_DRAFTS, {});
 }
 
-function setDraft(draft: OnboardingDraft) {
+function saveDraft(draft: OnboardingDraft) {
   const drafts = getDrafts();
   drafts[draft.draftId] = draft;
   writeJson(LS_DRAFTS, drafts);
 }
 
-function getCases(): Record<string, OnboardingCase> {
-  return readJson<Record<string, OnboardingCase>>(LS_CASES, {});
+function updateDraft(draftId: string, updater: (current: OnboardingDraft) => OnboardingDraft): OnboardingDraft {
+  const drafts = getDrafts();
+  const current = drafts[draftId];
+  if (!current) {
+    throw new Error('Onboarding draft not found locally. Please restart onboarding.');
+  }
+  const next = updater(current);
+  drafts[draftId] = next;
+  writeJson(LS_DRAFTS, drafts);
+  return next;
 }
 
-function setCase(c: OnboardingCase) {
-  const cases = getCases();
-  cases[c.caseId] = c;
-  writeJson(LS_CASES, cases);
+function getCaseSessions(): Record<string, string> {
+  return readJson<Record<string, string>>(LS_CASE_SESSIONS, {});
 }
 
-// ---------- API surface (SRS-aligned) ----------
-
-
-export async function createOnboardingSession(request: CreateOnboardingSessionRequest): Promise<CreateOnboardingSessionResponse> {
-  return postJson<CreateOnboardingSessionResponse>('/onboarding/sessions', request);
+function saveCaseSession(caseId: string, onboardingSessionId: string) {
+  const mappings = getCaseSessions();
+  mappings[caseId] = onboardingSessionId;
+  writeJson(LS_CASE_SESSIONS, mappings);
 }
 
-
-export async function getOnboardingDraft(draftId: string): Promise<OnboardingDraft> {
-  return getJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}`);
+function deriveSubmittedAt(caseItem: {
+  submittedAt?: string;
+  timeline?: Array<{ status: string; at: string }>;
+}) {
+  return (
+    caseItem.submittedAt ||
+    caseItem.timeline?.find((entry) => entry.status === 'SUBMITTED')?.at ||
+    caseItem.timeline?.[0]?.at ||
+    new Date().toISOString()
+  );
 }
 
-
-export async function saveOrganization(draftId: string, org: SaveOrganizationRequest): Promise<OnboardingDraft> {
-  return putJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/organization`, org);
+function deriveUpdatedAt(caseItem: {
+  updatedAt?: string;
+  submittedAt?: string;
+  timeline?: Array<{ status: string; at: string }>;
+}) {
+  return (
+    caseItem.updatedAt ||
+    caseItem.timeline?.[caseItem.timeline.length - 1]?.at ||
+    caseItem.submittedAt ||
+    new Date().toISOString()
+  );
 }
 
+export function getStoredOnboardingDraft(draftId: string): OnboardingDraft | null {
+  return getDrafts()[draftId] || null;
+}
+
+export function getStoredOnboardingSessionIdForCase(caseId: string): string | null {
+  return getCaseSessions()[caseId] || null;
+}
+
+export async function createOnboardingSession(
+  request: CreateOnboardingSessionRequest
+): Promise<CreateOnboardingSessionResponse> {
+  const response = await postJson<CreateOnboardingSessionResponse>('/onboarding/sessions', request);
+  saveDraft({
+    draftId: response.draftId,
+    onboardingSessionId: response.onboardingSessionId,
+    expiresAt: response.expiresAt,
+    email: request.email,
+    phone: request.phone,
+    consentAccepted: request.consentAccepted,
+    documents: [],
+    issuingBankIds: [],
+  });
+  return response;
+}
+
+export async function saveOrganization(
+  draftId: string,
+  org: SaveOrganizationRequest
+): Promise<SaveOrganizationResponse> {
+  const response = await putJson<SaveOrganizationResponse>(
+    `/onboarding/drafts/${encodeURIComponent(draftId)}/organization`,
+    org
+  );
+  updateDraft(draftId, (current) => ({
+    ...current,
+    organization: {
+      ...org,
+      addressLine1: org.address.line1,
+      city: org.address.city,
+      country: org.address.country,
+    },
+    contact: {
+      contactName: org.primaryContact.fullName,
+      contactEmail: org.primaryContact.email,
+      contactPhone: org.primaryContact.phone,
+    },
+  }));
+  return response;
+}
 
 export async function saveContact(draftId: string, contact: SaveContactRequest): Promise<OnboardingDraft> {
-  return putJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/contact`, contact);
+  return updateDraft(draftId, (current) => ({
+    ...current,
+    contact,
+    organization: current.organization
+      ? {
+          ...current.organization,
+          primaryContact: {
+            fullName: contact.contactName,
+            email: contact.contactEmail,
+            phone: contact.contactPhone,
+          },
+        }
+      : current.organization,
+  }));
 }
 
 export async function uploadDocument(
   draftId: string,
   payload: UploadOnboardingDocumentRequest
-): Promise<OnboardingDraft> {
-  // Always use real API, send docType, onboardingSessionId, contentType, fileBase64
-  return postJson<OnboardingDraft>(`/onboarding/drafts/${encodeURIComponent(draftId)}/documents`, payload);
-}
-
-
-// This endpoint should be implemented in the backend. Placeholder for real API call if available.
-export async function removeDocument(draftId: string, documentId: string): Promise<OnboardingDraft> {
-  throw new Error('removeDocument API not implemented. Use backend endpoint.');
+): Promise<UploadOnboardingDocumentResponse> {
+  const response = await putJson<UploadOnboardingDocumentResponse>(
+    `/onboarding/drafts/${encodeURIComponent(draftId)}/documents`,
+    payload
+  );
+  updateDraft(draftId, (current) => {
+    const documents = current.documents.filter((doc) => doc.documentId !== response.documentId);
+    documents.push({
+      documentId: response.documentId,
+      type: response.docType,
+      fileName: payload.fileName,
+      uploadedAt: response.uploadedAt,
+      verificationStatus: response.verificationStatus,
+    });
+    return {
+      ...current,
+      documents,
+    };
+  });
+  return response;
 }
 
 export async function saveIssuingBanks(
   draftId: string,
   request: SaveIssuingBanksRequest
 ): Promise<SaveIssuingBanksResponse> {
-  // Always use real API
-  return putJson<SaveIssuingBanksResponse>(`/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`, request);
+  const response = await putJson<SaveIssuingBanksResponse>(
+    `/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`,
+    request
+  );
+  updateDraft(draftId, (current) => ({
+    ...current,
+    issuingBankIds: request.selectedBanks.map((bank) => bank.bankId),
+  }));
+  return response;
 }
-
 
 export async function submitOnboardingDraft(
   draftId: string,
   request: SubmitOnboardingDraftRequest
 ): Promise<SubmitOnboardingDraftResponse> {
-  return postJson<SubmitOnboardingDraftResponse>(`/onboarding/drafts/${encodeURIComponent(draftId)}/submit`, request);
+  const response = await postJson<SubmitOnboardingDraftResponse>(
+    `/onboarding/drafts/${encodeURIComponent(draftId)}/submit`,
+    request
+  );
+  updateDraft(draftId, (current) => ({
+    ...current,
+    submittedCaseId: response.caseId,
+  }));
+  saveCaseSession(response.caseId, request.onboardingSessionId);
+  return response;
 }
 
-
-export async function getOnboardingCase(caseId: string): Promise<OnboardingCase> {
-  return getJson<OnboardingCase>(`/onboarding/cases/${encodeURIComponent(caseId)}`);
+export async function getOnboardingCase(caseId: string, onboardingSessionId: string): Promise<OnboardingCase> {
+  const search = new URLSearchParams({ onboardingSessionId });
+  const response = await getJson<Partial<OnboardingCase>>(
+    `/onboarding/cases/${encodeURIComponent(caseId)}?${search.toString()}`
+  );
+  const organization = response.organization
+    ? {
+        ...response.organization,
+        addressLine1: response.organization.address?.line1,
+        city: response.organization.address?.city,
+        country: response.organization.address?.country,
+      }
+    : response.organization;
+  const contact =
+    response.contact ||
+    (organization?.primaryContact
+      ? {
+          contactName: organization.primaryContact.fullName,
+          contactEmail: organization.primaryContact.email,
+          contactPhone: organization.primaryContact.phone,
+        }
+      : undefined);
+  return {
+    caseId,
+    status: response.status || 'SUBMITTED',
+    timeline: response.timeline || [],
+    messages: response.messages || [],
+    submittedAt: deriveSubmittedAt(response),
+    updatedAt: deriveUpdatedAt(response),
+    draftId: response.draftId,
+    onboardingSessionId,
+    organization,
+    contact,
+    documents: response.documents || [],
+    issuingBankIds: response.issuingBankIds || [],
+    reviewerNote: response.reviewerNote,
+    decisionReason: response.decisionReason,
+    provisionedTenantId: response.provisionedTenantId,
+    provisionedAdminEmail: response.provisionedAdminEmail,
+    provisionedTemporaryPassword: response.provisionedTemporaryPassword,
+  };
 }
-
-
-
-import type { ListOnboardingCasesRequest, ListOnboardingCasesResponse } from '@/types/onboardingContracts';
 
 export async function listOnboardingCases(
   request: ListOnboardingCasesRequest
 ): Promise<ListOnboardingCasesResponse> {
-  return postJson<ListOnboardingCasesResponse>('/admin/onboarding/cases', request);
+  const search = new URLSearchParams();
+  if (request.status) search.set('status', request.status);
+  if (typeof request.page === 'number') search.set('page', String(request.page));
+  if (typeof request.pageSize === 'number') search.set('pageSize', String(request.pageSize));
+  const suffix = search.toString() ? `?${search.toString()}` : '';
+  return getJson<ListOnboardingCasesResponse>(`/admin/onboarding/cases${suffix}`);
 }
-
-
 
 export async function decideOnboardingCase(
   caseId: string,
-  request: DecisionRequest
+  request: DecisionRequest,
+  _auditActor?: unknown
 ): Promise<DecisionResponse> {
-  return postJson<DecisionResponse>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}/decision`, request);
+  return postJson<DecisionResponse>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}/decision`, {
+    decision: request.decision,
+    reviewerNotes: request.reviewerNotes ?? request.reviewerNote,
+    decisionReason: request.decisionReason ?? request.reason,
+    selectedBanksApproved: request.selectedBanksApproved,
+  });
 }
-
-
 
 export async function provisionOnboardingCase(
   caseId: string,
