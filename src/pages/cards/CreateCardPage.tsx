@@ -78,54 +78,18 @@ export default function CreateCardPage() {
     e.preventDefault();
     if (!validate()) return;
 
-    if (!selectedCustomer) {
-      toast.error('Select a customer before issuing a card.');
-      return;
-    }
-
-    if (!selectedCustomer.dateOfBirth || !selectedCustomer.phone || !selectedCustomer.email || !selectedCustomer.idType || !selectedCustomer.idNumber) {
-      toast.error('The selected customer is missing required identity or KYC fields for card issuance.');
-      return;
-    }
-
-    const customerRefId = selectedCustomer.customerId;
-    const customerDob = selectedCustomer.dateOfBirth;
-    const customerPhone = selectedCustomer.phone;
-    const customerEmail = selectedCustomer.email;
-    const customerIdType = selectedCustomer.idType;
-    const customerIdNumber = selectedCustomer.idNumber;
-
-    try {
       await createCard({
-        customerId: customerRefId,
-        bankId: selectedBank!.id,
-        issuingBankName: selectedBank!.name,
-        productId: selectedProduct!.id,
-        productType: form.cardType,
+        customerId: form.customerId,
         productName: selectedProduct!.name,
         productCode: selectedProduct!.code,
+        issuingBankName: selectedBank!.name,
         currency: form.currency,
         embossName: form.embossName.trim(),
-        deliveryMethod: form.cardType === 'PHYSICAL' ? selectedDelivery?.code : undefined,
-        customerIdentity: {
-          firstName: selectedCustomer.firstName,
-          lastName: selectedCustomer.lastName,
-          dob: customerDob,
-          phone: customerPhone,
-          email: customerEmail,
-        },
-        customerKyc: {
-          idType: customerIdType,
-          idNumber: customerIdNumber,
-          kycLevel: 'LEVEL_2',
-        },
+        deliveryMethod: selectedDelivery?.code,
       });
 
       toast.success('Card created successfully');
       navigate('/cards');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Card creation failed');
-    }
   };
 
   const fieldLabel = (label: string, required = false) => (
