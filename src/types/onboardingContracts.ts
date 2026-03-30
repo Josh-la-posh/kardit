@@ -1,9 +1,41 @@
+
+// Request and response types for paginated onboarding case listing
+export interface ListOnboardingCasesRequest {
+  status?: OnboardingCaseStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListOnboardingCasesResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  cases: Array<{
+    caseId: string;
+    affiliateName: string;
+    submittedAt: string;
+    status: OnboardingCaseStatus;
+  }>;
+}
+export interface SaveIssuingBanksRequest {
+  onboardingSessionId: string;
+  selectedBanks: { bankId: string }[];
+}
+
+export interface SaveIssuingBanksResponse {
+  draftId: string;
+  selectedBankCount: number;
+  savedAt: string;
+}
+
 export type OnboardingDocumentType = 'CERTIFICATE_OF_INCORPORATION' | 'TAX_ID' | 'DIRECTORS_ID' | 'PROOF_OF_ADDRESS' | 'OTHER';
 
 export type OnboardingCaseStatus =
   | 'DRAFT'
   | 'SUBMITTED'
+  | 'IN_REVIEW'
   | 'UNDER_REVIEW'
+  | 'CLARIFICATION_REQUIRED'
   | 'CLARIFICATION_REQUESTED'
   | 'REJECTED'
   | 'APPROVED'
@@ -27,6 +59,10 @@ export interface SaveOrganizationRequest {
   legalName: string;
   tradingName?: string;
   registrationNumber: string;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  country?: string;
   address: {
     line1:string;
     city?: string;
@@ -68,22 +104,12 @@ export interface UploadOnboardingDocumentResponse {
   uploadedAt: string;
 }
 
-export interface SelectedIssuingBanksRequest{
-onboardingSessionId: string;
-selectedBanks: Array<{bankId: string}>;
-}
-
-export interface SelectedIssuingBanksResponse{
-  draftId: string;
-  selectedBankCount: number;
-  savedAt: string;
-}
-
 export interface OnboardingDocument {
   documentId: string;
   type: OnboardingDocumentType;
   fileName: string;
   uploadedAt: string;
+  verificationStatus?: string;
 }
 
 export interface OnboardingDraft {
@@ -115,26 +141,22 @@ export interface SubmitOnboardingDraftResponse {
   submittedAt: string;
 }
 
-export interface OnboardingCaseTimeline{
+export interface OnboardingCaseTimeline {
   status: OnboardingCaseStatus;
   at: string;
 }
-export interface OnboardingCaseMessage{
+
+export interface OnboardingCaseMessage {
   from: string;
   type: string;
   text: string;
   at: string;
 }
-// export interface OnboardingCaseResponse {
-//   caseId: string;
-//   status: string;
-//   timeline: OnboardingCaseTimeline[];
-//   messages: OnboaedingCaseMessage[];
-// }
+
 export interface OnboardingCase {
   caseId: string;
-  draftId: string;
-  onboardingSessionId: string;
+  draftId?: string;
+  onboardingSessionId?: string;
   status: OnboardingCaseStatus;
   submittedAt: string;
   updatedAt: string;
@@ -149,45 +171,52 @@ export interface OnboardingCase {
   provisionedTenantId?: string;
   provisionedAdminEmail?: string;
   provisionedTemporaryPassword?: string;
-  affiliateName?: string;
+}
+
+
+export interface DecisionRequest {
+  decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
+  reason?: string;
+  reviewerNote?: string;
+  reviewerNotes?: string;
+  decisionReason?: string;
+  selectedBanksApproved?: string[];
+}
+
+export interface DecisionResponse {
+  caseId: string;
+  status: OnboardingCaseStatus;
   decisionAt: string;
   decisionBy: {
     userId: string;
     name: string;
-  }
+  };
 }
 
-export interface ListOnboardingCasesRequest{
-  status?: OnboardingCaseStatus;
-  page?: number;
-  pageSize?: number;
+
+export interface ProvisionOnboardingCaseRequest {
+  userEmail?: string;
+  adminContact: {
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  deliveryChannels: string[];
 }
 
-export interface ListOnboardingCasesResponse{
-  page: number;
-  pageSize: number;
-  total: number;
-  cases: OnboardingCase[];
-}
-
-export interface DecisionRequest {
-  decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
-  reviewerNote?: string;
-  decisionReason?: string;
-  selectedBanksApproved?: Array<{bankId: string}>;
-}
-
-export interface ProvisionResponse {
+export interface ProvisionOnboardingCaseResponse {
   caseId: string;
   affiliateId: string;
   tenantId: string;
   iamProvisioning: {
-    status: "TRIGGERED" | string;
-    loginUrl?: string;
+    status: string;
+    loginUrl: string;
   };
   bankPartnershipRequests: Array<{
     bankId: string;
-    status: "PENDING_BANK_APPROVAL" | string;
+    status: string;
   }>;
   provisionedAt: string;
 }
+
+export type ProvisionResponse = ProvisionOnboardingCaseResponse;

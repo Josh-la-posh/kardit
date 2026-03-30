@@ -1,215 +1,149 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { useAuth } from "@/hooks/useAuth";
-import { useReviewerOnboardingCases } from "@/hooks/useOnboarding";
-import { store } from "@/stores/mockStore";
-import { Building2, CreditCard, Users, FileText, ArrowRight, TrendingUp } from "lucide-react";
-
-interface ApprovedAffiliate {
-  id: string;
-  affiliateName: string;
-  email: string;
-  contactPerson: string;
-  approvedDate: string;
-  status: 'active' | 'inactive';
-}
-
-// Mock data - Replace with API call
-const mockApprovedAffiliates: ApprovedAffiliate[] = [
-  {
-    id: '1',
-    affiliateName: 'Global Trade Partners',
-    email: 'contact@globalpartners.ng',
-    contactPerson: 'Ahmed Hassan',
-    approvedDate: '2024-02-25',
-    status: 'active',
-  },
-  {
-    id: '2',
-    affiliateName: 'Digital Commerce Solutions',
-    email: 'support@digitalcommerce.ng',
-    contactPerson: 'Blessing Okonkwo',
-    approvedDate: '2024-02-15',
-    status: 'active',
-  },
-  {
-    id: '3',
-    affiliateName: 'Tech Innovations Ltd',
-    email: 'info@techinnovations.ng',
-    contactPerson: 'Tunde Adebayo',
-    approvedDate: '2024-02-10',
-    status: 'inactive',
-  },
-];
+import React from 'react';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '@/components/AppLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { useBankDashboardData } from '@/hooks/useBankPortal';
+import { Building2, CreditCard, FileText, Loader2, RefreshCw, ScrollText, TrendingUp } from 'lucide-react';
 
 export default function BankDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cases } = useReviewerOnboardingCases();
+  const { bankId, metrics, affiliates, auditLogs, reports, generatedAt, isLoading, error, refresh } = useBankDashboardData();
 
-  // Calculate bank portfolio metrics
-  const metrics = useMemo(() => {
-    // Count affiliates (from onboarding cases - approved/provisioned)
-    const approvedAffiliates = cases.filter(c => 
-      c.status === 'APPROVED' || c.status === 'PROVISIONED'
-    ).length;
-    const pendingAffiliates = cases.filter(c => 
-      c.status === 'SUBMITTED' || c.status === 'UNDER_REVIEW'
-    ).length;
-    
-    // Get customers and cards for current bank
-    const bankCustomers = user?.tenantId ? store.getCustomers(user.tenantId) : [];
-    const bankCards = user?.tenantId ? store.getCards(user.tenantId) : [];
-    
-    const totalCustomers = bankCustomers.length;
-    const activeCustomers = bankCustomers.filter(c => c.status === 'ACTIVE').length;
-    
-    const totalCards = bankCards.length;
-    const activeCards = bankCards.filter(c => c.status === 'ACTIVE').length;
-    
-    // Total balance across all cards
-    const totalBalance = bankCards.reduce((sum, card) => sum + card.currentBalance, 0);
-    
-    return {
-      approvedAffiliates,
-      pendingAffiliates,
-      totalCustomers,
-      activeCustomers,
-      totalCards,
-      activeCards,
-      totalBalance,
-    };
-  }, [cases, user?.tenantId]);
-
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
-
-  const quickActions = [
-    { label: 'Affiliates', icon: Building2, path: '/bank/affiliates', description: 'Manage affiliate applications' },
-    { label: 'Reports', icon: FileText, path: '/reports', description: 'View portfolio reports' },
-  ];
+  const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
         <div className="animate-fade-in">
           <PageHeader
-            title={`${user?.tenantName || "Bank"} Portal`}
-            subtitle="Overview of your portfolio activity"
-            showBack={false}
+            title={`${user?.tenantName || 'Bank'} Portal`}
+            subtitle={bankId ? `Bank ID: ${bankId}` : 'Overview of bank operations'}
+            actions={
+              <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+                <RefreshCw className="mr-1 h-4 w-4" /> Refresh
+              </Button>
+            }
           />
 
-          {/* Main Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/bank/active-affiliates')}
-            >
-              <StatCard title="Active Affiliates" value={metrics.approvedAffiliates.toString() } icon={Building2} subtitle={`${metrics.pendingAffiliates} pending`} />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            {/* <StatCard 
-              title="Affiliates" 
-              value={metrics.approvedAffiliates.toString()} 
-              icon={Building2}
-              subtitle={`${metrics.pendingAffiliates} pending`}
-            /> */}
-            <div
-              className="cursor-pointer transition-transform hover:scale-105"
-              onClick={() => navigate('/bank/customers')}
-            >
-              <StatCard title="Total Customers" value={metrics.totalCustomers.toString()} icon={Users}  subtitle={`${metrics.activeCustomers} active`}/>
-            </div>
-            {/* <StatCard 
-              title="Total Customers" 
-              value={metrics.totalCustomers.toString()} 
-              icon={Users}
-              subtitle={`${metrics.activeCustomers} active`}
-            /> */}
-            <StatCard 
-              title="Cards Issued" 
-              value={metrics.totalCards.toString()} 
-              icon={CreditCard}
-              subtitle={`${metrics.activeCards} active`}
-            />
-            <StatCard 
-              title="Portfolio Value" 
-              value={formatCurrency(metrics.totalBalance)} 
-              icon={TrendingUp}
-              trend={{ value: 5, isPositive: true }}
-            />
-          </div>
-
-          {/* Affiliate Summary */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="kardit-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold">Affiliate Overview</h2>
-                <button 
-                  onClick={() => navigate('/bank/affiliates')}
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
-                >
-                  View all <ArrowRight className="h-3 w-3" />
-                </button>
+          ) : error || !metrics ? (
+            <div className="kardit-card p-6 text-sm text-muted-foreground">{error || 'Dashboard data unavailable'}</div>
+          ) : (
+            <>
+              <div className="mb-3 text-xs text-muted-foreground">
+                Generated {generatedAt ? format(new Date(generatedAt), 'MMM d, yyyy HH:mm') : '-'}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border p-4">
-                  <p className="text-sm text-muted-foreground">Approved</p>
-                  <p className="text-2xl font-semibold text-primary">{metrics.approvedAffiliates}</p>
-                </div>
-                <div className="rounded-lg border border-border p-4">
-                  <p className="text-sm text-muted-foreground">Pending Review</p>
-                  <p className="text-2xl font-semibold text-amber-500">{metrics.pendingAffiliates}</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="kardit-card p-6">
-              <h2 className="font-semibold mb-4">Card Distribution</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Active Cards</span>
-                  <span className="font-medium">{metrics.activeCards}</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full" 
-                    style={{ width: `${metrics.totalCards > 0 ? (metrics.activeCards / metrics.totalCards) * 100 : 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Frozen/Blocked: {metrics.totalCards - metrics.activeCards}</span>
-                  <span>Total: {metrics.totalCards}</span>
-                </div>
+              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Cards Issued" value={formatNumber(metrics.totalCardsIssued)} icon={CreditCard} subtitle={`${formatNumber(metrics.activeCards)} active`} />
+                <StatCard title="Funding Volume" value={formatNumber(metrics.totalFundingVolume)} icon={TrendingUp} subtitle={`Unload ${formatNumber(metrics.totalUnloadVolume)}`} />
+                <StatCard title="Transactions" value={formatNumber(metrics.totalTransactionVolume)} icon={ScrollText} subtitle={`${formatNumber(metrics.failedCmsRequests)} failed CMS`} />
+                <StatCard title="Pending Approvals" value={formatNumber(metrics.pendingApprovals)} icon={Building2} subtitle={`${formatNumber(metrics.frozenCards)} frozen, ${formatNumber(metrics.terminatedCards)} terminated`} />
               </div>
-            </div>
-          </div>
 
-          {/* Quick Actions */}
-          <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickActions.map((action) => (
-              <button
-                key={action.path}
-                onClick={() => navigate(action.path)}
-                className="kardit-card p-4 text-left transition-all duration-200 hover:shadow-md hover:border-primary/30 group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <action.icon className="h-4 w-4 text-primary" />
+              <div className="mb-6 grid gap-6 lg:grid-cols-2">
+                <div className="kardit-card overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                    <div>
+                      <h2 className="font-semibold">Attached Affiliates</h2>
+                      <p className="text-sm text-muted-foreground">Portfolio affiliates attached to this bank.</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliates')}>
+                      View all
+                    </Button>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground text-sm">{action.label}</h3>
-                    <p className="text-xs text-muted-foreground">{action.description}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {affiliates.length === 0 ? (
+                    <div className="px-6 py-10 text-sm text-muted-foreground">No affiliates attached yet.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/50">
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Cards</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Funding</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {affiliates.slice(0, 5).map((affiliate) => (
+                            <tr
+                              key={affiliate.affiliateId}
+                              className="cursor-pointer hover:bg-muted/30"
+                              onClick={() => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
+                            >
+                              <td className="px-4 py-3 text-sm font-medium">{affiliate.affiliateId}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {formatNumber(affiliate.activeCards)} active / {formatNumber(affiliate.totalCards)} total
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{formatNumber(affiliate.totalFundingVolume)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </button>
-            ))}
-          </div>
+
+                <div className="grid gap-6">
+                  <div className="kardit-card overflow-hidden">
+                    <div className="border-b border-border px-6 py-4">
+                      <h2 className="font-semibold">Recent Audit Logs</h2>
+                    </div>
+                    {auditLogs.length === 0 ? (
+                      <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
+                    ) : (
+                      <div className="space-y-3 px-6 py-4">
+                        {auditLogs.map((log) => (
+                          <div key={log.auditLogId} className="rounded-md border border-border p-3">
+                            <p className="text-sm font-medium">{log.eventType}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {log.resourceType} {log.resourceId} by {log.actorUserId}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">{format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm')}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="kardit-card overflow-hidden">
+                    <div className="border-b border-border px-6 py-4">
+                      <h2 className="font-semibold">Recent Reports</h2>
+                    </div>
+                    {reports.length === 0 ? (
+                      <div className="px-6 py-8 text-sm text-muted-foreground">No reports returned.</div>
+                    ) : (
+                      <div className="space-y-3 px-6 py-4">
+                        {reports.map((report) => (
+                          <div key={report.reportId} className="flex items-center justify-between rounded-md border border-border p-3">
+                            <div>
+                              <p className="text-sm font-medium">{report.reportType}</p>
+                              <p className="text-xs text-muted-foreground">{format(new Date(report.generatedAt), 'MMM d, yyyy HH:mm')}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FileText className="h-4 w-4" />
+                              {report.status}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </AppLayout>
     </ProtectedRoute>

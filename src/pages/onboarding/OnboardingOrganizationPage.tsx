@@ -9,20 +9,20 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 export default function OnboardingOrganizationPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
-  const { draft, isLoading, error, updateOrganization, updateContact } = useOnboardingDraft(draftId);
+  const { draft, isLoading, error, updateOrganization } = useOnboardingDraft(draftId);
 
   const initial = useMemo(() => {
     return {
       legalName: draft?.organization?.legalName || '',
+      tradingName: draft?.organization?.tradingName || '',
       registrationNumber: draft?.organization?.registrationNumber || '',
-      country: draft?.organization?.country || '',
-      addressLine1: draft?.organization?.addressLine1 || '',
-      addressLine2: draft?.organization?.addressLine2 || '',
-      city: draft?.organization?.city || '',
-      state: draft?.organization?.state || '',
-      contactName: draft?.contact?.contactName || '',
-      contactEmail: draft?.contact?.contactEmail || draft?.email || '',
-      contactPhone: draft?.contact?.contactPhone || draft?.phone || '',
+      addressLine1: draft?.organization?.address?.line1 || '',
+      city: draft?.organization?.address?.city || '',
+      state: draft?.organization?.address?.state || '',
+      country: draft?.organization?.address?.country || '',
+      contactFullName: draft?.organization?.primaryContact?.fullName || '',
+      contactEmail: draft?.organization?.primaryContact?.email || draft?.email || '',
+      contactPhone: draft?.organization?.primaryContact?.phone || draft?.phone || '',
     };
   }, [draft]);
 
@@ -40,32 +40,38 @@ export default function OnboardingOrganizationPage() {
     e.preventDefault();
     setLocalError(null);
     if (!draftId || !draft) return;
-    if (!form.legalName || !form.registrationNumber || !form.country || !form.addressLine1) {
-      setLocalError('Please complete all required organization fields');
-      return;
-    }
-    if (!form.contactName || !form.contactEmail || !form.contactPhone) {
-      setLocalError('Please complete all required contact fields');
+
+    if (!form.legalName || !form.registrationNumber || !form.country || !form.addressLine1 || !form.contactFullName || !form.contactEmail || !form.contactPhone) {
+      setLocalError('Please complete all required fields');
       return;
     }
 
     setSaving(true);
     try {
+      if (!draft?.onboardingSessionId) {
+        setLocalError('Missing onboarding session ID. Please restart onboarding.');
+        return;
+      }
       await updateOrganization({
+        onboardingSessionId: draft.onboardingSessionId,
         legalName: form.legalName,
+        tradingName: form.tradingName,
         registrationNumber: form.registrationNumber,
-        country: form.country,
-        addressLine1: form.addressLine1,
-        addressLine2: form.addressLine2 || undefined,
-        city: form.city || undefined,
-        state: form.state || undefined,
-      });
-      await updateContact({
-        contactName: form.contactName,
-        contactEmail: form.contactEmail,
-        contactPhone: form.contactPhone,
+        address: {
+          line1: form.addressLine1,
+          city: form.city,
+          state: form.state,
+          country: form.country,
+        },
+        primaryContact: {
+          fullName: form.contactFullName,
+          email: form.contactEmail,
+          phone: form.contactPhone,
+        },
       });
       navigate(`/onboarding/${draftId}/documents`);
+    } catch (err: any) {
+      setLocalError(err?.message || 'Failed to save organization details');
     } finally {
       setSaving(false);
     }
@@ -97,20 +103,21 @@ export default function OnboardingOrganizationPage() {
             </div>
           ) : (
             <form onSubmit={onNext} className="space-y-6">
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <TextField label="Legal Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
+                <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
                 <TextField label="Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
                 <TextField label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} disabled={saving} />
                 <TextField label="State" value={form.state} onChange={(e) => set('state', e.target.value)} disabled={saving} />
                 <TextField label="City" value={form.city} onChange={(e) => set('city', e.target.value)} disabled={saving} />
                 <TextField label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
-                <TextField label="Address Line 2" value={form.addressLine2} onChange={(e) => set('addressLine2', e.target.value)} disabled={saving} />
               </div>
 
               <div className="pt-4 border-t border-border">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Primary Contact</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <TextField label="Full Name" value={form.contactName} onChange={(e) => set('contactName', e.target.value)} disabled={saving} />
+                  <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
                   <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
                   <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
                 </div>

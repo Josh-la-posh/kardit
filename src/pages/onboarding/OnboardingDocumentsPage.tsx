@@ -4,7 +4,7 @@ import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
-import { AlertCircle, FileText, Loader2, Upload, X } from 'lucide-react';
+import { AlertCircle, FileText, Loader2, Upload } from 'lucide-react';
 import type { OnboardingDocumentType } from '@/types/onboardingContracts';
 import { StatusChip } from '@/components/ui/status-chip';
 
@@ -19,11 +19,23 @@ const DOC_TYPES: Array<{ value: OnboardingDocumentType; label: string }> = [
 export default function OnboardingDocumentsPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
-  const { draft, isLoading, error, addDocument, deleteDocument } = useOnboardingDraft(draftId);
+  const { draft, isLoading, error, addDocument } = useOnboardingDraft(draftId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedType, setSelectedType] = useState<OnboardingDocumentType>('CERTIFICATE_OF_INCORPORATION');
   const [localError, setLocalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const toBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        const [, base64 = ''] = result.split(',');
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,21 +43,22 @@ export default function OnboardingDocumentsPage() {
     setLocalError(null);
     setSaving(true);
     try {
-      await addDocument({ type: selectedType, fileName: file.name });
+      if (!draft?.onboardingSessionId) {
+        throw new Error('Missing onboarding session ID. Please restart onboarding.');
+      }
+      const fileBase64 = await toBase64(file);
+      await addDocument({
+        onboardingSessionId: draft.onboardingSessionId,
+        docType: selectedType,
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        fileBase64,
+      });
     } catch (err: any) {
       setLocalError(err?.message || 'Failed to upload document');
     } finally {
       setSaving(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const onRemove = async (documentId: string) => {
-    setSaving(true);
-    try {
-      await deleteDocument(documentId);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -104,10 +117,7 @@ export default function OnboardingDocumentsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <StatusChip status="PROCESSING" label="Staged" />
-                        <button type="button" onClick={() => onRemove(doc.documentId)} className="text-muted-foreground hover:text-destructive transition-colors" disabled={saving}>
-                          <X className="h-4 w-4" />
-                        </button>
+                        <StatusChip status="PROCESSING" label={doc.verificationStatus || 'PENDING'} />
                       </div>
                     </div>
                   ))

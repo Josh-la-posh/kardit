@@ -1,57 +1,39 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { format } from 'date-fns';
+import { Calendar, CreditCard, FileText, Globe, Loader2, Mail, MapPin, Phone } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { StatusChip, StatusType } from '@/components/ui/status-chip';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { StatusChip, type StatusType } from '@/components/ui/status-chip';
 import { useCustomer } from '@/hooks/useCustomers';
-import { store } from '@/stores/mockStore';
-import { CreditCard, Loader2, Mail, Phone, MapPin, Calendar, Globe, FileText, Code, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
 
 export default function CustomerProfilePage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
-  const { customer, kycDocuments, cards, isLoading, refetch } = useCustomer(customerId);
-  const [cmsOpen, setCmsOpen] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(false);
-
-  const pendingRequests = customerId ? store.getPendingCMSRequests(customerId) : [];
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (!customer) return;
-    
-    setStatusLoading(true);
-    try {
-      store.updateCustomer(customer.id, { status: newStatus as any });
-      
-      const statusLabel = {
-        ACTIVE: 'Activated',
-        BLOCKED: 'Blocked',
-        PENDING: 'Set to Pending',
-        REJECTED: 'Rejected'
-      }[newStatus] || newStatus;
-      
-      toast.success(`✓ Customer ${statusLabel}`);
-      
-      // Refetch to update the UI
-      await refetch();
-    } catch (error) {
-      toast.error('Failed to update customer status');
-    } finally {
-      setStatusLoading(false);
-    }
-  };
+  const { customer, kycDocuments, cards, isLoading, error } = useCustomer(customerId);
 
   if (isLoading) {
-    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+        <AppLayout>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
-  if (!customer) {
-    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="text-center py-20 text-muted-foreground">Customer not found.</div></AppLayout></ProtectedRoute>;
+
+  if (error || !customer) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+        <AppLayout>
+          <div className="py-20 text-center text-muted-foreground">{error || 'Customer not found.'}</div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
 
   return (
@@ -59,82 +41,65 @@ export default function CustomerProfilePage() {
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader
-            title={`${customer.firstName} ${customer.lastName}`}
-            subtitle={customer.customerId}
+            title={customer.fullName}
+            subtitle={customer.customerRefId}
             actions={
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
-                  <Select value={customer.status} onValueChange={handleStatusChange} disabled={statusLoading}>
-                    <SelectTrigger className="w-40 bg-muted border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="BLOCKED">Blocked</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="REJECTED">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={() => navigate(`/customers/${customer.id}/cards/new`)}>
-                  <CreditCard className="h-4 w-4" /> Issue Additional Card
-                </Button>
-              </div>
+              <Button onClick={() => navigate(`/customers/${customer.customerRefId}/cards/new`)}>
+                <CreditCard className="h-4 w-4" /> Issue Additional Card
+              </Button>
             }
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Overview */}
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Overview</h3>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="kardit-card space-y-4 p-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Overview</h3>
               <div className="space-y-3">
                 {customer.email && <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.email}</span></div>}
                 {customer.phone && <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.phone}</span></div>}
                 {customer.dateOfBirth && <div className="flex items-center gap-3"><Calendar className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{format(new Date(customer.dateOfBirth), 'PPP')}</span></div>}
-                {customer.nationality && <div className="flex items-center gap-3"><Globe className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.nationality}</span></div>}
+                {customer.address?.country && <div className="flex items-center gap-3"><Globe className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{customer.address.country}</span></div>}
                 {customer.embossName && <div className="flex items-center gap-3"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Emboss: <span className="font-mono">{customer.embossName}</span></span></div>}
                 {customer.address && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="text-sm">{[customer.address.line1, customer.address.line2, customer.address.city, customer.address.state, customer.address.country, customer.address.postalCode].filter(Boolean).join(', ')}</span>
-                  </div>
-                )}
-                {customer.idType && (
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customer.idType}: {customer.idNumber} {customer.idExpiryDate ? `(exp: ${customer.idExpiryDate})` : ''}</span>
-                  </div>
-                )}
-                {customer.rib && (
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">RIB: <span className="font-mono">{customer.rib}</span></span>
-                  </div>
-                )}
-                {customer.agencyCode && (
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Agency: {customer.agencyCode}</span>
+                    <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{[customer.address.line1, customer.address.city, customer.address.state, customer.address.country].filter(Boolean).join(', ')}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* KYC Documents */}
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">KYC Documents</h3>
-              {kycDocuments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No documents uploaded.</p>
-              ) : (
+            <div className="kardit-card space-y-4 p-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">KYC</h3>
+              <div className="space-y-2 rounded-md border border-border bg-muted/40 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Level</span>
+                  <span className="text-sm font-medium">{customer.kycLevel || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">ID Type</span>
+                  <span className="text-sm font-medium">{customer.idType || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">ID Number</span>
+                  <span className="text-sm font-medium">{customer.idNumber || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Verified</span>
+                  <span className="text-sm font-medium">
+                    {customer.verifiedAt ? format(new Date(customer.verifiedAt), 'MMM d, yyyy HH:mm') : '-'}
+                  </span>
+                </div>
+              </div>
+
+              {kycDocuments.length > 0 && (
                 <div className="space-y-2">
-                  {kycDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-md border border-border bg-muted px-3 py-2">
+                  {kycDocuments.map((document) => (
+                    <div key={document.id} className="flex items-center justify-between rounded-md border border-border bg-muted px-3 py-2">
                       <div>
-                        <p className="text-sm font-medium">{doc.type.replace(/_/g, ' ')}</p>
-                        <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                        <p className="text-sm font-medium">{document.type.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-muted-foreground">{document.fileName}</p>
                       </div>
-                      <StatusChip status={doc.status as StatusType} />
+                      <StatusChip status={document.status as StatusType} />
                     </div>
                   ))}
                 </div>
@@ -142,39 +107,12 @@ export default function CustomerProfilePage() {
             </div>
           </div>
 
-          {/* CMS Payload Preview */}
-          {pendingRequests.length > 0 && (
-            <div className="mt-4">
-              <Collapsible open={cmsOpen} onOpenChange={setCmsOpen}>
-                <div className="kardit-card p-4">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <Code className="h-4 w-4" /> CMS Payload Preview ({pendingRequests.length})
-                    </h3>
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${cmsOpen ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    {pendingRequests.map((req) => (
-                      <div key={req.id} className="mt-3">
-                        <p className="text-xs text-muted-foreground mb-1">Request ID: {req.id} — {format(new Date(req.createdAt), 'PPP HH:mm')}</p>
-                        <pre className="text-xs bg-muted rounded-md p-3 overflow-auto max-h-64 text-foreground">
-                          {JSON.stringify(req.payload, null, 2)}
-                        </pre>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            </div>
-          )}
-
-          {/* Cards */}
-          <div className="kardit-card mt-4 overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Cards</h3>
+          <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border px-6 py-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cards</h3>
             </div>
             {cards.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground text-center">No cards issued.</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">No cards issued.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -184,19 +122,17 @@ export default function CustomerProfilePage() {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Issuing Bank</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Currency</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Balance</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {cards.map((card, i) => (
-                      <tr key={card.id} onClick={() => navigate(`/cards/${card.id}`)} className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
+                    {cards.map((card) => (
+                      <tr key={card.id} onClick={() => navigate(`/cards/${card.id}`)} className="cursor-pointer transition-colors hover:bg-muted/40">
                         <td className="px-4 py-3 text-sm font-mono">{card.maskedPan}</td>
                         <td className="px-4 py-3 text-sm">{card.productName}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuingBankName}</td>
                         <td className="px-4 py-3"><StatusChip status={card.status as StatusType} /></td>
-                        <td className="px-4 py-3 text-sm">{card.currency}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">{card.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(card.createdAt), 'MMM d, yyyy')}</td>
                       </tr>
                     ))}
                   </tbody>

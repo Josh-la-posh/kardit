@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 const statusToChip: Record<string, StatusType> = {
   DRAFT: 'INACTIVE',
   SUBMITTED: 'PENDING',
+  IN_REVIEW: 'PROCESSING',
   UNDER_REVIEW: 'PROCESSING',
   CLARIFICATION_REQUESTED: 'WARNING',
   REJECTED: 'FAILED',
@@ -32,8 +33,8 @@ export default function OnboardingStatusPage() {
 
   const stepState = (status: string, stepKey: (typeof steps)[number]['key']): 'DONE' | 'CURRENT' | 'TODO' => {
     const done = (k: string) => ({
-      SUBMITTED: ['SUBMITTED', 'UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
-      UNDER_REVIEW: ['UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
+      SUBMITTED: ['SUBMITTED', 'IN_REVIEW', 'UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
+      UNDER_REVIEW: ['IN_REVIEW', 'UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
       DECISION: ['CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
       PROVISIONED: ['PROVISIONED'],
     } as const)[k as 'SUBMITTED' | 'UNDER_REVIEW' | 'DECISION' | 'PROVISIONED']?.includes(status as any);
@@ -43,7 +44,7 @@ export default function OnboardingStatusPage() {
       return 'TODO';
     }
     if (stepKey === 'UNDER_REVIEW') {
-      if (done('UNDER_REVIEW')) return status === 'UNDER_REVIEW' ? 'CURRENT' : 'DONE';
+      if (done('UNDER_REVIEW')) return status === 'UNDER_REVIEW' || status === 'IN_REVIEW' ? 'CURRENT' : 'DONE';
       return 'TODO';
     }
     if (stepKey === 'DECISION') {

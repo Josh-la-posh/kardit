@@ -17,7 +17,7 @@ export default function OnboardingReviewSubmitPage() {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const issuingBankNames = useMemo(() => {
-    const map = new Map(ISSUING_BANKS.map((b) => [b.id, b.name] as const));
+    const map = new Map(ISSUING_BANKS.map((bank) => [bank.id, bank.name] as const));
     return (draft?.issuingBankIds || []).map((id) => map.get(id) || id);
   }, [draft?.issuingBankIds]);
 
@@ -69,27 +69,32 @@ export default function OnboardingReviewSubmitPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-md border border-border p-4">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Organization</h2>
-                  <p className="text-sm">{draft?.organization?.legalName || '—'}</p>
-                  <p className="text-xs text-muted-foreground">Reg No: {draft?.organization?.registrationNumber || '—'}</p>
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Organization</h2>
+                  <p className="text-sm">{draft?.organization?.legalName || '-'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Reg No: {draft?.organization?.registrationNumber || '-'}
+                  </p>
                 </div>
+
                 <div className="rounded-md border border-border p-4">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Contact</h2>
-                  <p className="text-sm">{draft?.contact?.contactName || '—'}</p>
-                  <p className="text-xs text-muted-foreground">{draft?.contact?.contactEmail || '—'}</p>
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Contact</h2>
+                  <p className="text-sm">{draft?.organization?.primaryContact?.fullName || '-'}</p>
+                  <p className="text-xs text-muted-foreground">{draft?.organization?.primaryContact?.email || '-'}</p>
                 </div>
+
                 <div className="rounded-md border border-border p-4 md:col-span-2">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documents</h2>
-                  <p className="text-sm text-muted-foreground">{draft?.documents?.length || 0} document(s) staged</p>
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documents</h2>
+                  <p className="text-sm text-muted-foreground">{draft?.documents?.length || 0} document(s) uploaded</p>
                 </div>
+
                 <div className="rounded-md border border-border p-4 md:col-span-2">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Issuing Banks</h2>
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Issuing Banks</h2>
                   {issuingBankNames.length ? (
-                    <ul className="text-sm space-y-1">
-                      {issuingBankNames.map((n) => (
-                        <li key={n}>{n}</li>
+                    <ul className="space-y-1 text-sm">
+                      {issuingBankNames.map((name) => (
+                        <li key={name}>{name}</li>
                       ))}
                     </ul>
                   ) : (
@@ -100,19 +105,39 @@ export default function OnboardingReviewSubmitPage() {
 
               <div className="mt-6 space-y-3">
                 <label className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <input type="checkbox" className="mt-1" checked={infoAccurate} onChange={(e) => setInfoAccurate(e.target.checked)} disabled={submitting} />
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={infoAccurate}
+                    onChange={(e) => setInfoAccurate(e.target.checked)}
+                    disabled={submitting}
+                  />
                   <span>I confirm the information provided is accurate.</span>
                 </label>
                 <label className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <input type="checkbox" className="mt-1" checked={authorizedSigner} onChange={(e) => setAuthorizedSigner(e.target.checked)} disabled={submitting} />
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={authorizedSigner}
+                    onChange={(e) => setAuthorizedSigner(e.target.checked)}
+                    disabled={submitting}
+                  />
                   <span>I confirm I am an authorized signer for this organization.</span>
                 </label>
               </div>
 
-              <div className="flex justify-between gap-2 mt-6">
-                <Button type="button" variant="outline" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>Back</Button>
+              <div className="mt-6 flex justify-between gap-2">
+                <Button type="button" variant="outline" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>
+                  Back
+                </Button>
                 <Button type="button" onClick={onSubmit} disabled={submitting}>
-                  {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</> : 'Submit'}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
                 </Button>
               </div>
             </>

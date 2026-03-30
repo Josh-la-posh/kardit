@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 const statusToChip: Record<string, StatusType> = {
   SUBMITTED: 'PENDING',
   UNDER_REVIEW: 'PROCESSING',
+  IN_REVIEW: 'PROCESSING',
+  CLARIFICATION_REQUIRED: 'WARNING',
   CLARIFICATION_REQUESTED: 'WARNING',
   REJECTED: 'FAILED',
   APPROVED: 'SUCCESS',

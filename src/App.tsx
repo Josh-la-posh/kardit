@@ -14,6 +14,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 // Dashboard
 import DashboardPage from "./pages/DashboardPage";
+import AffiliateBanksPage from "./pages/affiliate/AffiliateBanksPage";
 import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
 import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
@@ -21,7 +22,7 @@ import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
 import AffiliateDetailPages from "./pages/bank/AffiliateDetailPage";
 import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
-import BankAffiliateDetailPage from "./pages/bank/BankAffiliateDetailPage";
+import BankPartnershipRequestsPage from "./pages/bank/BankPartnershipRequestsPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 import AffiliatesPage from "./pages/super-admin/affiliates/AffiliatesPage";
 import SuperAdminAffiliateDetailPage from "./pages/super-admin/affiliates/SuperAdminAffiliateDetailPage";
@@ -135,9 +136,11 @@ const App = () => (
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/banks" element={<AffiliateBanksPage />} />
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
-            <Route path="/bank/affiliates/:caseId" element={<BankAffiliateDetailPage />} />
+            <Route path="/bank/affiliate-partnership-requests" element={<BankPartnershipRequestsPage />} />
+            <Route path="/bank/affiliates/:affiliateId" element={<AffiliateDetailPages />} />
             <Route path="/bank/active-affiliates" element={<ActiveAffiliatesPage />} />
             <Route path="/bank/active-affiliates/:affiliateId" element={<AffiliateDetailPages />} />
             {/* <Route path="/bank/inactive-affiliates" element={<InactiveAffiliatesPage />} /> */}
