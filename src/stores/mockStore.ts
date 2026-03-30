@@ -150,6 +150,10 @@ export interface IssuingBankDetails {
   contactPhone: string;
   bankAddress?: string;
   additionalInfo?: string;
+  // bankId?: string; 
+  // status?: string;
+  // provisionedAt?: string;
+  
 }
 
 export interface IssuingBankSession {

@@ -8,7 +8,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useCreateIssuingBankSession, useIssuingBankSession } from '@/hooks/useIssuingBank';
 import { Building2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { store } from '@/stores/mockStore';
 
 const COUNTRIES = [
   { code: 'NG', name: 'Nigeria' },
@@ -30,6 +29,7 @@ interface FormState {
   shortName: string;
   code: string;
   country: string;
+  contactFullName: string;
   contactEmail: string;
   contactPhone: string;
   bankAddress: string;
@@ -44,13 +44,14 @@ export default function IssuingBankCreatePage() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
   const { create } = useCreateIssuingBankSession();
-  const { session: existingSession, isLoading: sessionLoading } = useIssuingBankSession(sessionId);
+  const { session: existingSession, isLoading: sessionLoading, updateBankDetails } = useIssuingBankSession(sessionId);
 
   const [form, setForm] = useState<FormState>({
     name: '',
     shortName: '',
     code: '',
     country: '',
+    contactFullName: '',
     contactEmail: '',
     contactPhone: '',
     bankAddress: '',
@@ -68,6 +69,7 @@ export default function IssuingBankCreatePage() {
         shortName: existingSession.bankDetails.shortName,
         code: existingSession.bankDetails.code,
         country: existingSession.bankDetails.country,
+        contactFullName: (existingSession.bankDetails as any).contactFullName || '',
         contactEmail: existingSession.bankDetails.contactEmail,
         contactPhone: existingSession.bankDetails.contactPhone,
         bankAddress: existingSession.bankDetails.bankAddress || '',
@@ -105,6 +107,13 @@ export default function IssuingBankCreatePage() {
       newErrors.country = 'Country is required';
     }
 
+    // Contact Full Name validation
+    if (!form.contactFullName.trim()) {
+      newErrors.contactFullName = 'Contact name is required';
+    } else if (form.contactFullName.trim().length < 2) {
+      newErrors.contactFullName = 'Contact name must be at least 2 characters';
+    }
+
     // Email validation
     if (!form.contactEmail.trim()) {
       newErrors.contactEmail = 'Contact email is required';
@@ -134,18 +143,16 @@ export default function IssuingBankCreatePage() {
       // If editing existing session, update it; otherwise create new
       if (existingSession) {
         // Update existing session
-        await store.updateIssuingBankSession(sessionId!, {
-          bankDetails: {
-            name: form.name.trim(),
-            shortName: form.shortName.trim(),
-            code: form.code.trim().toUpperCase(),
-            country: form.country,
-            contactEmail: form.contactEmail.trim(),
-            contactPhone: form.contactPhone.trim(),
-            bankAddress: form.bankAddress.trim() || undefined,
-            additionalInfo: form.additionalInfo.trim() || undefined,
-          },
-        });
+        await updateBankDetails({
+          name: form.name.trim(),
+          shortName: form.shortName.trim(),
+          code: form.code.trim().toUpperCase(),
+          country: form.country,
+          contactEmail: form.contactEmail.trim(),
+          contactPhone: form.contactPhone.trim(),
+          bankAddress: form.bankAddress.trim() || undefined,
+          additionalInfo: form.additionalInfo.trim() || undefined,
+        } as any);
         toast.success('Bank details updated');
       } else {
         // Create new session
@@ -154,6 +161,7 @@ export default function IssuingBankCreatePage() {
           shortName: form.shortName.trim(),
           code: form.code.trim().toUpperCase(),
           country: form.country,
+          contactFullName: form.contactFullName.trim(),
           contactEmail: form.contactEmail.trim(),
           contactPhone: form.contactPhone.trim(),
           bankAddress: form.bankAddress.trim() || undefined,
@@ -313,6 +321,28 @@ export default function IssuingBankCreatePage() {
                 <h2 className="text-lg font-semibold mb-6">Contact Information</h2>
 
                 <div className="space-y-4">
+                  {/* Contact Full Name */}
+                  <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium mb-1">
+                      Contact Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="fullName"
+                      type="text"
+                      value={form.contactFullName}
+                      onChange={(e) => set('contactFullName', e.target.value)}
+                      placeholder="e.g., John Doe"
+                      className={`flex h-10 w-full rounded-md border ${
+                        errors.contactFullName ? 'border-red-500' : 'border-border'
+                      } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
+                    />
+                    {errors.contactFullName && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.contactFullName}
+                      </p>
+                    )}
+                  </div>
+
                   {/* Contact Email */}
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium mb-1">

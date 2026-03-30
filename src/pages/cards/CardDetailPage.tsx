@@ -1,302 +1,611 @@
-import React, { useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useCallback, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useCard } from '@/hooks/useCards';
 import { useCardTransactions, TransactionFilters } from '@/hooks/useTransactions';
-import { store, CARD_ACTION_CODES, CARD_REASON_CODES, CardStatus } from '@/stores/mockStore';
-import { Loader2, CreditCard, DollarSign, Calendar, User, Lock, Unlock, ShieldBan, RefreshCw, ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  completeCardLimitRequest,
+  createCardLimitRequest,
+  freezeCard,
+  getCardBalance,
+  refreshCardFulfillment,
+  reinitiateCardFulfillment,
+  resetCardPin,
+  terminateCard,
+  unfreezeCard,
+} from '@/services/cardsApi';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Ban,
+  Calendar,
+  CreditCard,
+  Info,
+  KeyRound,
+  Landmark,
+  Loader2,
+  Minus,
+  PackageCheck,
+  RefreshCw,
+  ShieldCheck,
+  Snowflake,
+  User,
+  Wallet,
+} from 'lucide-react';
 
-type ActionCode = 'L' | 'U' | 'P';
+type CardActionType = 'freeze' | 'unfreeze' | 'terminate' | null;
+
+function randomId(prefix: string) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
 
 export default function CardDetailPage() {
-    // View balance modal state
-    const [balanceOpen, setBalanceOpen] = useState(false);
-    const [balanceLoading, setBalanceLoading] = useState(false);
-    const [balanceResult, setBalanceResult] = useState<null | { success: boolean; balance: number; status: string; error?: string }>(null);
-      // PIN reset modal state
-  const [pinOpen, setPinOpen] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const [pinResult, setPinResult] = useState<null | { success: boolean; error?: string }>(null);
-
-    const handleViewBalance = async () => {
-      if (!cardId) return;
-      setBalanceLoading(true);
-      setBalanceOpen(true);
-      setBalanceResult(null);
-      const result = await store.fetchCardBalanceFromCMS(cardId);
-      setBalanceResult(result);
-      setBalanceLoading(false);
-    };
   const { cardId } = useParams<{ cardId: string }>();
-  const { card, isLoading, refetch: refetchCard } = useCard(cardId);
   const { user } = useAuth();
-
-  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
-
+  const { card, fundingDetails, fulfillmentStatus, isLoading, refetch: refetchCard } = useCard(cardId);
   const [filters, setFilters] = useState<TransactionFilters>({});
   const { transactions, isLoading: txLoading, refetch: refetchTx } = useCardTransactions(cardId, filters);
 
-  // Action modal state
-  const [actionOpen, setActionOpen] = useState(false);
-  const [actionCode, setActionCode] = useState<ActionCode | ''>('');
-  const [reasonCode, setReasonCode] = useState('');
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balance, setBalance] = useState<Awaited<ReturnType<typeof getCardBalance>> | null>(null);
+  const [actionType, setActionType] = useState<CardActionType>(null);
+  const [actionReason, setActionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [fulfillmentLoading, setFulfillmentLoading] = useState(false);
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
+  const [limitLoading, setLimitLoading] = useState(false);
+  const [requestedLimit, setRequestedLimit] = useState('');
+  const [limitReason, setLimitReason] = useState('');
+  const [pinResetLoading, setPinResetLoading] = useState(false);
+  const [pinResetResult, setPinResetResult] = useState<Awaited<ReturnType<typeof resetCardPin>> | null>(null);
+  const [opsDialogOpen, setOpsDialogOpen] = useState(false);
+  const [opsLoading, setOpsLoading] = useState(false);
+  const [limitRequestId, setLimitRequestId] = useState('');
+  const [appliedLimit, setAppliedLimit] = useState('');
+  const [opsRemarks, setOpsRemarks] = useState('');
+  const [opsCmsReference, setOpsCmsReference] = useState('');
+  const [limitCompletionResult, setLimitCompletionResult] = useState<Awaited<ReturnType<typeof completeCardLimitRequest>> | null>(null);
 
-  const customer = card ? store.getCustomer(card.customerId, tenantScope) : null;
+  const isAffiliate = user?.stakeholderType !== 'SERVICE_PROVIDER';
+  const isServiceProvider = user?.stakeholderType === 'SERVICE_PROVIDER';
 
-  const handleRefresh = useCallback(() => { refetchCard(); refetchTx(); }, [refetchCard, refetchTx]);
+  const buildAffiliateActionContext = useCallback(
+    () => ({
+      requestId: randomId('card-action'),
+      actorUserId: user?.id || 'user_unknown',
+      userType: user?.stakeholderType || 'AFFILIATE',
+      tenantId: user?.tenantId || 'tenant_unknown',
+      affiliateId: user?.tenantId || 'affiliate_unknown',
+      idempotencyKey: randomId('idem'),
+    }),
+    [user?.id, user?.stakeholderType, user?.tenantId]
+  );
 
-  const openAction = (code: ActionCode) => {
-    setActionCode(code);
-    setReasonCode('');
-    setActionOpen(true);
-  };
+  const buildLimitRequestContext = useCallback(
+    () => ({
+      requestId: randomId('card-limit'),
+      actorUserId: user?.id || 'user_unknown',
+      userType: user?.stakeholderType || 'AFFILIATE',
+      tenantId: user?.tenantId || 'tenant_unknown',
+      affiliateId: user?.tenantId || 'affiliate_unknown',
+    }),
+    [user?.id, user?.stakeholderType, user?.tenantId]
+  );
 
-  const handleActionConfirm = async () => {
-    if (!cardId || !actionCode || !reasonCode) return;
-    setActionLoading(true);
-    await new Promise(r => setTimeout(r, 500));
-    let result: any = null;
-    const info = CARD_ACTION_CODES[actionCode];
-    // let reasonLabel = CARD_REASON_CODES[actionCode]?.find(r => r.code === reasonCode)?.label || reasonCode;
-    let errorMsg = '';
-    if (actionCode === 'L') {
-      result = store.freezeCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Suspending failed after retries.';
-    } else if (actionCode === 'U') {
-      result = store.unfreezeCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Activation failed after retries.';
-    } else if (actionCode === 'P') {
-      result = store.terminateCard(cardId, reasonCode);
-      if (!result) errorMsg = 'Terminating failed after retries.';
-    }
-    setActionLoading(false);
-    setActionOpen(false);
+  const buildOpsContext = useCallback(
+    () => ({
+      requestId: randomId('ops-limit-complete'),
+      actorUserId: user?.id || 'user_unknown',
+      userType: user?.stakeholderType || 'SERVICE_PROVIDER',
+      role: user?.role || 'OPS_ADMIN',
+    }),
+    [user?.id, user?.role, user?.stakeholderType]
+  );
+
+  const handleRefresh = useCallback(() => {
     refetchCard();
-    if (errorMsg) {
-      toast.error(errorMsg);
-    } else {
-      toast.success(`Card ${info.label.toLowerCase()} successful`);
+    refetchTx();
+  }, [refetchCard, refetchTx]);
+
+  const handleBalanceFetch = useCallback(async () => {
+    if (!cardId) return;
+    setBalanceLoading(true);
+    try {
+      const response = await getCardBalance(cardId);
+      setBalance(response);
+      toast.success('Balance refreshed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to fetch balance');
+    } finally {
+      setBalanceLoading(false);
     }
-  };
+  }, [cardId]);
+
+  const handleFulfillmentRefresh = useCallback(async () => {
+    if (!cardId) return;
+    setFulfillmentLoading(true);
+    try {
+      const response = await refreshCardFulfillment(cardId, {
+        requestContext: {
+          requestId: randomId('fulfillment-refresh'),
+          actorUserId: user?.id || 'user_unknown',
+          userType: user?.stakeholderType || 'AFFILIATE',
+          tenantId: user?.tenantId || 'tenant_unknown',
+        },
+      });
+      toast.success(`Fulfillment updated to ${response.currentStatus}`);
+      await refetchCard();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to refresh fulfillment');
+    } finally {
+      setFulfillmentLoading(false);
+    }
+  }, [cardId, refetchCard, user?.id, user?.stakeholderType, user?.tenantId]);
+
+  const handleFulfillmentReinitiate = useCallback(async () => {
+    if (!cardId) return;
+    setFulfillmentLoading(true);
+    try {
+      const response = await reinitiateCardFulfillment(cardId, {
+        requestContext: {
+          requestId: randomId('fulfillment-reinitiate'),
+          actorUserId: user?.id || 'user_unknown',
+          userType: user?.stakeholderType || 'AFFILIATE',
+          tenantId: user?.tenantId || 'tenant_unknown',
+          idempotencyKey: randomId('idem-fulfillment'),
+        },
+        reason: 'FULFILLMENT_FAILED_RETRY',
+      });
+      toast.success(`Fulfillment reinitiated with bureau status ${response.bureauPushStatus}`);
+      await refetchCard();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to reinitiate fulfillment');
+    } finally {
+      setFulfillmentLoading(false);
+    }
+  }, [cardId, refetchCard, user?.id, user?.stakeholderType, user?.tenantId]);
+
+  const handleCardAction = useCallback(async () => {
+    if (!cardId || !actionType || !actionReason.trim()) return;
+
+    setActionLoading(true);
+    try {
+      if (actionType === 'freeze') {
+        await freezeCard(cardId, {
+          requestContext: buildAffiliateActionContext(),
+          reason: actionReason.trim(),
+        });
+        toast.success('Card frozen successfully');
+      } else if (actionType === 'unfreeze') {
+        await unfreezeCard(cardId, {
+          requestContext: buildAffiliateActionContext(),
+          reason: actionReason.trim(),
+        });
+        toast.success('Card unfrozen successfully');
+      } else if (actionType === 'terminate') {
+        await terminateCard(cardId, {
+          requestContext: buildAffiliateActionContext(),
+          reason: actionReason.trim(),
+        });
+        toast.success('Card terminated successfully');
+      }
+
+      setActionType(null);
+      setActionReason('');
+      await refetchCard();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Card action failed');
+    } finally {
+      setActionLoading(false);
+    }
+  }, [actionReason, actionType, buildAffiliateActionContext, cardId, refetchCard]);
+
+  const handleLimitRequest = useCallback(async () => {
+    if (!cardId || !requestedLimit || Number(requestedLimit) <= 0 || !limitReason.trim()) return;
+
+    setLimitLoading(true);
+    try {
+      const response = await createCardLimitRequest(cardId, {
+        requestContext: buildLimitRequestContext(),
+        requestedLimit: {
+          amount: Number(requestedLimit),
+          currency: card?.currency || 'NGN',
+        },
+        reason: limitReason.trim(),
+      });
+      toast.success(`Limit request logged as ${response.limitRequestId}`);
+      setLimitDialogOpen(false);
+      setRequestedLimit('');
+      setLimitReason('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to create limit request');
+    } finally {
+      setLimitLoading(false);
+    }
+  }, [buildLimitRequestContext, card?.currency, cardId, limitReason, requestedLimit]);
+
+  const handlePinReset = useCallback(async () => {
+    if (!cardId) return;
+
+    setPinResetLoading(true);
+    try {
+      const response = await resetCardPin(cardId, {
+        requestContext: {
+          ...buildAffiliateActionContext(),
+          requestId: randomId('pin-reset'),
+        },
+        reason: 'CUSTOMER_FORGOT_PIN',
+      });
+      setPinResetResult(response);
+      toast.success(`PIN reset sent via ${response.smsDelivery.channel}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to reset PIN');
+    } finally {
+      setPinResetLoading(false);
+    }
+  }, [buildAffiliateActionContext, cardId]);
+
+  const handleCompleteLimitRequest = useCallback(async () => {
+    if (!cardId || !limitRequestId.trim() || !appliedLimit || Number(appliedLimit) <= 0 || !opsCmsReference.trim() || !opsRemarks.trim()) {
+      return;
+    }
+
+    setOpsLoading(true);
+    try {
+      const response = await completeCardLimitRequest(cardId, limitRequestId.trim(), {
+        requestContext: buildOpsContext(),
+        outcome: 'COMPLETED',
+        appliedLimit: {
+          amount: Number(appliedLimit),
+          currency: card?.currency || 'NGN',
+        },
+        external: {
+          cmsReference: opsCmsReference.trim(),
+        },
+        opsRemarks: opsRemarks.trim(),
+      });
+      setLimitCompletionResult(response);
+      setOpsDialogOpen(false);
+      setLimitRequestId('');
+      setAppliedLimit('');
+      setOpsRemarks('');
+      setOpsCmsReference('');
+      toast.success(`Limit request ${response.limitRequestId} completed`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to complete limit request');
+    } finally {
+      setOpsLoading(false);
+    }
+  }, [appliedLimit, buildOpsContext, card?.currency, cardId, limitRequestId, opsCmsReference, opsRemarks]);
 
   if (isLoading) {
-    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
+        <AppLayout>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
+
   if (!card) {
-    return <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}><AppLayout><div className="text-center py-20 text-muted-foreground">Card not found.</div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
+        <AppLayout>
+          <div className="text-center py-20 text-muted-foreground">Card not found.</div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
 
-  const amountIcon = (amount: number) => amount > 0
-    ? <ArrowUpRight className="h-4 w-4 text-success" />
-    : amount < 0 ? <ArrowDownRight className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4 text-muted-foreground" />;
+  const amountIcon = (amount: number) =>
+    amount > 0 ? (
+      <ArrowUpRight className="h-4 w-4 text-success" />
+    ) : amount < 0 ? (
+      <ArrowDownRight className="h-4 w-4 text-destructive" />
+    ) : (
+      <Minus className="h-4 w-4 text-muted-foreground" />
+    );
 
-  const availableReasons = actionCode ? (CARD_REASON_CODES[actionCode] || []) : [];
+  const actionTitle =
+    actionType === 'freeze' ? 'Freeze Card' : actionType === 'unfreeze' ? 'Unfreeze Card' : 'Terminate Card';
 
-  // Must be after cardId is defined
-  const handlePinReset = async () => {
-    if (!cardId) return;
-    setPinLoading(true);
-    setPinResult(null);
-    const result = await store.resetCardPin(cardId);
-    setPinResult(result);
-    setPinLoading(false);
-    if (result.success) {
-      toast.success('PIN reset successful. SMS sent to cardholder.');
-    } else {
-      toast.error('PIN reset failed after retries.');
-    }
-  };
+  const defaultReason =
+    actionType === 'freeze'
+      ? 'CUSTOMER_REQUEST'
+      : actionType === 'unfreeze'
+        ? 'ISSUE_RESOLVED'
+        : 'CUSTOMER_ACCOUNT_CLOSED';
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader
             title={card.maskedPan}
-            subtitle={`${card.productName} (${card.productCode}) • ${card.issuingBankName}`}
+            subtitle={`${card.productName} (${card.productCode}) - ${card.issuingBankName}`}
             actions={
-              <div className="flex flex-col gap-5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <StatusChip status={card.status as StatusType} />
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusChip status={card.status as StatusType} />
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleBalanceFetch} disabled={balanceLoading}>
+                  {balanceLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wallet className="h-4 w-4 mr-1" />}
+                  Fetch Balance
+                </Button>
+                {isAffiliate && (
+                  <Button variant="outline" size="sm" onClick={handlePinReset} disabled={pinResetLoading}>
+                    {pinResetLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
+                    Reset PIN
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleViewBalance}>
-                    <DollarSign className="h-4 w-4 mr-1" /> View Balance
+                )}
+                {isAffiliate && (
+                  <Button variant="outline" size="sm" onClick={() => setLimitDialogOpen(true)}>
+                    Request Limit
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPinOpen(true)}>
-                    <Lock className="h-4 w-4 mr-1" /> Reset PIN
+                )}
+                {isServiceProvider && (
+                  <Button variant="outline" size="sm" onClick={() => setOpsDialogOpen(true)}>
+                    <ShieldCheck className="h-4 w-4 mr-1" /> Complete Limit
                   </Button>
-                </div>
-                <div className="flex items-center justify-end gap-4 flex-wrap">
-                  {/* PIN Reset Modal */}
-                  <Dialog open={pinOpen} onOpenChange={setPinOpen}>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Reset Card PIN</DialogTitle>
-                        <DialogDescription>
-                          {pinLoading && 'Resetting PIN via CMS...'}
-                          {!pinLoading && pinResult && (
-                            <>
-                              {pinResult.success ? (
-                                <span>PIN reset successful. SMS sent to cardholder.</span>
-                              ) : (
-                                <span className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4 text-warning" /> PIN reset failed after retries.</span>
-                              )}
-                            </>
-                          )}
-                          {!pinLoading && !pinResult && (
-                            <span>Are you sure you want to reset the PIN for this card? This will trigger a new PIN to be sent to the cardholder via SMS.</span>
-                          )}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4 text-center">
-                        {pinLoading ? (
-                          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                        ) : null}
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setPinOpen(false)}>Close</Button>
-                        {!pinLoading && !pinResult && (
-                          <Button variant="default" onClick={handlePinReset}>Confirm Reset</Button>
-                        )}
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  {/* View Balance Modal */}
-                  <Dialog open={balanceOpen} onOpenChange={setBalanceOpen}>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Card Balance</DialogTitle>
-                        <DialogDescription>
-                          {balanceLoading && 'Fetching balance from CMS...'}
-                          {!balanceLoading && balanceResult && (
-                            <>
-                              {balanceResult.success ? (
-                                <span>Current balance fetched from CMS.</span>
-                              ) : (
-                                <span className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4 text-warning" /> CMS unavailable. Showing cached balance.</span>
-                              )}
-                            </>
-                          )}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4 text-center">
-                        {balanceLoading ? (
-                          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                        ) : balanceResult && (
-                          <>
-                            <div className="text-2xl font-bold mb-2">{balanceResult.balance.toLocaleString('en-US', { style: 'currency', currency: card.currency })}</div>
-                            <div className="text-sm text-muted-foreground mb-1">Card Status: <StatusChip status={balanceResult.status as StatusType} /></div>
-                            {balanceResult.error && (
-                              <div className="text-xs text-warning mt-2">{balanceResult.error}</div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setBalanceOpen(false)}>Close</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  {card.status === 'ACTIVE' && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => openAction('L')}>
-                        <Lock className="h-4 w-4 mr-1" /> Suspend
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                        <ShieldBan className="h-4 w-4 mr-1" /> Terminate
-                      </Button>
-                    </>
-                  )}
-                  {card.status === 'FROZEN' && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => openAction('U')}>
-                        <Unlock className="h-4 w-4 mr-1" /> Activate
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={() => openAction('P')}>
-                        <ShieldBan className="h-4 w-4 mr-1" /> Terminate
-                      </Button>
-                    </>
-                  )}
-                  {card.status === 'PENDING' && (
-                    <Button variant="outline" size="sm" onClick={() => openAction('L')}>
-                      <Lock className="h-4 w-4 mr-1" /> Suspend
-                    </Button>
-                  )}
-                </div>
-                {/* Card creation UI can be added in parent or list page, not detail page */}
+                )}
+                {isAffiliate && card.status === 'ACTIVE' && (
+                  <Button variant="outline" size="sm" onClick={() => { setActionType('freeze'); setActionReason('CUSTOMER_REQUEST'); }}>
+                    <Snowflake className="h-4 w-4 mr-1" /> Freeze
+                  </Button>
+                )}
+                {isAffiliate && card.status === 'FROZEN' && (
+                  <Button variant="outline" size="sm" onClick={() => { setActionType('unfreeze'); setActionReason('ISSUE_RESOLVED'); }}>
+                    <RefreshCw className="h-4 w-4 mr-1" /> Unfreeze
+                  </Button>
+                )}
+                {isAffiliate && card.status !== 'BLOCKED' && (
+                  <Button variant="danger" size="sm" onClick={() => { setActionType('terminate'); setActionReason('CUSTOMER_ACCOUNT_CLOSED'); }}>
+                    <Ban className="h-4 w-4 mr-1" /> Terminate
+                  </Button>
+                )}
               </div>
             }
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Summary */}
             <div className="kardit-card p-6 space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Summary</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <div><p className="text-xs text-muted-foreground">Currency</p><p className="text-sm">{card.currency}</p></div>
-                </div>
-                <div className="flex items-center gap-3">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Current Balance</p>
-                    <p className="text-lg font-semibold text-primary">{card.currentBalance.toLocaleString('en-US', { style: 'currency', currency: card.currency })}</p>
+                    <p className="text-xs text-muted-foreground">Product</p>
+                    <p className="text-sm">{card.productName}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Customer Reference</p>
+                    <p className="text-sm">{card.customerId || 'Unavailable'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div><p className="text-xs text-muted-foreground">Created</p><p className="text-sm">{format(new Date(card.createdAt), 'PPP')}</p></div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Created</p>
+                    <p className="text-sm">{format(new Date(card.createdAt), 'PPP')}</p>
+                  </div>
                 </div>
-                {card.embossName && (
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <div><p className="text-xs text-muted-foreground">Emboss Name</p><p className="text-sm font-mono">{card.embossName}</p></div>
+                <div className="flex items-center gap-3">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Currency</p>
+                    <p className="text-sm">{card.currency}</p>
                   </div>
-                )}
-                {customer && (
-                  <div className="flex items-center gap-3">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Customer</p>
-                      <Link to={`/customers/${customer.id}`} className="text-sm text-secondary hover:underline">
-                        {customer.firstName} {customer.lastName} ({customer.customerId})
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {card.status === 'BLOCKED' && (
-              <div className="kardit-card p-6 space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Actions</h3>
-                <p className="text-sm text-destructive">This card has been terminated and cannot be used.</p>
+            <div className="kardit-card p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Funding Details</h3>
+              {fundingDetails?.virtualAccount ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Virtual Account</p>
+                      <p className="text-sm font-mono">{fundingDetails.virtualAccount.accountNumber}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Account Name</p>
+                    <p className="text-sm">{fundingDetails.virtualAccount.accountName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bank</p>
+                    <p className="text-sm">{fundingDetails.virtualAccount.bankName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Funding Instructions</p>
+                    <p className="text-sm text-muted-foreground">{fundingDetails.fundingInstructions.message}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Funding details are not available for this card yet.</p>
+              )}
+            </div>
+
+            <div className="kardit-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fulfillment</h3>
+                {card.productCode === 'PHYSICAL' || fulfillmentStatus ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleFulfillmentRefresh} disabled={fulfillmentLoading}>
+                      {fulfillmentLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Refresh Status
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleFulfillmentReinitiate} disabled={fulfillmentLoading}>
+                      Reinitiate
+                    </Button>
+                  </div>
+                ) : null}
               </div>
-            )}
+              {fulfillmentStatus ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <PackageCheck className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Bureau Status</p>
+                      <p className="text-sm">{fulfillmentStatus.fulfillment.bureauStatus}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Last Updated</p>
+                    <p className="text-sm">{format(new Date(fulfillmentStatus.fulfillment.lastUpdatedAt), 'PPP p')}</p>
+                  </div>
+                  {fulfillmentStatus.fulfillment.tracking && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tracking</p>
+                      <p className="text-sm">{fulfillmentStatus.fulfillment.tracking.carrier} - {fulfillmentStatus.fulfillment.tracking.trackingNumber}</p>
+                      <a
+                        href={fulfillmentStatus.fulfillment.tracking.trackingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-secondary hover:underline"
+                      >
+                        Open tracking link
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No fulfillment tracking is available for this card.</p>
+              )}
+            </div>
+
+            <div className="kardit-card p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Balance</h3>
+              {balance ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Available Balance</p>
+                    <p className="text-lg font-semibold text-primary">
+                      {balance.balance.availableBalance.toLocaleString('en-US', { style: 'currency', currency: balance.balance.currency })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Ledger Balance</p>
+                    <p className="text-sm">
+                      {balance.balance.ledgerBalance.toLocaleString('en-US', { style: 'currency', currency: balance.balance.currency })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Source</p>
+                    <p className="text-sm">{balance.source}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Retrieved At</p>
+                    <p className="text-sm">{format(new Date(balance.retrievedAt), 'PPP p')}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Fetch balance to load the current CMS-backed balances for this card.</p>
+              )}
+            </div>
+
+            <div className="kardit-card p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">PIN Management</h3>
+              {pinResetResult ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="text-sm">{pinResetResult.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Delivery</p>
+                    <p className="text-sm">{pinResetResult.smsDelivery.channel} to {pinResetResult.smsDelivery.phoneMasked}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sent At</p>
+                    <p className="text-sm">{format(new Date(pinResetResult.smsDelivery.sentAt), 'PPP p')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">CMS Reference</p>
+                    <p className="text-sm font-mono">{pinResetResult.external.cmsReference}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isAffiliate ? 'Use Reset PIN to trigger SMS delivery for the customer.' : 'PIN reset is only available to affiliate users on this screen.'}
+                </p>
+              )}
+            </div>
+
+            <div className="kardit-card p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limit Operations</h3>
+              {limitCompletionResult ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Completed Request</p>
+                    <p className="text-sm font-mono">{limitCompletionResult.limitRequestId}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Applied Limit</p>
+                    <p className="text-sm">
+                      {limitCompletionResult.appliedLimit.amount.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: limitCompletionResult.appliedLimit.currency,
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Completed At</p>
+                    <p className="text-sm">{format(new Date(limitCompletionResult.completedAt), 'PPP p')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">CMS Reference</p>
+                    <p className="text-sm font-mono">{limitCompletionResult.external.cmsReference}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isServiceProvider ? 'Use Complete Limit to close a pending limit request from operations.' : 'Limit completion is handled by service provider operations users.'}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Transactions */}
           <div className="kardit-card mt-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Transactions</h3>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
-              <input type="date" className="flex h-10 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={filters.dateFrom || ''} onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value || undefined }))} />
-              <input type="date" className="flex h-10 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={filters.dateTo || ''} onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value || undefined }))} />
-              <Select value={filters.type || 'ALL'} onValueChange={v => setFilters(f => ({ ...f, type: v as any }))}>
+              <input
+                type="date"
+                className="flex h-10 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                value={filters.dateFrom || ''}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value || undefined }))}
+              />
+              <input
+                type="date"
+                className="flex h-10 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                value={filters.dateTo || ''}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value || undefined }))}
+              />
+              <Select value={filters.type || 'ALL'} onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value as any }))}>
                 <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Types</SelectItem>
@@ -308,7 +617,7 @@ export default function CardDetailPage() {
                   <SelectItem value="OTHER">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filters.status || 'ALL'} onValueChange={v => setFilters(f => ({ ...f, status: v as any }))}>
+              <Select value={filters.status || 'ALL'} onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as any }))}>
                 <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
@@ -320,7 +629,9 @@ export default function CardDetailPage() {
             </div>
 
             {txLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
             ) : transactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">No transactions match your filters.</div>
             ) : (
@@ -337,8 +648,8 @@ export default function CardDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {transactions.map((tx, i) => (
-                      <tr key={tx.id} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                    {transactions.map((tx, index) => (
+                      <tr key={tx.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
                         <td className="px-4 py-3 text-sm">{format(new Date(tx.postedAt), 'MMM d, yyyy HH:mm')}</td>
                         <td className="px-4 py-3 text-sm"><span className="inline-flex items-center gap-1">{amountIcon(tx.amount)} {tx.type}</span></td>
                         <td className={`px-4 py-3 text-sm text-right font-mono ${tx.amount > 0 ? 'text-success' : tx.amount < 0 ? 'text-destructive' : ''}`}>
@@ -346,7 +657,7 @@ export default function CardDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">{tx.currency}</td>
                         <td className="px-4 py-3"><StatusChip status={tx.status as StatusType} /></td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{tx.narrative || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{tx.narrative || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -356,50 +667,107 @@ export default function CardDetailPage() {
           </div>
         </div>
 
-        {/* CMS Action Modal */}
-        <Dialog open={actionOpen} onOpenChange={setActionOpen}>
-          <DialogContent className={actionCode === 'P' ? 'border-destructive/30' : ''}>
+        <Dialog open={actionType !== null} onOpenChange={(open) => { if (!open) { setActionType(null); setActionReason(''); } }}>
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle className={actionCode === 'P' ? 'text-destructive' : ''}>
-                {actionCode ? CARD_ACTION_CODES[actionCode].label : 'Card Action'}
-              </DialogTitle>
-              <DialogDescription>
-                {actionCode === 'L' && 'Suspending will prevent this card from being used. You can activate it later.'}
-                {actionCode === 'U' && 'Activating will allow this card to be used again, according to program rules.'}
-                {actionCode === 'P' && 'Terminating this card will stop it from being used forever. This action cannot be undone.'}
-              </DialogDescription>
+              <DialogTitle>{actionTitle}</DialogTitle>
+              <DialogDescription>Provide the API reason code or reason value for this card action.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Action Code</label>
-                <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
-                  {actionCode} — {actionCode ? CARD_ACTION_CODES[actionCode].label : ''}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
-                  Reason Code <span className="text-destructive">*</span>
-                </label>
-                <Select value={reasonCode} onValueChange={setReasonCode}>
-                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select reason" /></SelectTrigger>
-                  <SelectContent>
-                    {availableReasons.map(r => (
-                      <SelectItem key={r.code} value={r.code}>{r.code} — {r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Reason codes are required by CMS</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Reason</label>
+                <Textarea value={actionReason} onChange={(e) => setActionReason(e.target.value)} placeholder={defaultReason} />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setActionOpen(false)}>Cancel</Button>
-              <Button
-                variant={actionCode === 'P' ? 'danger' : 'default'}
-                onClick={handleActionConfirm}
-                disabled={actionLoading || !reasonCode}
-              >
+              <Button variant="outline" onClick={() => { setActionType(null); setActionReason(''); }}>Cancel</Button>
+              <Button onClick={handleCardAction} disabled={actionLoading || !actionReason.trim()}>
                 {actionLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Confirm {actionCode ? CARD_ACTION_CODES[actionCode].label : ''}
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request Card Limit Increase</DialogTitle>
+              <DialogDescription>Log a new card limit request against this card.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Requested Limit</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={requestedLimit}
+                  onChange={(e) => setRequestedLimit(e.target.value)}
+                  placeholder="500000"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Reason</label>
+                <Textarea value={limitReason} onChange={(e) => setLimitReason(e.target.value)} placeholder="Customer salary increase and higher transaction needs" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setLimitDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleLimitRequest} disabled={limitLoading || !requestedLimit || !limitReason.trim()}>
+                {limitLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Submit Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={opsDialogOpen} onOpenChange={setOpsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Limit Request</DialogTitle>
+              <DialogDescription>Mark a card limit request as completed from operations.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Limit Request ID</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={limitRequestId}
+                  onChange={(e) => setLimitRequestId(e.target.value)}
+                  placeholder="LIM-2026-00011"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Applied Limit</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={appliedLimit}
+                  onChange={(e) => setAppliedLimit(e.target.value)}
+                  placeholder="500000"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">CMS Reference</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={opsCmsReference}
+                  onChange={(e) => setOpsCmsReference(e.target.value)}
+                  placeholder="CMS-LIM-992201"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Ops Remarks</label>
+                <Textarea value={opsRemarks} onChange={(e) => setOpsRemarks(e.target.value)} placeholder="Limit updated manually in CMS by operations team." />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpsDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleCompleteLimitRequest} disabled={opsLoading || !limitRequestId.trim() || !appliedLimit || !opsCmsReference.trim() || !opsRemarks.trim()}>
+                {opsLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Complete Request
               </Button>
             </DialogFooter>
           </DialogContent>

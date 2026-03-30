@@ -8,7 +8,7 @@ import { Loader2, ArrowRight, CreditCard, RotateCcw, Layers } from 'lucide-react
 
 const tiles = [
   { label: 'Single Load', description: 'Load funds to a single card', icon: CreditCard, path: '/loads/single' },
-  { label: 'Load Reversal', description: 'Reverse a previous load', icon: RotateCcw, path: '/loads/reversal' },
+  { label: 'Card Unload', description: 'Move funds from a card to a destination account', icon: RotateCcw, path: '/loads/reversal' },
   { label: 'Batch Load', description: 'Process multiple loads from a file', icon: Layers, path: '/loads/batches' },
 ];
 
@@ -20,7 +20,7 @@ export default function LoadsHomePage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
-          <PageHeader title="Loads" subtitle="Load funds onto cards" />
+          <PageHeader title="Loads" subtitle="Manage card funding and unload operations" />
 
           {/* Summary widgets */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

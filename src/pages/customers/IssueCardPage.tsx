@@ -14,6 +14,11 @@ import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS, ID_TYPES, s
 import { Loader2, ArrowLeft, ChevronDown, Code } from 'lucide-react';
 import { toast } from 'sonner';
 
+const CARD_TYPES = [
+  { value: 'VIRTUAL', label: 'Virtual Card' },
+  { value: 'PHYSICAL', label: 'Physical Card' },
+];
+
 export default function IssueCardPage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
@@ -21,7 +26,7 @@ export default function IssueCardPage() {
   const { createCard, isLoading } = useCreateCard();
 
   const [form, setForm] = useState({
-    embossName: '', cardProduct: '', currency: '', deliveryMethod: '', issuingBank: '',
+    embossName: '', cardType: '', cardProduct: '', currency: '', deliveryMethod: '', issuingBank: '',
     email: '', phone: '', idType: '', idNumber: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,16 +48,21 @@ export default function IssueCardPage() {
   }, [customer]);
 
   const set = (key: string, val: string) => {
-    setForm((p) => ({ ...p, [key]: val }));
+    setForm((p) => ({
+      ...p,
+      [key]: val,
+      ...(key === 'cardType' && val === 'VIRTUAL' ? { deliveryMethod: '' } : {}),
+    }));
     setErrors((p) => ({ ...p, [key]: '' }));
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.embossName.trim()) e.embossName = 'Required';
+    if (!form.cardType) e.cardType = 'Required';
     if (!form.cardProduct) e.cardProduct = 'Required';
     if (!form.currency) e.currency = 'Required';
-    if (!form.deliveryMethod) e.deliveryMethod = 'Required';
+    if (form.cardType === 'PHYSICAL' && !form.deliveryMethod) e.deliveryMethod = 'Required';
     if (!form.email.trim()) e.email = 'Required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email';
     if (!form.phone.trim()) e.phone = 'Required';
@@ -72,7 +82,8 @@ export default function IssueCardPage() {
     crt_emboss_name: form.embossName.trim(),
     crt_code_product: selectedProduct?.code || '',
     cpt_currency: selectedCurrency?.numeric || '',
-    delivery_method: selectedDelivery?.code || '',
+    delivery_method: form.cardType === 'PHYSICAL' ? selectedDelivery?.code || '' : '',
+    product_type: form.cardType || '',
     enr_mail: form.email.trim(),
     mobile_num: form.phone.trim(),
     Type_Papier: selectedIdType?.code || '',
@@ -82,23 +93,46 @@ export default function IssueCardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate() || !customerId) return;
+    if (!customer?.customerId || !customer.dateOfBirth) {
+      toast.error('Customer profile is missing required card issuance details.');
+      return;
+    }
 
     const product = CARD_PRODUCTS.find((p) => p.id === form.cardProduct)!;
     const bank = ISSUING_BANKS.find((b) => b.id === form.issuingBank)!;
 
-    const card = await createCard({
-      customerId,
-      productName: product.name,
-      productCode: product.code,
-      issuingBankName: bank.name,
-      currency: form.currency,
-      embossName: form.embossName.trim(),
-      deliveryMethod: selectedDelivery?.code,
-    });
+    try {
+      const card = await createCard({
+        customerId: customer.customerId,
+        bankId: bank.id,
+        issuingBankName: bank.name,
+        productId: product.id,
+        productType: form.cardType,
+        productName: product.name,
+        productCode: product.code,
+        currency: form.currency,
+        embossName: form.embossName.trim(),
+        deliveryMethod: form.cardType === 'PHYSICAL' ? selectedDelivery?.code : undefined,
+        customerIdentity: {
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          dob: customer.dateOfBirth,
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+        },
+        customerKyc: {
+          idType: form.idType,
+          idNumber: form.idNumber.trim(),
+          kycLevel: 'LEVEL_2',
+        },
+      });
 
-    store.addCMSAction({ entityType: 'CARD', entityId: card.id, payload: cmsPayload });
-    toast.success('Card issued (mock).');
-    navigate(`/customers/${customerId}`);
+      store.addCMSAction({ entityType: 'CARD', entityId: card.id, payload: cmsPayload });
+      toast.success('Card issued successfully.');
+      navigate(`/customers/${customerId}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Card issuance failed');
+    }
   };
 
   if (custLoading) {
@@ -145,6 +179,16 @@ export default function IssueCardPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Card Type', true)}</label>
+                    <Select value={form.cardType} onValueChange={(v) => set('cardType', v)}>
+                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        {CARD_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {errors.cardType && <p className="text-xs text-destructive">{errors.cardType}</p>}
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Card Product', true)}</label>
                     <Select value={form.cardProduct} onValueChange={(v) => set('cardProduct', v)}>
                       <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select product" /></SelectTrigger>
@@ -165,8 +209,8 @@ export default function IssueCardPage() {
                     {errors.currency && <p className="text-xs text-destructive">{errors.currency}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)}>
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', form.cardType === 'PHYSICAL')}</label>
+                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={form.cardType !== 'PHYSICAL'}>
                       <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select delivery" /></SelectTrigger>
                       <SelectContent>
                         {DELIVERY_METHODS.map((d) => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}

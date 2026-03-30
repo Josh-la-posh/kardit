@@ -1,234 +1,246 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useState } from 'react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { store } from '@/stores/mockStore';
-import { Users, CreditCard, Upload, FileText, Loader2, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { StatusChip, StatusType } from '@/components/ui/status-chip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useBatch, useBatches } from '@/hooks/useBatches';
+import { CARD_PRODUCTS } from '@/stores/mockStore';
+import { CreditCard, Download, Loader2, Upload } from 'lucide-react';
 
-type BatchType = 'customers' | 'cards';
-
-interface BatchUploadState {
-  file: File | null;
-  status: 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
-  message?: string;
+function mapStatus(status: string): StatusType {
+  const normalized = status.toUpperCase();
+  if (normalized === 'COMPLETED' || normalized === 'SUCCESS') return 'SUCCESS' as StatusType;
+  if (normalized === 'FAILED') return 'FAILED' as StatusType;
+  if (normalized === 'UPLOADED') return 'PENDING' as StatusType;
+  if (normalized === 'PROCESSING') return 'PROCESSING' as StatusType;
+  return 'ACTIVE' as StatusType;
 }
 
 export default function BatchOperationsPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<BatchType>('customers');
-  const [uploadState, setUploadState] = useState<BatchUploadState>({ file: null, status: 'idle' });
+  const { batches, isLoading, upload } = useBatches('cards');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadState({ file, status: 'idle' });
+    if (!file || !selectedProductId) return;
+
+    setUploading(true);
+    try {
+      const response = await upload({
+        category: 'cards',
+        fileName: file.name,
+        productId: selectedProductId,
+      });
+      setSelectedBatchId(response.batchId);
+      toast.success(`Batch ${response.batchId} uploaded.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Batch upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const handleUpload = async () => {
-    if (!uploadState.file) return;
-
-    setUploadState(s => ({ ...s, status: 'uploading' }));
-    
-    // Simulate upload delay
-    await new Promise(r => setTimeout(r, 1000));
-    setUploadState(s => ({ ...s, status: 'processing' }));
-    
-    // Simulate processing
-    await new Promise(r => setTimeout(r, 1500));
-
-    // Add batch record
-    store.addBatch(uploadState.file.name, user?.tenantId || 'tenant_alpha_affiliate');
-    
-    setUploadState({ file: null, status: 'completed', message: 'Batch uploaded successfully' });
-    toast.success(`${activeTab === 'customers' ? 'Customer' : 'Card'} batch uploaded for processing`);
+  const handleDownloadTemplate = () => {
+    const content = 'customerId,embossName,deliveryMethod,currency\nCUST-001,JANE DOE,COURIER,USD\n';
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'card_batch_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded.');
   };
-
-  const resetUpload = () => {
-    setUploadState({ file: null, status: 'idle' });
-  };
-
-  const tabs = [
-    { id: 'customers' as BatchType, label: 'Batch Customer Creation', icon: Users, description: 'Upload a CSV file to create multiple customers at once' },
-    { id: 'cards' as BatchType, label: 'Batch Card Creation', icon: CreditCard, description: 'Upload a CSV file to issue cards for multiple customers' },
-  ];
-
-  const activeTabInfo = tabs.find(t => t.id === activeTab)!;
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <div className="animate-fade-in">
-          <PageHeader
-            title="Batch Operations"
-            subtitle="Bulk processing for customers and cards"
-          />
+          <PageHeader title="Batch Operations" subtitle="Bulk card issuance" />
 
-          {/* Tab Navigation */}
-          <div className="kardit-card p-1 mb-6">
-            <div className="flex gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); resetUpload(); }}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  <tab.icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Upload Area */}
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="xl:col-span-2 space-y-4">
               <div className="kardit-card p-6">
                 <div className="flex items-start gap-3 mb-6">
                   <div className="rounded-lg bg-primary/10 p-2.5">
-                    <activeTabInfo.icon className="h-5 w-5 text-primary" />
+                    <CreditCard className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h2 className="font-medium">{activeTabInfo.label}</h2>
-                    <p className="text-sm text-muted-foreground">{activeTabInfo.description}</p>
+                    <h2 className="font-medium">Batch Card Creation</h2>
+                    <p className="text-sm text-muted-foreground">Upload a file, choose the issuing product, then submit and execute the batch from the history panel.</p>
                   </div>
                 </div>
 
-                {uploadState.status === 'completed' ? (
-                  <div className="text-center py-8">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                      <CheckCircle className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">Upload Complete</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{uploadState.message}</p>
-                    <Button onClick={resetUpload}>Upload Another File</Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Product <span className="text-destructive">*</span></label>
+                    <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select product" /></SelectTrigger>
+                      <SelectContent>
+                        {CARD_PRODUCTS.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>{product.name} ({product.code})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ) : (
-                  <>
-                    {/* File Drop Zone */}
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-4">
-                      {uploadState.file ? (
-                        <div className="space-y-2">
-                          <FileText className="h-10 w-10 mx-auto text-primary" />
-                          <p className="font-medium">{uploadState.file.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {(uploadState.file.size / 1024).toFixed(1)} KB
-                          </p>
-                          {uploadState.status === 'idle' && (
-                            <Button variant="outline" size="sm" onClick={resetUpload}>
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-                          <p className="font-medium">Drop your CSV file here</p>
-                          <p className="text-sm text-muted-foreground">or click to browse</p>
-                          <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileSelect}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            style={{ position: 'relative' }}
-                          />
-                          <Button variant="outline" size="sm" asChild>
-                            <label className="cursor-pointer">
-                              <input
-                                type="file"
-                                accept=".csv"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                              />
-                              Browse Files
-                            </label>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-end gap-2">
+                    <Button variant="outline" onClick={handleDownloadTemplate}>
+                      <Download className="h-4 w-4 mr-1" /> Template
+                    </Button>
+                    <Button onClick={() => fileInputRef.current?.click()} disabled={!selectedProductId || uploading}>
+                      {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />} Upload File
+                    </Button>
+                    <input ref={fileInputRef} type="file" className="hidden" accept=".csv" onChange={handleFileUpload} />
+                  </div>
+                </div>
 
-                    {/* Upload Button */}
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        onClick={handleUpload}
-                        disabled={!uploadState.file || uploadState.status !== 'idle'}
-                      >
-                        {uploadState.status === 'uploading' && (
-                          <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Uploading...</>
-                        )}
-                        {uploadState.status === 'processing' && (
-                          <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Processing...</>
-                        )}
-                        {uploadState.status === 'idle' && (
-                          <><Upload className="h-4 w-4 mr-1" /> Upload & Process</>
-                        )}
-                      </Button>
-                    </div>
-                  </>
+                <p className="text-sm text-muted-foreground">Upload request requirements: `actorUserId`, `userType`, `tenantId`, `productId`, and `fileName`.</p>
+              </div>
+
+              <div className="kardit-card overflow-hidden">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : batches.length === 0 ? (
+                  <div className="p-12 text-center text-muted-foreground text-sm">No card issuance batches uploaded yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50">
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Batch ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">File Name</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Records</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {batches.map((batch, i) => (
+                          <tr
+                            key={batch.batchId}
+                            onClick={() => setSelectedBatchId(batch.batchId)}
+                            className={`cursor-pointer transition-colors hover:bg-muted/40 ${selectedBatchId === batch.batchId ? 'bg-primary/10' : i % 2 === 1 ? 'bg-muted/20' : ''}`}
+                          >
+                            <td className="px-4 py-3 text-sm font-mono text-primary">{batch.batchId}</td>
+                            <td className="px-4 py-3 text-sm">{batch.fileName}</td>
+                            <td className="px-4 py-3 text-sm">{CARD_PRODUCTS.find((product) => product.id === batch.productId)?.name || batch.productId || '—'}</td>
+                            <td className="px-4 py-3"><StatusChip status={mapStatus(batch.status)} label={batch.status} /></td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{batch.successful}/{batch.totalRecords}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Instructions Sidebar */}
-            <div className="space-y-4">
-              <div className="kardit-card p-6">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  File Requirements
-                </h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• CSV format only</li>
-                  <li>• Maximum 1,000 records per file</li>
-                  <li>• UTF-8 encoding</li>
-                  <li>• Headers required in first row</li>
-                </ul>
-              </div>
-
-              <div className="kardit-card p-6">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  {activeTab === 'customers' ? 'Customer Fields' : 'Card Fields'}
-                </h3>
-                <ul className="space-y-1 text-sm text-muted-foreground font-mono">
-                  {activeTab === 'customers' ? (
-                    <>
-                      <li>first_name*</li>
-                      <li>last_name*</li>
-                      <li>email*</li>
-                      <li>phone</li>
-                      <li>date_of_birth</li>
-                      <li>nationality</li>
-                      <li>id_type</li>
-                      <li>id_number</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>customer_id*</li>
-                      <li>emboss_name*</li>
-                      <li>product_code*</li>
-                      <li>issuing_bank*</li>
-                      <li>currency*</li>
-                      <li>delivery_method</li>
-                    </>
-                  )}
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">* Required fields</p>
-              </div>
-
-              <Button variant="outline" className="w-full" onClick={() => navigate('/customers/batches')}>
-                View Batch History
-              </Button>
-            </div>
+            <CardBatchDetail batchId={selectedBatchId} />
           </div>
         </div>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function CardBatchDetail({ batchId }: { batchId: string | null }) {
+  const { batch, isLoading, refetch } = useBatch(batchId || undefined);
+  const { submit, execute } = useBatches('cards');
+  const [submitting, setSubmitting] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!batchId) return;
+    setSubmitting(true);
+    try {
+      const response = await submit(batchId);
+      toast.success(`Batch ${response.batchId} submitted.`);
+      await refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to submit batch');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!batchId) return;
+    setExecuting(true);
+    try {
+      const response = await execute(batchId);
+      toast.success(`Batch ${response.batchId} execution started.`);
+      await refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to execute batch');
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleDownloadResults = async () => {
+    if (!batch?.results) return;
+    setDownloading(true);
+    try {
+      window.open(batch.results.downloadUrl, '_blank', 'noopener,noreferrer');
+      toast.success(`Opened ${batch.results.resultFile}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="kardit-card p-6">
+      {!batchId ? (
+        <p className="text-sm text-muted-foreground">Select a card batch to view its current state and actions.</p>
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : !batch ? (
+        <p className="text-sm text-muted-foreground">Batch not found.</p>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase">Batch ID</p>
+            <p className="text-sm font-mono">{batch.batch.batchId}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase">Status</p>
+            <StatusChip status={mapStatus(batch.batch.status)} label={batch.batch.status} />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Uploaded: {format(new Date(batch.upload.uploadedAt), 'MMM d, yyyy HH:mm')}
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div><p className="text-xs text-muted-foreground uppercase">Total</p><p>{batch.batch.totalRecords}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Successful</p><p>{batch.batch.successful}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Failed</p><p>{batch.batch.failed}</p></div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleSubmit} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Submit
+            </Button>
+            <Button onClick={handleExecute} disabled={executing}>
+              {executing && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Execute
+            </Button>
+            <Button variant="outline" onClick={handleDownloadResults} disabled={!batch.results || downloading}>
+              {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Results
+            </Button>
+          </div>
+          {batch.results && (
+            <div className="text-sm text-muted-foreground">
+              Result file: <span className="font-mono text-foreground">{batch.results.resultFile}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

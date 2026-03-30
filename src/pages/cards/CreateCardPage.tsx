@@ -12,6 +12,11 @@ import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS, store } fro
 import { Plus, Upload, Loader2, ArrowLeft, CreditCard, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
+const CARD_TYPES = [
+  { value: 'VIRTUAL', label: 'Virtual Card' },
+  { value: 'PHYSICAL', label: 'Physical Card' },
+];
+
 /**
  * CreateCardPage - Create a card for any customer, selecting customer and bank
  * Affiliates can create cards for different customers across different banks
@@ -29,6 +34,7 @@ export default function CreateCardPage() {
     tenantId: '',
     customerId: '',
     embossName: '',
+    cardType: '',
     cardProduct: '',
     currency: '',
     deliveryMethod: '',
@@ -48,7 +54,11 @@ export default function CreateCardPage() {
   const selectedCustomer = customers.find(c => c.id === form.customerId);
 
   const set = (key: string, val: string) => {
-    setForm((p) => ({ ...p, [key]: val }));
+    setForm((p) => ({
+      ...p,
+      [key]: val,
+      ...(key === 'cardType' && val === 'VIRTUAL' ? { deliveryMethod: '' } : {}),
+    }));
     setErrors((p) => ({ ...p, [key]: '' }));
 
     // Auto-fill emboss name when customer is selected
@@ -68,9 +78,10 @@ export default function CreateCardPage() {
     const e: Record<string, string> = {};
     if (!form.customerId) e.customerId = 'Required';
     if (!form.embossName.trim()) e.embossName = 'Required';
+    if (!form.cardType) e.cardType = 'Required';
     if (!form.cardProduct) e.cardProduct = 'Required';
     if (!form.currency) e.currency = 'Required';
-    if (!form.deliveryMethod) e.deliveryMethod = 'Required';
+    if (form.cardType === 'PHYSICAL' && !form.deliveryMethod) e.deliveryMethod = 'Required';
     if (!form.issuingBank) e.issuingBank = 'Required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -84,18 +95,54 @@ export default function CreateCardPage() {
     e.preventDefault();
     if (!validate()) return;
 
-    await createCard({
-      customerId: form.customerId,
-      productName: selectedProduct!.name,
-      productCode: selectedProduct!.code,
-      issuingBankName: selectedBank!.name,
-      currency: form.currency,
-      embossName: form.embossName.trim(),
-      deliveryMethod: selectedDelivery?.code,
-    });
+    if (!selectedCustomer) {
+      toast.error('Select a customer before issuing a card.');
+      return;
+    }
 
-    toast.success('Card created successfully');
-    navigate('/cards');
+    if (!selectedCustomer.dateOfBirth || !selectedCustomer.phone || !selectedCustomer.email || !selectedCustomer.idType || !selectedCustomer.idNumber) {
+      toast.error('The selected customer is missing required identity or KYC fields for card issuance.');
+      return;
+    }
+
+    const customerRefId = selectedCustomer.customerId;
+    const customerDob = selectedCustomer.dateOfBirth;
+    const customerPhone = selectedCustomer.phone;
+    const customerEmail = selectedCustomer.email;
+    const customerIdType = selectedCustomer.idType;
+    const customerIdNumber = selectedCustomer.idNumber;
+
+    try {
+      await createCard({
+        customerId: customerRefId,
+        bankId: selectedBank!.id,
+        issuingBankName: selectedBank!.name,
+        productId: selectedProduct!.id,
+        productType: form.cardType,
+        productName: selectedProduct!.name,
+        productCode: selectedProduct!.code,
+        currency: form.currency,
+        embossName: form.embossName.trim(),
+        deliveryMethod: form.cardType === 'PHYSICAL' ? selectedDelivery?.code : undefined,
+        customerIdentity: {
+          firstName: selectedCustomer.firstName,
+          lastName: selectedCustomer.lastName,
+          dob: customerDob,
+          phone: customerPhone,
+          email: customerEmail,
+        },
+        customerKyc: {
+          idType: customerIdType,
+          idNumber: customerIdNumber,
+          kycLevel: 'LEVEL_2',
+        },
+      });
+
+      toast.success('Card created successfully');
+      navigate('/cards');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Card creation failed');
+    }
   };
 
   const fieldLabel = (label: string, required = false) => (
@@ -249,6 +296,20 @@ export default function CreateCardPage() {
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Card Type', true)}</label>
+                    <Select value={form.cardType} onValueChange={(v) => set('cardType', v)} disabled={!form.customerId}>
+                      <SelectTrigger className="bg-muted border-border">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CARD_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.cardType && <p className="text-xs text-destructive">{errors.cardType}</p>}
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
                     <Select value={form.issuingBank} onValueChange={(v) => set('issuingBank', v)} disabled={!form.customerId}>
                       <SelectTrigger className="bg-muted border-border">
@@ -291,8 +352,8 @@ export default function CreateCardPage() {
                     {errors.currency && <p className="text-xs text-destructive">{errors.currency}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId}>
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', form.cardType === 'PHYSICAL')}</label>
+                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId || form.cardType !== 'PHYSICAL'}>
                       <SelectTrigger className="bg-muted border-border">
                         <SelectValue placeholder="Select delivery" />
                       </SelectTrigger>

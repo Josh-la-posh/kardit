@@ -1,14 +1,53 @@
 import { useState, useCallback, useEffect } from 'react';
 import { store, type IssuingBankSession, type IssuingBank, type IssuingBankDetails } from '@/stores/mockStore';
 import { useAuth } from '@/hooks/useAuth';
+import { createIssuingBankSession } from '@/services/bankIssuingApi';
+import { CreateIssuingBankRequest } from '@/types/bankIssuingContracts';
 
 export function useCreateIssuingBankSession() {
   const { user } = useAuth();
 
-  const create = useCallback(async (bankDetails: IssuingBankDetails): Promise<IssuingBankSession> => {
+  const create = useCallback(async (bankDetails: IssuingBankDetails & { contactFullName?: string }): Promise<IssuingBankSession> => {
     const tenantId = user?.tenantId || 'tenant_default';
-    await new Promise((r) => setTimeout(r, 300));
-    return store.createIssuingBankSession(tenantId, bankDetails);
+
+    // Transform bankDetails to API contract
+    const payload: CreateIssuingBankRequest = {
+      legalName: bankDetails.name,
+      shortName: bankDetails.shortName,
+      bankCode: bankDetails.code,
+      country: bankDetails.country,
+      primaryContact: {
+        fullName: bankDetails.contactFullName || 'Primary Contact',
+        email: bankDetails.contactEmail,
+        phone: bankDetails.contactPhone,
+      },
+      status: 'PENDING',
+    };
+
+    try {
+      // const response = await createIssuingBankSession(payload);
+      const session = store.createIssuingBankSession(tenantId, bankDetails as IssuingBankDetails);
+      return  session ;
+      
+      // Call the real API
+      const apiResponse = await createIssuingBankSession(payload);
+
+      // Create a local session using the API response data
+      // const session = store.createIssuingBankSession(tenantId, {
+      //   ...bankDetails as IssuingBankDetails,
+      //   bankId: apiResponse.bankId,
+      //   status: apiResponse.status,
+      //   provisionedAt: apiResponse.provisionedAt,
+      //   internalAffiliate: apiResponse.internalAffiliate,
+      //   internalPartnership: apiResponse.internalPartnership,
+      // });
+
+      // return session;
+    } catch (error) {
+      // Fallback to mock if API fails
+      console.error('API call failed, using mock:', error);
+      return store.createIssuingBankSession(tenantId, bankDetails as IssuingBankDetails);
+    }
   }, [user?.tenantId]);
 
   return { create };

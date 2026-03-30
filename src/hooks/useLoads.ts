@@ -1,9 +1,84 @@
 import { useState, useEffect, useCallback } from 'react';
-import { transactionStore, LoadTransaction, LoadBatch } from '@/stores/transactionStore';
+import { transactionStore, LoadTransaction } from '@/stores/transactionStore';
 import { store } from '@/stores/mockStore';
 import { useAuth } from '@/hooks/useAuth';
+import { getBatchLoad, getBatchLoadResults } from '@/services/cardsApi';
+import type {
+  BatchLoadUploadResponse,
+  ExecuteBatchLoadResponse,
+  GetBatchLoadResponse,
+  GetBatchLoadResultsResponse,
+} from '@/types/cardContracts';
 
 const DELAY = 400;
+const BATCH_STORAGE_KEY = 'kardit_batch_loads';
+
+interface StoredBatchUpload {
+  batchId: string;
+  fileName: string;
+  uploadedAt: string;
+  validationStatus: string;
+  totalRows: number;
+  successfulRows: number;
+  failedRows: number;
+  errors: BatchLoadUploadResponse['errors'];
+}
+
+export interface BatchLoadListItem {
+  batchId: string;
+  fileName: string;
+  uploadedAt: string;
+  validationStatus: string;
+  totalRows: number;
+  successfulRows: number;
+  failedRows: number;
+  status: string;
+  totalProcessedAmount: number;
+  lastUpdatedAt: string;
+}
+
+export interface BatchLoadDetail {
+  upload: StoredBatchUpload | null;
+  batch: GetBatchLoadResponse;
+  results: GetBatchLoadResultsResponse | null;
+}
+
+function readStoredBatches(): StoredBatchUpload[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(BATCH_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredBatches(items: StoredBatchUpload[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(items));
+}
+
+function upsertStoredBatch(item: StoredBatchUpload) {
+  const current = readStoredBatches().filter((entry) => entry.batchId !== item.batchId);
+  writeStoredBatches([item, ...current]);
+}
+
+function toBatchListItem(upload: StoredBatchUpload, batch: GetBatchLoadResponse): BatchLoadListItem {
+  return {
+    batchId: batch.batchId,
+    fileName: upload.fileName,
+    uploadedAt: upload.uploadedAt,
+    validationStatus: upload.validationStatus,
+    totalRows: batch.totalRows || upload.totalRows,
+    successfulRows: batch.successfulRows,
+    failedRows: batch.failedRows,
+    status: batch.status,
+    totalProcessedAmount: batch.totalProcessedAmount,
+    lastUpdatedAt: batch.lastUpdatedAt,
+  };
+}
 
 export function useLoadSummary() {
   const [summary, setSummary] = useState({ todayCount: 0, todayAmount: 0 });
@@ -105,34 +180,83 @@ export function useLoadsByCard(cardId: string | undefined) {
 }
 
 export function useLoadBatches() {
-  const [batches, setBatches] = useState<LoadBatch[]>([]);
+  const [batches, setBatches] = useState<BatchLoadListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, DELAY));
-    setBatches(transactionStore.getLoadBatches());
-    setIsLoading(false);
+    setError(null);
+    try {
+      const stored = readStoredBatches();
+      const resolved = await Promise.all(
+        stored.map(async (entry) => {
+          try {
+            const batch = await getBatchLoad(entry.batchId);
+            return toBatchListItem(entry, batch);
+          } catch {
+            return null;
+          }
+        })
+      );
+      setBatches(resolved.filter((item): item is BatchLoadListItem => item !== null));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load batch loads');
+      setBatches([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  return { batches, isLoading, refetch: fetch };
+  const registerUpload = useCallback((fileName: string, response: BatchLoadUploadResponse) => {
+    upsertStoredBatch({
+      batchId: response.batchId,
+      fileName,
+      uploadedAt: new Date().toISOString(),
+      validationStatus: response.validationStatus,
+      totalRows: response.totalRows,
+      successfulRows: response.successfulRows,
+      failedRows: response.failedRows,
+      errors: response.errors,
+    });
+  }, []);
+
+  return { batches, isLoading, error, refetch: fetch, registerUpload };
 }
 
 export function useLoadBatch(batchId: string | undefined) {
-  const [batch, setBatch] = useState<LoadBatch | null>(null);
+  const [batch, setBatch] = useState<BatchLoadDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
-    if (!batchId) return;
+    if (!batchId) {
+      setBatch(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, DELAY));
-    setBatch(transactionStore.getLoadBatch(batchId));
-    setIsLoading(false);
+    setError(null);
+    try {
+      const upload = readStoredBatches().find((entry) => entry.batchId === batchId) || null;
+      const batchResponse = await getBatchLoad(batchId);
+      const resultsResponse = await getBatchLoadResults(batchId).catch(() => null);
+      setBatch({
+        upload,
+        batch: batchResponse,
+        results: resultsResponse,
+      });
+    } catch (err) {
+      setBatch(null);
+      setError(err instanceof Error ? err.message : 'Unable to load batch detail');
+    } finally {
+      setIsLoading(false);
+    }
   }, [batchId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  return { batch, isLoading, refetch: fetch };
+  return { batch, isLoading, error, refetch: fetch };
 }
