@@ -21,33 +21,23 @@ export function useCreateIssuingBankSession() {
         email: bankDetails.contactEmail,
         phone: bankDetails.contactPhone,
       },
-      status: 'PENDING',
+      status: 'ACTIVE',
     };
 
-    try {
-      // const response = await createIssuingBankSession(payload);
-      const session = store.createIssuingBankSession(tenantId, bankDetails as IssuingBankDetails);
-      return  session ;
-      
-      // Call the real API
-      const apiResponse = await createIssuingBankSession(payload);
+    const apiResponse = await createIssuingBankSession(payload);
 
-      // Create a local session using the API response data
-      // const session = store.createIssuingBankSession(tenantId, {
-      //   ...bankDetails as IssuingBankDetails,
-      //   bankId: apiResponse.bankId,
-      //   status: apiResponse.status,
-      //   provisionedAt: apiResponse.provisionedAt,
-      //   internalAffiliate: apiResponse.internalAffiliate,
-      //   internalPartnership: apiResponse.internalPartnership,
-      // });
+    const session = store.createIssuingBankSession(tenantId, {
+      ...bankDetails,
+      name: apiResponse.legalName,
+    });
 
-      // return session;
-    } catch (error) {
-      // Fallback to mock if API fails
-      console.error('API call failed, using mock:', error);
-      return store.createIssuingBankSession(tenantId, bankDetails as IssuingBankDetails);
-    }
+    return store.updateIssuingBankSession(session.sessionId, {
+      bankDetails: {
+        ...session.bankDetails,
+        name: apiResponse.legalName,
+      },
+      updatedAt: apiResponse.provisionedAt,
+    }) || session;
   }, [user?.tenantId]);
 
   return { create };

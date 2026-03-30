@@ -161,7 +161,7 @@ const App = () => (
             {/* Issuing Banks (Service Provider) */}
             <Route path="/issuing-banks" element={<IssuingBanksListPage />} />
             <Route path="/issuing-banks/new" element={<IssuingBankCreatePage />} />
-            <Route path="/issuing-banks/:sessionId/review" element={<IssuingBankReviewPage />} />
+            {/* <Route path="/issuing-banks/:sessionId/review" element={<IssuingBankReviewPage />} /> */}
             <Route path="/issuing-banks/:sessionId/provisioning" element={<IssuingBankProvisioningPage />} />
             <Route path="/issuing-banks/:sessionId/success" element={<IssuingBankSuccessPage />} />
             <Route path="/issuing-banks/:sessionId/failure" element={<IssuingBankFailurePage />} />
