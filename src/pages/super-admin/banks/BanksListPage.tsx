@@ -8,7 +8,7 @@ import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { store, type PlatformBank } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, RefreshCw, Download } from 'lucide-react';
+import { Search, Building2, Eye, Users, CreditCard, RefreshCw, Download, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -80,9 +80,9 @@ export default function BanksListPage() {
                 <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Refresh
                 </Button>
-                <Button 
+                <Button
                   className="bg-blue-600 hover:bg-blue-700"
-                  size="sm" 
+                  size="sm"
                   onClick={handleDownloadReport}
                   disabled={downloading}
                 >

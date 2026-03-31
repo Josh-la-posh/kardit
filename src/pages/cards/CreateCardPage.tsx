@@ -20,6 +20,7 @@ export default function CreateCardPage() {
     tenantId: '',
     customerId: '',
     embossName: '',
+    cardType: '',
     cardProduct: '',
     currency: '',
     deliveryMethod: '',
@@ -77,18 +78,18 @@ export default function CreateCardPage() {
     e.preventDefault();
     if (!validate()) return;
 
-    await createCard({
-      customerId: form.customerId,
-      productName: selectedProduct!.name,
-      productCode: selectedProduct!.code,
-      issuingBankName: selectedBank!.name,
-      currency: form.currency,
-      embossName: form.embossName.trim(),
-      deliveryMethod: selectedDelivery?.code,
-    });
+      await createCard({
+        customerId: form.customerId,
+        productName: selectedProduct!.name,
+        productCode: selectedProduct!.code,
+        issuingBankName: selectedBank!.name,
+        currency: form.currency,
+        embossName: form.embossName.trim(),
+        deliveryMethod: selectedDelivery?.code,
+      });
 
-    toast.success('Card created successfully');
-    navigate('/cards');
+      toast.success('Card created successfully');
+      navigate('/cards');
   };
 
   const fieldLabel = (label: string, required = false) => (
@@ -237,7 +238,7 @@ export default function CreateCardPage() {
                   placeholder="Name on card"
                   disabled={!form.customerId}
                 />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
                     <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
@@ -288,8 +289,8 @@ export default function CreateCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(value) => set('deliveryMethod', value)} disabled={!form.customerId}>
-                      <SelectTrigger className="border-border bg-muted">
+                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId}>
+                      <SelectTrigger className="bg-muted border-border">
                         <SelectValue placeholder="Select delivery" />
                       </SelectTrigger>
                       <SelectContent>

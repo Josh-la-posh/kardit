@@ -137,6 +137,41 @@ export interface PlatformAffiliate {
   provisionedAt?: string;
 }
 
+// ─── Issuing Banks (Service Provider) ────────────────────────
+
+export type IssuingBankSessionStatus = 'DRAFT' | 'SUBMITTED' | 'PROVISIONING' | 'PROVISIONED' | 'FAILED';
+
+export interface IssuingBankDetails {
+  name: string;
+  shortName: string;
+  code: string;
+  country: string;
+  contactEmail: string;
+  contactPhone: string;
+  bankAddress?: string;
+  additionalInfo?: string;
+  // bankId?: string; 
+  // status?: string;
+  // provisionedAt?: string;
+  
+}
+
+export interface IssuingBankSession {
+  sessionId: string;
+  tenantId: string;
+  status: IssuingBankSessionStatus;
+  bankDetails: IssuingBankDetails;
+  provisioningProgress?: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IssuingBank extends IssuingBankSession {
+  id: string;
+  provisionedAt?: string;
+}
+
 // ─── CMS Action History ─────────────────────────────────────
 
 export interface CMSActionRecord {
@@ -374,6 +409,11 @@ let _batches: CustomerBatch[] = [
   { tenantId: 'tenant_alpha_affiliate', id: 'batch2', fileName: 'customers_feb_2026.csv', status: 'PROCESSING', totalRecords: 85, createdAt: '2026-02-01T10:00:00Z' },
   { tenantId: 'tenant_alpha_affiliate', id: 'batch3', fileName: 'customers_onboard.csv', status: 'FAILED', totalRecords: 42, createdAt: '2026-02-03T11:00:00Z' },
 ];
+
+// ─── Issuing Bank Sessions (Service Provider) ─────────────────
+
+let _issuingBankSessions: IssuingBankSession[] = [];
+let _issuingBanks: IssuingBank[] = [];
 
 // ─── Platform Banks Seed Data (Super Admin View) ─────────────
 
@@ -884,4 +924,92 @@ export const store = {
   getRoles: () => ROLES,
   getCardProducts: () => CARD_PRODUCTS,
   getIssuingBanks: () => ISSUING_BANKS,
-};
+
+  // Issuing Bank Sessions (Service Provider)
+  createIssuingBankSession: (tenantId: string, bankDetails: IssuingBankDetails): IssuingBankSession => {
+    const session: IssuingBankSession = {
+      sessionId: genId('ibsession'),
+      tenantId,
+      status: 'DRAFT',
+      bankDetails,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    _issuingBankSessions = [..._issuingBankSessions, session];
+    return session;
+  },
+
+  getIssuingBankSession: (sessionId: string) =>
+    _issuingBankSessions.find((s) => s.sessionId === sessionId) || null,
+
+  updateIssuingBankSession: (sessionId: string, patch: Partial<IssuingBankSession>): IssuingBankSession | null => {
+    const idx = _issuingBankSessions.findIndex((s) => s.sessionId === sessionId);
+    if (idx === -1) return null;
+    _issuingBankSessions[idx] = {
+      ..._issuingBankSessions[idx],
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    _issuingBankSessions = [..._issuingBankSessions];
+    return _issuingBankSessions[idx];
+  },
+
+  submitIssuingBankSession: (sessionId: string): IssuingBankSession | null => {
+    const session = store.getIssuingBankSession(sessionId);
+    if (!session) return null;
+    return store.updateIssuingBankSession(sessionId, { status: 'SUBMITTED' });
+  },
+
+  provisionIssuingBankSession: (sessionId: string): IssuingBankSession | null => {
+    const session = store.getIssuingBankSession(sessionId);
+    if (!session) return null;
+    return store.updateIssuingBankSession(sessionId, { status: 'PROVISIONING', provisioningProgress: 0 });
+  },
+
+  // Simulate provisioning progress (called periodically)
+  updateProvisioningProgress: (sessionId: string, progress: number): IssuingBankSession | null => {
+    return store.updateIssuingBankSession(sessionId, { provisioningProgress: progress });
+  },
+
+  // Complete provisioning - create an IssuingBank from the session
+  completeProvisioning: (sessionId: string): IssuingBank | null => {
+    const session = store.getIssuingBankSession(sessionId);
+    if (!session) return null;
+
+    const bank: IssuingBank = {
+      ...session,
+      id: genId('ibank'),
+      status: 'PROVISIONED',
+      provisionedAt: new Date().toISOString(),
+    };
+    _issuingBanks = [..._issuingBanks, bank];
+    store.updateIssuingBankSession(sessionId, { status: 'PROVISIONED' });
+    return bank;
+  },
+
+  // Fail provisioning
+  failProvisioning: (sessionId: string, errorMessage: string): IssuingBankSession | null => {
+    return store.updateIssuingBankSession(sessionId, {
+      status: 'FAILED',
+      errorMessage,
+      provisioningProgress: undefined,
+    });
+  },
+
+  // Get all issued banks for a tenant
+  getAllIssuingBanks: (tenantId: string): IssuingBank[] =>
+    _issuingBanks.filter((b) => b.tenantId === tenantId),
+
+  // Get single issued bank
+  getIssuingBank: (bankId: string): IssuingBank | null =>
+    _issuingBanks.find((b) => b.id === bankId) || null,
+
+  // Update issued bank details
+  updateIssuingBank: (bankId: string, patch: Partial<IssuingBank>): IssuingBank | null => {
+    const idx = _issuingBanks.findIndex((b) => b.id === bankId);
+    if (idx === -1) return null;
+    _issuingBanks[idx] = { ..._issuingBanks[idx], ...patch };
+    _issuingBanks = [..._issuingBanks];
+    return _issuingBanks[idx];
+  },
+}

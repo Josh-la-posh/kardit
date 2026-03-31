@@ -25,7 +25,7 @@ export default function HowItWorks() {
             How Kardit Works
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Four simple steps to streamline your card management
+            Three simple steps to streamline your card management
           </p>
         </div>
 

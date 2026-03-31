@@ -17,6 +17,7 @@ export interface CustomerListItem {
   kycLevel: string;
   createdAt: string;
   status: string;
+  
 }
 
 export interface CustomerDetailItem {
