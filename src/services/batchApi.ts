@@ -59,21 +59,21 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 }
 
 export function uploadBatch(request: UploadBatchRequest): Promise<UploadBatchResponse> {
-  return postJson<UploadBatchResponse>('/api/v1/batches/upload', request);
+  return postJson<UploadBatchResponse>('/batches/upload', request);
 }
 
 export function submitBatch(batchId: string, request: SubmitBatchRequest): Promise<SubmitBatchResponse> {
-  return postJson<SubmitBatchResponse>(`/api/v1/batches/${batchId}/submit`, request);
+  return postJson<SubmitBatchResponse>(`/batches/${batchId}/submit`, request);
 }
 
 export function getBatch(batchId: string): Promise<GetBatchResponse> {
-  return getJson<GetBatchResponse>(`/api/v1/batches/${batchId}`);
+  return getJson<GetBatchResponse>(`/batches/${batchId}`);
 }
 
 export function getBatchResults(batchId: string): Promise<GetBatchResultsResponse> {
-  return getJson<GetBatchResultsResponse>(`/api/v1/batches/${batchId}/results`);
+  return getJson<GetBatchResultsResponse>(`/batches/${batchId}/results`);
 }
 
 export function executeBatch(batchId: string, request: ExecuteBatchRequest): Promise<ExecuteBatchResponse> {
-  return postJson<ExecuteBatchResponse>(`/api/v1/batches/${batchId}/execute`, request);
+  return postJson<ExecuteBatchResponse>(`/batches/${batchId}/execute`, request);
 }

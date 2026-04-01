@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
-import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus, getCards as getCardsApi } from '@/services/cardsApi';
+import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
-import type { Card } from '@/stores/mockStore';
+import { store, type Card } from '@/stores/mockStore';
 import type {
-  CardListItem,
   CreateCardRequest,
   CreateCardResponse,
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
-  GetCardsResponse,
 } from '@/types/cardContracts';
 
 export interface CreateCardInput {
@@ -95,14 +93,6 @@ function toCardModel(
   };
 }
 
-function extractCardItems(response: GetCardsResponse): CardListItem[] {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response.cards)) return response.cards;
-  if (Array.isArray(response.items)) return response.items;
-  if (Array.isArray(response.data)) return response.data;
-  return [];
-}
-
 function toErrorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
@@ -150,22 +140,22 @@ export function useCards() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await getCardsApi();
-      const items = extractCardItems(response);
-      setCards(items.map((item) => toCardModel(item, user?.tenantId)));
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setCards(store.getCards(tenantScope));
     } catch (err) {
       setCards([]);
       setError(toErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [user?.tenantId]);
+  }, [tenantScope]);
 
   useEffect(() => {
     fetch();

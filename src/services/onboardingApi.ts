@@ -174,7 +174,7 @@ export function getStoredOnboardingSessionIdForCase(caseId: string): string | nu
 export async function createOnboardingSession(
   request: CreateOnboardingSessionRequest
 ): Promise<CreateOnboardingSessionResponse> {
-  const response = await postJson<CreateOnboardingSessionResponse>('/onboarding/sessions', request);
+  const response = await postJson<CreateOnboardingSessionResponse>('/affiliates/onboarding/sessions', request);
   saveDraft({
     draftId: response.draftId,
     onboardingSessionId: response.onboardingSessionId,
@@ -193,7 +193,7 @@ export async function saveOrganization(
   org: SaveOrganizationRequest
 ): Promise<SaveOrganizationResponse> {
   const response = await putJson<SaveOrganizationResponse>(
-    `/onboarding/drafts/${encodeURIComponent(draftId)}/organization`,
+    `/affiliates/onboarding/drafts/${encodeURIComponent(draftId)}/organization`,
     org
   );
   updateDraft(draftId, (current) => ({
@@ -235,7 +235,7 @@ export async function uploadDocument(
   payload: UploadOnboardingDocumentRequest
 ): Promise<UploadOnboardingDocumentResponse> {
   const response = await putJson<UploadOnboardingDocumentResponse>(
-    `/onboarding/drafts/${encodeURIComponent(draftId)}/documents`,
+    `/affiliates/onboarding/drafts/${encodeURIComponent(draftId)}/documents`,
     payload
   );
   updateDraft(draftId, (current) => {
@@ -260,7 +260,7 @@ export async function saveIssuingBanks(
   request: SaveIssuingBanksRequest
 ): Promise<SaveIssuingBanksResponse> {
   const response = await putJson<SaveIssuingBanksResponse>(
-    `/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`,
+    `/affiliates/onboarding/drafts/${encodeURIComponent(draftId)}/issuing-banks`,
     request
   );
   updateDraft(draftId, (current) => ({
@@ -275,7 +275,7 @@ export async function submitOnboardingDraft(
   request: SubmitOnboardingDraftRequest
 ): Promise<SubmitOnboardingDraftResponse> {
   const response = await postJson<SubmitOnboardingDraftResponse>(
-    `/onboarding/drafts/${encodeURIComponent(draftId)}/submit`,
+    `/affiliates/onboarding/drafts/${encodeURIComponent(draftId)}/submit`,
     request
   );
   updateDraft(draftId, (current) => ({
@@ -289,7 +289,7 @@ export async function submitOnboardingDraft(
 export async function getOnboardingCase(caseId: string, onboardingSessionId: string): Promise<OnboardingCase> {
   const search = new URLSearchParams({ onboardingSessionId });
   const response = await getJson<Partial<OnboardingCase>>(
-    `/onboarding/cases/${encodeURIComponent(caseId)}?${search.toString()}`
+    `/affiliates/onboarding/cases/${encodeURIComponent(caseId)}?${search.toString()}`
   );
   const organization = response.organization
     ? {

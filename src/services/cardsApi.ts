@@ -22,7 +22,6 @@ import type {
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
-  GetCardsResponse,
   PinResetRequest,
   PinResetResponse,
   RefreshCardFulfillmentRequest,
@@ -84,60 +83,56 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 }
 
 export function createCard(request: CreateCardRequest): Promise<CreateCardResponse> {
-  return postJson<CreateCardResponse>('/api/v1/cards/issuance', request);
-}
-
-export function getCards(): Promise<GetCardsResponse> {
-  return getJson<GetCardsResponse>('/api/v1/cards');
+  return postJson<CreateCardResponse>('/cards/issuance', request);
 }
 
 export function getCard(cardId: string): Promise<GetCardResponse> {
-  return getJson<GetCardResponse>(`/api/v1/cards/${cardId}`);
+  return getJson<GetCardResponse>(`/cards/${cardId}`);
 }
 
 export function getCardFundingDetails(cardId: string): Promise<GetCardFundingDetails> {
-  return getJson<GetCardFundingDetails>(`/api/v1/cards/${cardId}/funding-details`);
+  return getJson<GetCardFundingDetails>(`/cards/${cardId}/funding-details`);
 }
 
 export function getCardFulfillmentStatus(cardId: string): Promise<GetCardFulfillmentStatusResponse> {
-  return getJson<GetCardFulfillmentStatusResponse>(`/api/v1/cards/${cardId}/fulfillment/status`);
+  return getJson<GetCardFulfillmentStatusResponse>(`/cards/${cardId}/fulfillment/status`);
 }
 
 export function refreshCardFulfillment(
   cardId: string,
   request: RefreshCardFulfillmentRequest
 ): Promise<RefreshCardFulfillmentResponse> {
-  return postJson<RefreshCardFulfillmentResponse>(`/api/v1/cards/${cardId}/fulfillment/refresh`, request);
+  return postJson<RefreshCardFulfillmentResponse>(`/cards/${cardId}/fulfillment/refresh`, request);
 }
 
 export function reinitiateCardFulfillment(
   cardId: string,
   request: ReinitiateCardFulfillmentRequest
 ): Promise<ReinitiateCardFulfillmentResponse> {
-  return postJson<ReinitiateCardFulfillmentResponse>(`/api/v1/cards/${cardId}/fulfillment/reinitiate`, request);
+  return postJson<ReinitiateCardFulfillmentResponse>(`/cards/${cardId}/fulfillment/reinitiate`, request);
 }
 
 export function freezeCard(cardId: string, request: FreezeCardRequest): Promise<FreezeCardResponse> {
-  return postJson<FreezeCardResponse>(`/api/v1/cards/${cardId}/freeze`, request);
+  return postJson<FreezeCardResponse>(`/cards/${cardId}/freeze`, request);
 }
 
 export function unfreezeCard(cardId: string, request: UnfreezeCardRequest): Promise<UnfreezeCardResponse> {
-  return postJson<UnfreezeCardResponse>(`/api/v1/cards/${cardId}/unfreeze`, request);
+  return postJson<UnfreezeCardResponse>(`/cards/${cardId}/unfreeze`, request);
 }
 
 export function terminateCard(cardId: string, request: TerminateCardRequest): Promise<TerminateCardResponse> {
-  return postJson<TerminateCardResponse>(`/api/v1/cards/${cardId}/terminate`, request);
+  return postJson<TerminateCardResponse>(`/cards/${cardId}/terminate`, request);
 }
 
 export function getCardBalance(cardId: string): Promise<GetCardBalanceResponse> {
-  return getJson<GetCardBalanceResponse>(`/api/v1/cards/${cardId}/balance`);
+  return getJson<GetCardBalanceResponse>(`/cards/${cardId}/balance`);
 }
 
 export function createCardLimitRequest(
   cardId: string,
   request: CreateCardLimitRequestRequest
 ): Promise<CreateCardLimitRequestResponse> {
-  return postJson<CreateCardLimitRequestResponse>(`/api/v1/cards/${cardId}/limit-requests`, request);
+  return postJson<CreateCardLimitRequestResponse>(`/cards/${cardId}/limit-requests`, request);
 }
 
 export function completeCardLimitRequest(
@@ -146,35 +141,35 @@ export function completeCardLimitRequest(
   request: CompleteCardLimitRequestRequest
 ): Promise<CompleteCardLimitRequestResponse> {
   return postJson<CompleteCardLimitRequestResponse>(
-    `/api/v1/ops/cards/${cardId}/limit-requests/${limitRequestId}/complete`,
+    `/ops/cards/${cardId}/limit-requests/${limitRequestId}/complete`,
     request
   );
 }
 
 export function resetCardPin(cardId: string, request: PinResetRequest): Promise<PinResetResponse> {
-  return postJson<PinResetResponse>(`/api/v1/cards/${cardId}/pin-reset`, request);
+  return postJson<PinResetResponse>(`/cards/${cardId}/pin-reset`, request);
 }
 
 export function createCardLoad(cardId: string, request: CardLoadRequest): Promise<CardLoadResponse> {
-  return postJson<CardLoadResponse>(`/api/v1/cards/${cardId}/loads`, request);
+  return postJson<CardLoadResponse>(`/cards/${cardId}/loads`, request);
 }
 
 export function createCardUnload(cardId: string, request: CardUnloadRequest): Promise<CardUnloadResponse> {
-  return postJson<CardUnloadResponse>(`/api/v1/cards/${cardId}/unloads`, request);
+  return postJson<CardUnloadResponse>(`/cards/${cardId}/unloads`, request);
 }
 
 export function uploadBatchLoad(request: BatchLoadUploadRequest): Promise<BatchLoadUploadResponse> {
-  return postJson<BatchLoadUploadResponse>('/api/v1/cards/batch-loads', request);
+  return postJson<BatchLoadUploadResponse>('/cards/batch-loads', request);
 }
 
 export function executeBatchLoad(batchId: string, request: ExecuteBatchLoadRequest): Promise<ExecuteBatchLoadResponse> {
-  return postJson<ExecuteBatchLoadResponse>(`/api/v1/cards/batch-loads/${batchId}/execute`, request);
+  return postJson<ExecuteBatchLoadResponse>(`/cards/batch-loads/${batchId}/execute`, request);
 }
 
 export function getBatchLoad(batchId: string): Promise<GetBatchLoadResponse> {
-  return getJson<GetBatchLoadResponse>(`/api/v1/cards/batch-loads/${batchId}`);
+  return getJson<GetBatchLoadResponse>(`/cards/batch-loads/${batchId}`);
 }
 
 export function getBatchLoadResults(batchId: string): Promise<GetBatchLoadResultsResponse> {
-  return getJson<GetBatchLoadResultsResponse>(`/api/v1/cards/batch-loads/${batchId}/results`);
+  return getJson<GetBatchLoadResultsResponse>(`/cards/batch-loads/${batchId}/results`);
 }

@@ -223,7 +223,7 @@ export function useReviewerOnboardingCases() {
     const res = await provisionOnboardingCase(caseId, req);
     await refresh();
     return res;
-  }, [refresh]);
+  }, [refresh, user?.email]);
 
   return { cases, isLoading, error, refresh, decide, provision };
 }

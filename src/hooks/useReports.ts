@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getBatchesReport,
   getCardBalancesReport,
@@ -64,6 +64,12 @@ const REPORT_DEFINITIONS: ReportDefinition[] = [
 ];
 
 function toTable(response: any): { columns: string[]; rows: (string | number | null)[][] } {
+  const records = Array.isArray(response?.records)
+    ? response.records
+    : Array.isArray(response?.record)
+      ? response.record
+      : null;
+
   if (response?.transactions) {
     return {
       columns: ['Transaction ID', 'Merchant', 'Type', 'Amount', 'Currency', 'Status', 'Authorization Code', 'Transaction Date'],
@@ -158,12 +164,12 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     };
   }
 
-  if (response?.records) {
-    const first = response.records[0];
+  if (records) {
+    const first = records[0];
     if (first?.issuedAt !== undefined) {
       return {
         columns: ['Card ID', 'Customer ID', 'Product ID', 'Bank ID', 'Card Type', 'Status', 'Issued At', 'Virtual Account Status'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.cardId,
           item.customerId,
           item.productId,
@@ -179,7 +185,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.bureauStatus !== undefined && first?.trackingNumber !== undefined) {
       return {
         columns: ['Card ID', 'Bureau Status', 'Carrier', 'Tracking Number', 'Tracking URL', 'Last Updated At'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.cardId,
           item.bureauStatus,
           item.carrier,
@@ -193,7 +199,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.batchId !== undefined) {
       return {
         columns: ['Batch ID', 'Operation Type', 'Total Rows', 'Successful Rows', 'Failed Rows', 'Total Processed Amount', 'Created At'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.batchId,
           item.operationType,
           item.totalRows,
@@ -208,7 +214,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.requestId !== undefined) {
       return {
         columns: ['Request ID', 'Operation Type', 'Card ID', 'CMS Endpoint', 'CMS Reference', 'Request Timestamp', 'Response Code', 'Response Message'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.requestId,
           item.operationType,
           item.cardId,
@@ -221,9 +227,10 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
       };
     }
 
-    return {
+    if(records){
+      return {
       columns: ['Operation Type', 'Entity ID', 'Card ID', 'Status', 'Error Code', 'Error Message', 'Occurred At'],
-      rows: response.records.map((item: any) => [
+      rows: records.map((item: any) => [
         item.operationType,
         item.entityId,
         item.cardId,
@@ -233,6 +240,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
         item.occurredAt,
       ]),
     };
+    }
   }
 
   return { columns: [], rows: [] };
@@ -253,6 +261,10 @@ export function useReportDefinitions() {
 
 export function useRunReport(definitionId: string) {
   const [instance, setInstance] = useState<ReportInstance | null>(null);
+
+  useEffect(() => {
+    setInstance(null);
+  }, [definitionId]);
 
   const generate = useCallback(async (filters: Record<string, any>) => {
     const id = `ri-${Date.now()}`;

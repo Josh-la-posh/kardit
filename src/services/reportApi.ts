@@ -59,7 +59,7 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
 
 export function getCardTransactionsReport(cardId: string, params: ReportPageRequest) {
   return getJson<CardTransactionsReportResponse>(
-    `/api/v1/reports/cards/${cardId}/transactions${buildQuery(
+    `/transactions/reports/cards/${cardId}/transactions${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -72,7 +72,7 @@ export function getCardTransactionsReport(cardId: string, params: ReportPageRequ
 
 export function getCardLoadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
   return getJson<CardLoadsReportResponse>(
-    `/api/v1/reports/cards/${cardId}/loads${buildQuery(
+    `/transactions/reports/cards/${cardId}/loads${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -83,7 +83,7 @@ export function getCardLoadsReport(cardId: string, params: Pick<ReportPageReques
 
 export function getCardUnloadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
   return getJson<CardUnloadsReportResponse>(
-    `/api/v1/reports/cards/${cardId}/unloads${buildQuery(
+    `/transactions/reports/cards/${cardId}/unloads${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -94,7 +94,7 @@ export function getCardUnloadsReport(cardId: string, params: Pick<ReportPageRequ
 
 export function getCardLifecycleEventsReport(cardId: string, params: ReportPageRequest) {
   return getJson<CardLifecycleEventsReportResponse>(
-    `/api/v1/reports/cards/${cardId}/lifecycle-events${buildQuery(
+    `/transactions/reports/cards/${cardId}/lifecycle-events${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -107,7 +107,7 @@ export function getCardLifecycleEventsReport(cardId: string, params: ReportPageR
 
 export function getCardBalancesReport(cardId: string, params: ReportPageRequest) {
   return getJson<CardBalancesReportResponse>(
-    `/api/v1/reports/cards/${cardId}/balances${buildQuery(
+    `/transactions/reports/cards/${cardId}/balances${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -120,7 +120,7 @@ export function getCardBalancesReport(cardId: string, params: ReportPageRequest)
 
 export function getCardsIssuanceReport(params: ReportPageRequest & { productType?: string }) {
   return getJson<CardsIssuanceReportResponse>(
-    `/api/v1/reports/cards/issuance${buildQuery(
+    `/transactions/reports/cards/issuance${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -134,7 +134,7 @@ export function getCardsIssuanceReport(params: ReportPageRequest & { productType
 
 export function getCardsFulfillmentReport(params: ReportPageRequest & { status?: string }) {
   return getJson<CardsFulfillmentReportResponse>(
-    `/api/v1/reports/cards/fulfillment${buildQuery(
+    `/transactions/reports/cards/fulfillment${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -148,7 +148,7 @@ export function getCardsFulfillmentReport(params: ReportPageRequest & { status?:
 
 export function getBatchesReport(params: ReportPageRequest & { operationType?: string }) {
   return getJson<BatchesReportResponse>(
-    `/api/v1/reports/batches${buildQuery(
+    `/transactions/reports/batches${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -162,7 +162,7 @@ export function getBatchesReport(params: ReportPageRequest & { operationType?: s
 
 export function getCmsTracesReport(params: Pick<ReportPageRequest, 'page' | 'pageSize'> & { cardId?: string; operationType?: string }) {
   return getJson<CmsTracesReportResponse>(
-    `/api/v1/reports/cms-traces${buildQuery(
+    `/transactions/reports/cms-traces${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,
@@ -175,13 +175,13 @@ export function getCmsTracesReport(params: Pick<ReportPageRequest, 'page' | 'pag
 
 export function getCustomerSupportViewReport(customerRefId: string) {
   return getJson<CustomerSupportViewReportResponse>(
-    `/api/v1/reports/customers/${customerRefId}/support-view`
+    `/transactions/reports/customers/${customerRefId}/support-view`
   );
 }
 
 export function getExceptionsReport(params: ReportPageRequest & { operationType?: string }) {
   return getJson<ExceptionsReportResponse>(
-    `/api/v1/reports/exceptions${buildQuery(
+    `/transactions/reports/exceptions${buildQuery(
       toQueryParams({
         page: params.page,
         pageSize: params.pageSize,

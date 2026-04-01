@@ -110,7 +110,7 @@ export default function IssuingBankDetailPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/super-admin/banks')}
+              onClick={() => navigate('/issuing-banks')}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -152,13 +152,13 @@ export default function IssuingBankDetailPage() {
                       <Mail className="h-4 w-4" />
                       Contact Email
                     </label>
-                    <button
+                    {/* <button
                       onClick={() => handleStartEdit('email', bank.bankDetails.contactEmail)}
                       className="text-xs text-primary hover:underline"
                       disabled={isEditing !== null && isEditing !== 'email'}
                     >
                       Edit
-                    </button>
+                    </button> */}
                   </div>
 
                   {isEditing === 'email' ? (
@@ -200,13 +200,13 @@ export default function IssuingBankDetailPage() {
                       <Phone className="h-4 w-4" />
                       Contact Phone
                     </label>
-                    <button
+                    {/* <button
                       onClick={() => handleStartEdit('phone', bank.bankDetails.contactPhone)}
                       className="text-xs text-primary hover:underline"
                       disabled={isEditing !== null && isEditing !== 'phone'}
                     >
                       Edit
-                    </button>
+                    </button> */}
                   </div>
 
                   {isEditing === 'phone' ? (
@@ -256,13 +256,13 @@ export default function IssuingBankDetailPage() {
                         <MapPin className="h-4 w-4" />
                         Bank Address
                       </label>
-                      <button
+                      {/* <button
                         onClick={() => handleStartEdit('address', bank.bankDetails.bankAddress || '')}
                         className="text-xs text-primary hover:underline"
                         disabled={isEditing !== null && isEditing !== 'address'}
                       >
                         Edit
-                      </button>
+                      </button> */}
                     </div>
 
                     {isEditing === 'address' ? (

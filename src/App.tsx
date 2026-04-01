@@ -39,7 +39,6 @@ import AffiliateDetailPage from "./pages/super-admin/banks/AffiliateDetailPage";
 // Issuing Banks (Service Provider)
 import IssuingBanksListPage from "./pages/issuing-banks/IssuingBanksListPage";
 import IssuingBankCreatePage from "./pages/issuing-banks/IssuingBankCreatePage";
-import IssuingBankReviewPage from "./pages/issuing-banks/IssuingBankReviewPage";
 import IssuingBankProvisioningPage from "./pages/issuing-banks/IssuingBankProvisioningPage";
 import IssuingBankSuccessPage from "./pages/issuing-banks/IssuingBankSuccessPage";
 import IssuingBankFailurePage from "./pages/issuing-banks/IssuingBankFailurePage";
@@ -88,7 +87,6 @@ import LoadBatchesPage from "./pages/loads/LoadBatchesPage";
 // Reports
 import ReportsLandingPage from "./pages/reports/ReportsLandingPage";
 import ReportDetailPage from "./pages/reports/ReportDetailPage";
-import SuperAdminReportsPage from "./pages/super-admin/reports/SuperAdminReportsPage";
 
 // Notifications
 import NotificationsListPage from "./pages/notifications/NotificationsListPage";
@@ -161,7 +159,6 @@ const App = () => (
             {/* Issuing Banks (Service Provider) */}
             <Route path="/issuing-banks" element={<IssuingBanksListPage />} />
             <Route path="/issuing-banks/new" element={<IssuingBankCreatePage />} />
-            {/* <Route path="/issuing-banks/:sessionId/review" element={<IssuingBankReviewPage />} /> */}
             <Route path="/issuing-banks/:sessionId/provisioning" element={<IssuingBankProvisioningPage />} />
             <Route path="/issuing-banks/:sessionId/success" element={<IssuingBankSuccessPage />} />
             <Route path="/issuing-banks/:sessionId/failure" element={<IssuingBankFailurePage />} />
@@ -171,8 +168,6 @@ const App = () => (
             <Route path="/super-admin/onboarding/cases" element={<OnboardingCasesListPage />} />
             <Route path="/super-admin/onboarding/cases/:caseId" element={<OnboardingCaseDetailPage />} />
             
-            {/* Super Admin Reports */}
-            <Route path="/super-admin/reports" element={<SuperAdminReportsPage />} />
             
             <Route path="/profile" element={<ProfilePage />} />
             
