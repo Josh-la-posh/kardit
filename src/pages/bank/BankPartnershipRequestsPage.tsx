@@ -7,25 +7,23 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
-import { useBankAffiliates, usePendingPartnershipRequests } from '@/hooks/useBankPortal';
+import { usePendingPartnershipRequests } from '@/hooks/useBankPortal';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 
 export default function BankPartnershipRequestsPage() {
   const navigate = useNavigate();
-  const { bankId, refresh: refreshAffiliates } = useBankAffiliates();
-  const { requests, isLoading, isActing, error, refresh, approve, reject } = usePendingPartnershipRequests();
+  const { bankId, requests, isLoading, isActing, error, refresh, approve, reject } = usePendingPartnershipRequests();
   const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
   const handleRefreshAll = async () => {
-    await Promise.all([refresh(), refreshAffiliates()]);
+    await refresh();
   };
 
   const handleApprove = async (requestId: string) => {
     try {
       const response = await approve(requestId);
       toast.success(`Partnership approved: ${response.partnershipId}`);
-      await refreshAffiliates();
     } catch (e: any) {
       toast.error(e?.message || 'Failed to approve partnership request');
     }
@@ -42,7 +40,6 @@ export default function BankPartnershipRequestsPage() {
       toast.error(`Partnership request rejected: ${response.requestId}`);
       setRejectingRequestId(null);
       setRejectionReason('');
-      await refreshAffiliates();
     } catch (e: any) {
       toast.error(e?.message || 'Failed to reject partnership request');
     }

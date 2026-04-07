@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
-import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus, getCards as getCardsApi } from '@/services/cardsApi';
+import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
-import type { Card } from '@/stores/mockStore';
+import { getCustomer } from '@/services/customerApi';
+import { store, type Card } from '@/stores/mockStore';
 import type {
-  CardListItem,
   CreateCardRequest,
   CreateCardResponse,
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
-  GetCardsResponse,
 } from '@/types/cardContracts';
 
 export interface CreateCardInput {
@@ -26,14 +25,14 @@ export interface CreateCardInput {
   deliveryMethod?: string;
   tenantId?: string;
   affiliateId?: string;
-  customerIdentity: {
+  customerIdentity?: {
     firstName: string;
     lastName: string;
     dob: string;
     phone: string;
     email: string;
   };
-  customerKyc: {
+  customerKyc?: {
     idType: string;
     idNumber: string;
     kycLevel?: string;
@@ -49,7 +48,7 @@ function randomId(prefix: string) {
 }
 
 function toCardStatus(status: string | undefined): Card['status'] {
-  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED') {
+  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED' || status === 'PERSONALIZING') {
     return status;
   }
 
@@ -93,14 +92,6 @@ function toCardModel(
     embossName: source.embossName,
     deliveryMethod: source.deliveryMethod,
   };
-}
-
-function extractCardItems(response: GetCardsResponse): CardListItem[] {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response.cards)) return response.cards;
-  if (Array.isArray(response.items)) return response.items;
-  if (Array.isArray(response.data)) return response.data;
-  return [];
 }
 
 function toErrorMessage(error: unknown) {
@@ -150,22 +141,22 @@ export function useCards() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await getCardsApi();
-      const items = extractCardItems(response);
-      setCards(items.map((item) => toCardModel(item, user?.tenantId)));
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setCards(store.getCards(tenantScope));
     } catch (err) {
       setCards([]);
       setError(toErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [user?.tenantId]);
+  }, [tenantScope]);
 
   useEffect(() => {
     fetch();
@@ -230,6 +221,25 @@ export function useCreateCard() {
   const { user } = useAuth();
 
   const createCard = useCallback(async (data: CreateCardInput) => {
+    const customerResponse =
+      data.customerIdentity && data.customerKyc
+        ? null
+        : await getCustomer(data.customerId);
+
+    const customerIdentity = data.customerIdentity || {
+      firstName: customerResponse?.identity.firstName || '',
+      lastName: customerResponse?.identity.lastName || '',
+      dob: customerResponse?.identity.dob || '',
+      phone: customerResponse?.identity.phone || '',
+      email: customerResponse?.identity.email || '',
+    };
+
+    const customerKyc = data.customerKyc || {
+      idType: customerResponse?.kyc.idType || '',
+      idNumber: customerResponse?.kyc.idNumberMasked || '',
+      kycLevel: customerResponse?.kyc.kycLevel || 'FULL',
+    };
+
     const request: CreateCardRequest = {
       requestContext: {
         requestId: randomId('card-request'),
@@ -247,16 +257,16 @@ export function useCreateCard() {
         customerId: data.customerId,
         embeddedPayload: {
           identity: {
-            firstName: data.customerIdentity.firstName,
-            lastName: data.customerIdentity.lastName,
-            dob: data.customerIdentity.dob,
-            phone: data.customerIdentity.phone,
-            email: data.customerIdentity.email,
+            firstName: customerIdentity.firstName,
+            lastName: customerIdentity.lastName,
+            dob: customerIdentity.dob,
+            phone: customerIdentity.phone,
+            email: customerIdentity.email,
           },
           kyc: {
-            idType: data.customerKyc.idType,
-            idNumber: data.customerKyc.idNumber,
-            kycLevel: data.customerKyc.kycLevel || 'FULL',
+            idType: customerKyc.idType,
+            idNumber: customerKyc.idNumber,
+            kycLevel: customerKyc.kycLevel || 'FULL',
           },
         },
       },

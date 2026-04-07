@@ -68,17 +68,5 @@ export async function createIssuingBankSession(payload: CreateIssuingBankRequest
         throw new ApiError('Missing required contact fields: fullName, email, phone', 400, undefined);
     }
 
-    return postJson<CreateIssuingBankResponse>('/api/v1/admin/banks', payload);
+    return postJson<CreateIssuingBankResponse>('/admin/banks', payload);
 }
-
-// export async function getIssuingBanksDashboard( bankId: string ): Promise<getIssuingBanksDashboardResponse> {
-//     return getJson<getIssuingBanksDashboardResponse>(`/api/v1/banks/${bankId}/dashboard`);
-// }
-
-// export async function getBankAffiliates(bankId: string): Promise<getBankAffiliatesResponse> {
-//     return getJson<getBankAffiliatesResponse>(`/api/v1/banks/${bankId}/affiliates`);
-// }
-
-// export async function getBankCards(payload: getBankCardsRequest, bankId: string): Promise<getBankCardsResponse> {
-//     return postJson<getBankCardsResponse>(`/api/v1/banks/${bankId}/cards`, payload);
-// }

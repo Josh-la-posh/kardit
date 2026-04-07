@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getBatchesReport,
   getCardBalancesReport,
@@ -59,11 +59,17 @@ const REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'card-fulfillment', code: 'CARD_FULFILLMENT', name: 'Card Fulfillment Report', description: 'Fulfillment and delivery tracking report', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'batches', code: 'BATCHES', name: 'Batch Operations', description: 'Summary of batch operations filtered by date and operation type', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'cms-traces', code: 'CMS_TRACES', name: 'CMS Traces', description: 'Trace external CMS requests by card and operation type', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'exceptions', code: 'EXCEPTIONS', name: 'Exceptions Report', description: 'Operational failures and retry-worthy exceptions', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
+  // { id: 'exceptions', code: 'EXCEPTIONS', name: 'Exceptions Report', description: 'Operational failures and retry-worthy exceptions', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'customer-support-view', code: 'CUSTOMER_SUPPORT_VIEW', name: 'Customer Support View', description: 'Support snapshot of a customer and associated cards', category: 'Customers', groupId: 'customers', allowedFormats: ['CSV', 'XLSX'] },
 ];
 
 function toTable(response: any): { columns: string[]; rows: (string | number | null)[][] } {
+  const records = Array.isArray(response?.records)
+    ? response.records
+    : Array.isArray(response?.record)
+      ? response.record
+      : null;
+
   if (response?.transactions) {
     return {
       columns: ['Transaction ID', 'Merchant', 'Type', 'Amount', 'Currency', 'Status', 'Authorization Code', 'Transaction Date'],
@@ -158,12 +164,73 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     };
   }
 
-  if (response?.records) {
-    const first = response.records[0];
+  if (records) {
+    const first = records[0];
+    if (first?.fundingTransactionId !== undefined) {
+      return {
+        columns: ['Funding Transaction ID', 'Amount', 'Currency', 'Funding Source', 'Transfer Reference', 'Status', 'Balance After', 'Created At'],
+        rows: records.map((item: any) => [
+          item.fundingTransactionId,
+          item.amount,
+          item.currency,
+          item.fundingSource,
+          item.bankTransferReference,
+          item.status,
+          item.balanceAfter,
+          item.createdAt,
+        ]),
+      };
+    }
+
+    if (first?.unloadTransactionId !== undefined) {
+      return {
+        columns: ['Unload Transaction ID', 'Amount', 'Currency', 'Destination Account', 'Destination Bank', 'Status', 'Balance After', 'Processed At'],
+        rows: records.map((item: any) => [
+          item.unloadTransactionId,
+          item.amount,
+          item.currency,
+          item.destinationAccount,
+          item.destinationBank,
+          item.status,
+          item.balanceAfter,
+          item.processedAt,
+        ]),
+      };
+    }
+
+    if (first?.eventId !== undefined) {
+      return {
+        columns: ['Event ID', 'Event Type', 'Actor User ID', 'Actor Role', 'Reason', 'Previous Status', 'New Status', 'Timestamp'],
+        rows: records.map((item: any) => [
+          item.eventId,
+          item.eventType,
+          item.actorUserId,
+          item.actorRole,
+          item.reason,
+          item.previousStatus,
+          item.newStatus,
+          item.timestamp,
+        ]),
+      };
+    }
+
+    if (first?.ledgerBalance !== undefined || first?.availableBalance !== undefined) {
+      return {
+        columns: ['Ledger Balance', 'Available Balance', 'Currency', 'Source', 'Retrieved At'],
+        rows: records.map((item: any) => [
+          item.ledgerBalance,
+          item.availableBalance,
+          item.currency,
+          item.source,
+          item.retrievedAt,
+        ]),
+      };
+    }
+
     if (first?.issuedAt !== undefined) {
       return {
         columns: ['Card ID', 'Customer ID', 'Product ID', 'Bank ID', 'Card Type', 'Status', 'Issued At', 'Virtual Account Status'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.cardId,
           item.customerId,
           item.productId,
@@ -179,7 +246,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.bureauStatus !== undefined && first?.trackingNumber !== undefined) {
       return {
         columns: ['Card ID', 'Bureau Status', 'Carrier', 'Tracking Number', 'Tracking URL', 'Last Updated At'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.cardId,
           item.bureauStatus,
           item.carrier,
@@ -193,7 +260,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.batchId !== undefined) {
       return {
         columns: ['Batch ID', 'Operation Type', 'Total Rows', 'Successful Rows', 'Failed Rows', 'Total Processed Amount', 'Created At'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.batchId,
           item.operationType,
           item.totalRows,
@@ -208,7 +275,7 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
     if (first?.requestId !== undefined) {
       return {
         columns: ['Request ID', 'Operation Type', 'Card ID', 'CMS Endpoint', 'CMS Reference', 'Request Timestamp', 'Response Code', 'Response Message'],
-        rows: response.records.map((item: any) => [
+        rows: records.map((item: any) => [
           item.requestId,
           item.operationType,
           item.cardId,
@@ -220,19 +287,6 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
         ]),
       };
     }
-
-    return {
-      columns: ['Operation Type', 'Entity ID', 'Card ID', 'Status', 'Error Code', 'Error Message', 'Occurred At'],
-      rows: response.records.map((item: any) => [
-        item.operationType,
-        item.entityId,
-        item.cardId,
-        item.status,
-        item.errorCode,
-        item.errorMessage,
-        item.occurredAt,
-      ]),
-    };
   }
 
   return { columns: [], rows: [] };
@@ -253,6 +307,10 @@ export function useReportDefinitions() {
 
 export function useRunReport(definitionId: string) {
   const [instance, setInstance] = useState<ReportInstance | null>(null);
+
+  useEffect(() => {
+    setInstance(null);
+  }, [definitionId]);
 
   const generate = useCallback(async (filters: Record<string, any>) => {
     const id = `ri-${Date.now()}`;

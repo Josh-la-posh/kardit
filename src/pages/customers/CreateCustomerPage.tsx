@@ -1,126 +1,134 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KycUploadModal } from '@/components/KycUploadModal';
 import { useCreateCustomer } from '@/hooks/useCustomers';
-import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, ID_TYPES, DELIVERY_METHODS, store } from '@/stores/mockStore';
-import { Loader2, Upload, ArrowLeft, ChevronRight } from 'lucide-react';
+import { ID_TYPES } from '@/stores/mockStore';
+import { ArrowLeft, ChevronRight, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
+const EMPTY_VALUE = '--';
 
 export default function CreateCustomerPage() {
   const navigate = useNavigate();
-  const { createCustomerWithCard, isLoading } = useCreateCustomer();
+  const { createCustomerDraft, isLoading } = useCreateCustomer();
 
   const [form, setForm] = useState({
-    firstName: '', lastName: '', embossName: '',
-    email: '', phone: '',
-    idType: '', idNumber: '', idExpiryDate: '',
-    line1: '', line2: '', city: '', country: '', postalCode: '',
-    rib: '', agencyCode: '',
-    cardProduct: '', currency: '', deliveryMethod: '', issuingBank: '',
+    firstName: '',
+    lastName: '',
+    embossName: '',
+    dob: '',
+    email: '',
+    phone: '',
+    idType: '',
+    idNumber: '',
+    idExpiryDate: '',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    country: 'NG',
+    postalCode: '',
   });
   const [kycDocs, setKycDocs] = useState<{ type: string; fileName: string }[]>([]);
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const set = (key: string, val: string) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    setErrors((p) => ({ ...p, [key]: '' }));
+    setForm((prev) => ({ ...prev, [key]: val }));
+    setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.firstName.trim()) e.firstName = 'Required';
-    if (!form.lastName.trim()) e.lastName = 'Required';
-    if (!form.embossName.trim()) e.embossName = 'Required';
-    if (!form.email.trim()) e.email = 'Required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email';
-    if (!form.phone.trim()) e.phone = 'Required';
-    else if (!/^\+?[\d\s\-()]{7,20}$/.test(form.phone)) e.phone = 'Invalid mobile number';
-    if (!form.idType) e.idType = 'Required';
-    if (!form.idNumber.trim()) e.idNumber = 'Required';
-    if (!form.line1.trim()) e.line1 = 'Required';
-    if (!form.city.trim()) e.city = 'Required';
-    if (!form.country.trim()) e.country = 'Required';
-    if (!form.rib.trim()) e.rib = 'Required';
-    if (!form.agencyCode.trim()) e.agencyCode = 'Required';
-    if (!form.cardProduct) e.cardProduct = 'Required';
-    if (!form.currency) e.currency = 'Required';
-    if (!form.deliveryMethod) e.deliveryMethod = 'Required';
-    if (!form.issuingBank) e.issuingBank = 'Required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const next: Record<string, string> = {};
+    if (!form.firstName.trim()) next.firstName = 'Required';
+    if (!form.lastName.trim()) next.lastName = 'Required';
+    if (!form.embossName.trim()) next.embossName = 'Required';
+    if (!form.dob) next.dob = 'Required';
+    if (!form.email.trim()) next.email = 'Required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = 'Invalid email';
+    if (!form.phone.trim()) next.phone = 'Required';
+    else if (!/^\+?[\d\s\-()]{7,20}$/.test(form.phone)) next.phone = 'Invalid mobile number';
+    if (!form.idType) next.idType = 'Required';
+    if (!form.idNumber.trim()) next.idNumber = 'Required';
+    if (!form.line1.trim()) next.line1 = 'Required';
+    if (!form.city.trim()) next.city = 'Required';
+    if (!form.state.trim()) next.state = 'Required';
+    if (!form.country.trim()) next.country = 'Required';
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  const selectedProduct = CARD_PRODUCTS.find(p => p.id === form.cardProduct);
-  const selectedCurrency = CURRENCIES.find(c => c.code === form.currency);
-  const selectedDelivery = DELIVERY_METHODS.find(d => d.id === form.deliveryMethod);
-  const selectedIdType = ID_TYPES.find(t => t.id === form.idType);
+  const selectedIdType = ID_TYPES.find((type) => type.id === form.idType);
 
-  const cmsPayload = useMemo(() => ({
-    crt_first_name: form.firstName.trim(),
-    crt_last_name: form.lastName.trim(),
-    crt_emboss_name: form.embossName.trim(),
-    enr_mail: form.email.trim(),
-    mobile_num: form.phone.trim(),
-    Type_Papier: selectedIdType?.code || form.idType,
-    ID_Papier: form.idNumber.trim(),
-    id_expiry_date: form.idExpiryDate || undefined,
-    address_line1: form.line1.trim(),
-    address_line2: form.line2.trim() || undefined,
-    city: form.city.trim(),
-    country: form.country.trim(),
-    postal_code: form.postalCode.trim() || undefined,
-    RIB_CLIENT: form.rib.trim(),
-    Code_Agency: form.agencyCode.trim(),
-    crt_code_product: selectedProduct?.code || '',
-    cpt_currency: selectedCurrency?.numeric || '',
-    delivery_method: selectedDelivery?.code || '',
-  }), [form, selectedProduct, selectedCurrency, selectedDelivery, selectedIdType]);
+  const draftPayload = useMemo(
+    () => ({
+      customer: {
+        identity: {
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          dob: form.dob,
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          address: {
+            line1: form.line1.trim(),
+            city: form.city.trim(),
+            state: form.state.trim(),
+            country: form.country.trim(),
+          },
+        },
+        kyc: {
+          idType: selectedIdType?.code || form.idType.toUpperCase(),
+          idNumber: form.idNumber.trim(),
+          kycLevel: 'LEVEL_2',
+        },
+      },
+    }),
+    [form, selectedIdType]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    const product = CARD_PRODUCTS.find((p) => p.id === form.cardProduct)!;
-    const bank = ISSUING_BANKS.find((b) => b.id === form.issuingBank)!;
-
-    const customer = await createCustomerWithCard(
-      {
-        firstName: form.firstName.trim(), lastName: form.lastName.trim(),
-        embossName: form.embossName.trim(),
-        email: form.email.trim(), phone: form.phone.trim() || undefined,
-        idType: form.idType || undefined, idNumber: form.idNumber || undefined,
-        idExpiryDate: form.idExpiryDate || undefined,
+    try {
+      const response = await createCustomerDraft({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        dob: form.dob,
+        phone: form.phone.trim(),
+        email: form.email.trim(),
         address: {
-          line1: form.line1, line2: form.line2, city: form.city,
-          country: form.country, postalCode: form.postalCode,
+          line1: form.line1.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          country: form.country.trim(),
         },
-        rib: form.rib.trim(), agencyCode: form.agencyCode.trim(),
-      },
-      {
-        productName: product.name, productCode: product.code,
-        issuingBankName: bank.name, currency: form.currency,
-        embossName: form.embossName.trim(),
-        deliveryMethod: selectedDelivery?.code,
-      },
-      kycDocs,
-    );
+        kyc: {
+          idType: selectedIdType?.code || form.idType.toUpperCase(),
+          idNumber: form.idNumber.trim(),
+          kycLevel: 'LEVEL_2',
+        },
+      });
 
-    // Store CMS payload for verification
-    store.addPendingCMSRequest(customer.id, cmsPayload);
-
-    toast.success('✓ Customer and card activated! Data pushed to issuing bank.');
-    navigate(`/customers/${customer.id}`);
+      toast.success(`Customer draft saved: ${response.customerId}`);
+      navigate('/customers');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save customer draft');
+    }
   };
 
   const fieldLabel = (label: string, required = false) => (
-    <span>{label}{required && <span className="text-destructive ml-0.5">*</span>}</span>
+    <span>
+      {label}
+      {required && <span className="ml-0.5 text-destructive">*</span>}
+    </span>
   );
 
   return (
@@ -129,58 +137,103 @@ export default function CreateCustomerPage() {
         <div className="animate-fade-in">
           <PageHeader
             title="Create Customer"
-            subtitle="Register a new customer with initial card"
+            subtitle="Capture identity and KYC details before card issuance"
             actions={
               <Button variant="outline" size="sm" onClick={() => navigate('/cards/create')}>
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                <ArrowLeft className="mr-1 h-4 w-4" /> Back
               </Button>
             }
           />
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Main Form */}
-            <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-6">
-              {/* Personal Info */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Personal Info</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <TextField label={fieldLabel('First Name', true)} value={form.firstName} onChange={(e) => set('firstName', e.target.value)} error={errors.firstName} />
-                  <TextField label={fieldLabel('Last Name', true)} value={form.lastName} onChange={(e) => set('lastName', e.target.value)} error={errors.lastName} />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <form onSubmit={handleSubmit} className="space-y-6 xl:col-span-2">
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Personal Info</h2>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    label={fieldLabel('First Name', true)}
+                    value={form.firstName}
+                    onChange={(e) => set('firstName', e.target.value)}
+                    error={errors.firstName}
+                  />
+                  <TextField
+                    label={fieldLabel('Last Name', true)}
+                    value={form.lastName}
+                    onChange={(e) => set('lastName', e.target.value)}
+                    error={errors.lastName}
+                  />
                 </div>
-                <div>
-                  <TextField label={fieldLabel('Emboss Name', true)} value={form.embossName} onChange={(e) => set('embossName', e.target.value.toUpperCase())} error={errors.embossName} placeholder="Name printed on card" />
-                  <p className="text-xs text-muted-foreground mt-1">Name as it will appear on the physical card</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    label={fieldLabel('Date of Birth', true)}
+                    type="date"
+                    value={form.dob}
+                    onChange={(e) => set('dob', e.target.value)}
+                    error={errors.dob}
+                  />
+                  <TextField
+                    label={fieldLabel('Emboss Name', true)}
+                    value={form.embossName}
+                    onChange={(e) => set('embossName', e.target.value.toUpperCase())}
+                    error={errors.embossName}
+                    placeholder="Name printed on card"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">This draft saves the customer profile and leaves card issuance for the next step.</p>
+              </div>
+
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Contact</h2>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    label={fieldLabel('Email', true)}
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => set('email', e.target.value)}
+                    error={errors.email}
+                  />
+                  <TextField
+                    label={fieldLabel('Mobile Number', true)}
+                    value={form.phone}
+                    onChange={(e) => set('phone', e.target.value)}
+                    error={errors.phone}
+                    placeholder="+2348098765432"
+                    hint="Include country code"
+                  />
                 </div>
               </div>
 
-              {/* Contact */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <TextField label={fieldLabel('Email', true)} type="email" value={form.email} onChange={(e) => set('email', e.target.value)} error={errors.email} />
-                  <div>
-                    <TextField label={fieldLabel('Mobile Number', true)} value={form.phone} onChange={(e) => set('phone', e.target.value)} error={errors.phone} placeholder="+971 50 123 4567" />
-                    <p className="text-xs text-muted-foreground mt-1">Include country code</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Identity (KYC) */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Identity (KYC)</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Identity (KYC)</h2>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('ID Type', true)}</label>
-                    <Select value={form.idType} onValueChange={(v) => set('idType', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <Select value={form.idType} onValueChange={(value) => set('idType', value)}>
+                      <SelectTrigger className="border-border bg-muted">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {ID_TYPES.map((t) => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
+                        {ID_TYPES.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {errors.idType && <p className="text-xs text-destructive">{errors.idType}</p>}
                   </div>
-                  <TextField label={fieldLabel('ID Number', true)} value={form.idNumber} onChange={(e) => set('idNumber', e.target.value)} error={errors.idNumber} />
-                  <TextField label="ID Expiry Date" type="date" value={form.idExpiryDate} onChange={(e) => set('idExpiryDate', e.target.value)} />
+                  <TextField
+                    label={fieldLabel('ID Number', true)}
+                    value={form.idNumber}
+                    onChange={(e) => set('idNumber', e.target.value)}
+                    error={errors.idNumber}
+                  />
+                  <TextField
+                    label="ID Expiry Date"
+                    type="date"
+                    value={form.idExpiryDate}
+                    onChange={(e) => set('idExpiryDate', e.target.value)}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{kycDocs.length} document(s) staged</p>
@@ -190,105 +243,72 @@ export default function CreateCustomerPage() {
                 </div>
               </div>
 
-              {/* Address */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h2>
-                <TextField label={fieldLabel('Address Line 1', true)} value={form.line1} onChange={(e) => set('line1', e.target.value)} error={errors.line1} />
+              <div className="kardit-card space-y-4 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Address</h2>
+                <TextField
+                  label={fieldLabel('Address Line 1', true)}
+                  value={form.line1}
+                  onChange={(e) => set('line1', e.target.value)}
+                  error={errors.line1}
+                />
                 <TextField label="Address Line 2" value={form.line2} onChange={(e) => set('line2', e.target.value)} />
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <TextField label={fieldLabel('City', true)} value={form.city} onChange={(e) => set('city', e.target.value)} error={errors.city} />
-                  <TextField label={fieldLabel('Country', true)} value={form.country} onChange={(e) => set('country', e.target.value)} error={errors.country} />
-                  <TextField label="Postal Code" value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                  <TextField
+                    label={fieldLabel('City', true)}
+                    value={form.city}
+                    onChange={(e) => set('city', e.target.value)}
+                    error={errors.city}
+                  />
+                  <TextField
+                    label={fieldLabel('State', true)}
+                    value={form.state}
+                    onChange={(e) => set('state', e.target.value)}
+                    error={errors.state}
+                  />
+                  <TextField
+                    label={fieldLabel('Country', true)}
+                    value={form.country}
+                    onChange={(e) => set('country', e.target.value)}
+                    error={errors.country}
+                  />
+                  <TextField
+                    label="Postal Code"
+                    value={form.postalCode}
+                    onChange={(e) => set('postalCode', e.target.value)}
+                  />
                 </div>
               </div>
 
-              {/* Banking / Branch Details */}
-              <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Banking / Branch Details</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <TextField label={fieldLabel('RIB / Client Bank Account', true)} value={form.rib} onChange={(e) => set('rib', e.target.value)} error={errors.rib} placeholder="e.g. 1234567890123456789012" />
-                    <p className="text-xs text-muted-foreground mt-1">Bank account identifier (RIB_CLIENT)</p>
-                  </div>
-                  <TextField label={fieldLabel('Agency Code', true)} value={form.agencyCode} onChange={(e) => set('agencyCode', e.target.value)} error={errors.agencyCode} placeholder="e.g. AG001" />
-                </div>
-              </div>
-
-              {/* Card Issuance */}
-              {/* <div className="kardit-card p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Initial Card Issuance</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Card Product', true)}</label>
-                    <Select value={form.cardProduct} onValueChange={(v) => set('cardProduct', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select product" /></SelectTrigger>
-                      <SelectContent>
-                        {CARD_PRODUCTS.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.code})</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.cardProduct && <p className="text-xs text-destructive">{errors.cardProduct}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Currency', true)}</label>
-                    <Select value={form.currency} onValueChange={(v) => set('currency', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select currency" /></SelectTrigger>
-                      <SelectContent>
-                        {CURRENCIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.currency && <p className="text-xs text-destructive">{errors.currency}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select delivery" /></SelectTrigger>
-                      <SelectContent>
-                        {DELIVERY_METHODS.map((d) => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.deliveryMethod && <p className="text-xs text-destructive">{errors.deliveryMethod}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
-                    <Select value={form.issuingBank} onValueChange={(v) => set('issuingBank', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select bank" /></SelectTrigger>
-                      <SelectContent>
-                        {ISSUING_BANKS.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.issuingBank && <p className="text-xs text-destructive">{errors.issuingBank}</p>}
-                  </div>
-                </div>
-              </div> */}
-
-              {/* Actions */}
-              <div className="flex gap-3 justify-end">
-                <Button type="button" variant="outline" onClick={() => navigate('/cards/create')}>Cancel</Button>
-                <Button type="submit" disabled={isLoading}>
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => navigate('/cards/create')}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading} onClick={() => navigate('/cards/create')} >
                   {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Create Customer
+                  Save Customer Draft
                 </Button>
               </div>
             </form>
 
-            {/* Review Summary Panel */}
             <div className="xl:col-span-1">
-              <div className="kardit-card p-6 sticky top-24 space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <div className="kardit-card sticky top-24 space-y-4 p-6">
+                <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   <ChevronRight className="h-4 w-4" /> Review Summary
                 </h3>
                 <div className="space-y-3 text-sm">
-                  <SummaryRow label="Emboss Name" value={form.embossName || '—'} />
-                  <SummaryRow label="Email" value={form.email || '—'} />
-                  <SummaryRow label="Mobile" value={form.phone || '—'} />
-                  <SummaryRow label="ID Type" value={selectedIdType?.label || '—'} />
-                  {/* <SummaryRow label="Product" value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.code})` : '—'} />
-                  <SummaryRow label="Currency" value={selectedCurrency?.label || '—'} />
-                  <SummaryRow label="Delivery" value={selectedDelivery?.label || '—'} /> */}
-                  <SummaryRow label="RIB" value={form.rib || '—'} />
-                  <SummaryRow label="Agency" value={form.agencyCode || '—'} />
+                  <SummaryRow label="Emboss Name" value={form.embossName || EMPTY_VALUE} />
+                  <SummaryRow label="Date of Birth" value={form.dob || EMPTY_VALUE} />
+                  <SummaryRow label="Email" value={form.email || EMPTY_VALUE} />
+                  <SummaryRow label="Mobile" value={form.phone || EMPTY_VALUE} />
+                  <SummaryRow label="ID Type" value={selectedIdType?.label || EMPTY_VALUE} />
+                  <SummaryRow label="State" value={form.state || EMPTY_VALUE} />
+                  <SummaryRow label="Country" value={form.country || EMPTY_VALUE} />
+                  <SummaryRow label="KYC Level" value="LEVEL_2" />
                   <SummaryRow label="KYC Docs" value={`${kycDocs.length} staged`} />
                 </div>
+                <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs text-foreground">
+                  {JSON.stringify(draftPayload, null, 2)}
+                </pre>
               </div>
             </div>
           </div>
@@ -307,9 +327,9 @@ export default function CreateCustomerPage() {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center justify-between">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground font-medium text-right max-w-[60%] truncate">{value}</span>
+      <span className="max-w-[60%] truncate text-right font-medium text-foreground">{value}</span>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export interface KycDocument {
   uploadedAt: string;
 }
 
-export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED';
+export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED' | 'PERSONALIZING';
 
 export interface Card {
   id: string;
@@ -161,6 +161,20 @@ export interface IssuingBankSession {
   tenantId: string;
   status: IssuingBankSessionStatus;
   bankDetails: IssuingBankDetails;
+  bankId?: string;
+  internalAffiliate?: {
+    affiliateId: string;
+    affiliateType: string;
+    ownerBankId: string;
+    status: string;
+    isSystemManaged: boolean;
+    legalName?: string;
+    shortName?: string;
+  };
+  internalPartnership?: {
+    partnershipRequestId: string;
+    status: string;
+  };
   provisioningProgress?: number;
   errorMessage?: string;
   createdAt: string;
@@ -221,6 +235,7 @@ export const CURRENCIES = [
 ];
 
 export const ID_TYPES = [
+  { id: 'nin', label: 'National Identification Number (NIN)', code: 'NIN' },
   { id: 'passport', label: 'Passport', code: 'PP' },
   { id: 'national_id', label: 'National ID', code: 'NID' },
   { id: 'driver_license', label: 'Driver License', code: 'DL' },

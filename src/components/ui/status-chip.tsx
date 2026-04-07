@@ -45,6 +45,7 @@ const statusChipVariants = cva(
         VALID: "bg-success/15 text-success border border-success/20",
         INVALID: "bg-destructive/15 text-destructive border border-destructive/20",
         PROCESSED: "bg-success/15 text-success border border-success/20",
+        PERSONALIZING: "bg-success/15 text-success border border-success/20",
       },
     },
     defaultVariants: {
@@ -82,6 +83,7 @@ const statusIcons = {
   VALID: Check,
   INVALID: X,
   PROCESSED: Check,
+  PERSONALIZING: Check,
 } as const;
 
 export type StatusType = keyof typeof statusIcons;

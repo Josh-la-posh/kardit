@@ -27,6 +27,75 @@ import type {
   SuspendAffiliateResponse,
 } from '@/types/bankPortalContracts';
 
+function extractAffiliates(payload: unknown): BankAffiliateSummary[] {
+  if (Array.isArray((payload as { affiliates?: unknown })?.affiliates)) {
+    return (payload as { affiliates: BankAffiliateSummary[] }).affiliates;
+  }
+  if (Array.isArray((payload as { data?: { affiliates?: unknown } })?.data?.affiliates)) {
+    return (payload as { data: { affiliates: BankAffiliateSummary[] } }).data.affiliates;
+  }
+  if (Array.isArray((payload as { data?: unknown })?.data)) {
+    return (payload as { data: BankAffiliateSummary[] }).data;
+  }
+  return [];
+}
+
+function extractDashboard(payload: unknown): { metrics: BankDashboardMetrics | null; generatedAt: string | null } {
+  const direct = payload as { metrics?: BankDashboardMetrics; generatedAt?: string };
+  if (direct?.metrics) {
+    return { metrics: direct.metrics, generatedAt: direct.generatedAt ?? null };
+  }
+
+  const wrapped = payload as { data?: { metrics?: BankDashboardMetrics; generatedAt?: string } };
+  if (wrapped?.data?.metrics) {
+    return { metrics: wrapped.data.metrics, generatedAt: wrapped.data.generatedAt ?? null };
+  }
+
+  return { metrics: null, generatedAt: null };
+}
+
+function extractCards(payload: unknown): { cards: BankCardItem[]; total: number } {
+  if (Array.isArray((payload as { cards?: unknown })?.cards)) {
+    const direct = payload as { cards: BankCardItem[]; total?: number };
+    return { cards: direct.cards, total: direct.total ?? direct.cards.length };
+  }
+  if (Array.isArray((payload as { data?: { cards?: unknown; total?: unknown } })?.data?.cards)) {
+    const wrapped = payload as { data: { cards: BankCardItem[]; total?: number } };
+    return { cards: wrapped.data.cards, total: wrapped.data.total ?? wrapped.data.cards.length };
+  }
+  if (Array.isArray((payload as { data?: unknown })?.data)) {
+    const arrayData = payload as { data: BankCardItem[]; total?: number };
+    return { cards: arrayData.data, total: arrayData.total ?? arrayData.data.length };
+  }
+  return { cards: [], total: 0 };
+}
+
+function extractAuditLogs(payload: unknown): BankAuditLogItem[] {
+  if (Array.isArray((payload as { logs?: unknown })?.logs)) {
+    return (payload as { logs: BankAuditLogItem[] }).logs;
+  }
+  if (Array.isArray((payload as { data?: { logs?: unknown } })?.data?.logs)) {
+    return (payload as { data: { logs: BankAuditLogItem[] } }).data.logs;
+  }
+  if (Array.isArray((payload as { data?: unknown })?.data)) {
+    return (payload as { data: BankAuditLogItem[] }).data;
+  }
+  return [];
+}
+
+function extractReports(payload: unknown): BankReportItem[] {
+  if (Array.isArray((payload as { reports?: unknown })?.reports)) {
+    return (payload as { reports: BankReportItem[] }).reports;
+  }
+  if (Array.isArray((payload as { data?: { reports?: unknown } })?.data?.reports)) {
+    return (payload as { data: { reports: BankReportItem[] } }).data.reports;
+  }
+  if (Array.isArray((payload as { data?: unknown })?.data)) {
+    return (payload as { data: BankReportItem[] }).data;
+  }
+  return [];
+}
+
 export function useBankDashboardData() {
   const { user } = useAuth();
   const [bankId, setBankId] = useState<string | null>(null);
@@ -58,11 +127,12 @@ export function useBankDashboardData() {
         }),
       ]);
 
-      setMetrics(dashboard.metrics);
-      setGeneratedAt(dashboard.generatedAt);
-      setAffiliates(affiliateRes.affiliates);
-      setAuditLogs(auditRes.logs);
-      setReports(reportRes.reports);
+      const normalizedDashboard = extractDashboard(dashboard);
+      setMetrics(normalizedDashboard.metrics);
+      setGeneratedAt(normalizedDashboard.generatedAt);
+      setAffiliates(extractAffiliates(affiliateRes));
+      setAuditLogs(extractAuditLogs(auditRes));
+      setReports(extractReports(reportRes));
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank dashboard');
       setMetrics(null);
@@ -96,7 +166,7 @@ export function useBankAffiliates() {
       const resolvedBankId = resolveBankId(user);
       setBankId(resolvedBankId);
       const response = await getBankAffiliates(resolvedBankId);
-      setAffiliates(response.affiliates);
+      setAffiliates(extractAffiliates(response));
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank affiliates');
       setAffiliates([]);
@@ -137,8 +207,9 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
           },
           pagination: { page: 1, pageSize: 20 },
         });
-        setCards(response.cards);
-        setTotal(response.total);
+        const normalized = extractCards(response);
+        setCards(normalized.cards);
+        setTotal(normalized.total);
       } catch (e: any) {
         setError(e?.message || 'Failed to load affiliate cards');
         setCards([]);
@@ -220,6 +291,7 @@ export function usePartnershipRequest(partnershipRequestId: string | undefined) 
 
 export function usePendingPartnershipRequests() {
   const { user } = useAuth();
+  const [bankId, setBankId] = useState<string | null>(null);
   const [requests, setRequests] = useState<GetPartnershipRequestResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
@@ -229,7 +301,8 @@ export function usePendingPartnershipRequests() {
     setIsLoading(true);
     setError(null);
     try {
-      const bankId = resolveBankId(user);
+      const resolvedBankId = resolveBankId(user);
+      setBankId(resolvedBankId);
       const requestIds = resolvePendingPartnershipRequestIds();
 
       if (!requestIds.length) {
@@ -237,7 +310,9 @@ export function usePendingPartnershipRequests() {
         return;
       }
 
-      const responses = await Promise.all(requestIds.map((requestId) => getPartnershipRequest(bankId, requestId)));
+      const responses = await Promise.all(
+        requestIds.map((requestId) => getPartnershipRequest(resolvedBankId, requestId))
+      );
       setRequests(responses.filter((request) => request.status === 'PENDING_BANK_APPROVAL'));
     } catch (e: any) {
       setError(e?.message || 'Failed to load pending partnership requests');
@@ -287,5 +362,5 @@ export function usePendingPartnershipRequests() {
     [refresh]
   );
 
-  return { requests, isLoading, isActing, error, refresh, approve, reject };
+  return { bankId, requests, isLoading, isActing, error, refresh, approve, reject };
 }

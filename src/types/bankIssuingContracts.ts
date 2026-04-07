@@ -14,6 +14,7 @@ export interface CreateIssuingBankRequest{
 export interface CreateIssuingBankResponse{
     bankId: string;
     legalName: string;
+    shortName?: string;
     status: string;
     internalAffiliate:{
         affiliateId: string;
@@ -21,6 +22,8 @@ export interface CreateIssuingBankResponse{
         ownerBankId: string;
         status: string;
         isSystemManaged: boolean;
+        legalName?: string;
+        shortName?: string;
     };
     internalPartnership:{
         partnershipRequestId: string;

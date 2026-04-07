@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
@@ -29,6 +29,7 @@ import {
   ArrowUpRight,
   Ban,
   Calendar,
+  ChevronLeft,
   CreditCard,
   Info,
   KeyRound,
@@ -54,6 +55,7 @@ function randomId(prefix: string) {
 }
 
 export default function CardDetailPage() {
+  const navigate = useNavigate();
   const { cardId } = useParams<{ cardId: string }>();
   const { user } = useAuth();
   const { card, fundingDetails, fulfillmentStatus, isLoading, refetch: refetchCard } = useCard(cardId);
@@ -337,6 +339,16 @@ export default function CardDetailPage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
+          <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/cards')}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+          </Button>
+            
           <PageHeader
             title={card.maskedPan}
             subtitle={`${card.productName} (${card.productCode}) - ${card.issuingBankName}`}

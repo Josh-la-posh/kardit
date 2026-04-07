@@ -65,23 +65,15 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   return (await res.json()) as TResponse;
 }
 
-export function resolveBankId(user?: { tenantId?: string; email?: string } | null): string {
+export function resolveBankId(user?: { bankId?: string; tenantId?: string } | null): string {
   const explicitBankId = (import.meta as any).env?.VITE_BANK_ID as string | undefined;
   if (explicitBankId) return explicitBankId;
-  if (user?.tenantId?.startsWith('BNK-')) return user.tenantId;
+  if (user?.bankId) return user.bankId;
+  if (user?.tenantId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.tenantId)) {
+    return user.tenantId;
+  }
 
-  const byTenant: Record<string, string> = {
-    tenant_alpha_bank: 'BNK-ZEN-002',
-  };
-
-  const byEmail: Record<string, string> = {
-    'bank@kardit.app': 'BNK-ZEN-002',
-  };
-
-  if (user?.tenantId && byTenant[user.tenantId]) return byTenant[user.tenantId];
-  if (user?.email && byEmail[user.email.toLowerCase()]) return byEmail[user.email.toLowerCase()];
-
-  throw new Error('Missing bankId. Set VITE_BANK_ID or use a bank-scoped login.');
+  throw new Error('Missing bankId. Use a bank-scoped backend login that returns scope.bankId, or set VITE_BANK_ID.');
 }
 
 export function resolvePendingPartnershipRequestIds(): string[] {

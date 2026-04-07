@@ -110,7 +110,7 @@ export default function IssuingBankDetailPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/super-admin/banks')}
+              onClick={() => navigate('/issuing-banks')}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -152,13 +152,13 @@ export default function IssuingBankDetailPage() {
                       <Mail className="h-4 w-4" />
                       Contact Email
                     </label>
-                    <button
+                    {/* <button
                       onClick={() => handleStartEdit('email', bank.bankDetails.contactEmail)}
                       className="text-xs text-primary hover:underline"
                       disabled={isEditing !== null && isEditing !== 'email'}
                     >
                       Edit
-                    </button>
+                    </button> */}
                   </div>
 
                   {isEditing === 'email' ? (
@@ -200,13 +200,13 @@ export default function IssuingBankDetailPage() {
                       <Phone className="h-4 w-4" />
                       Contact Phone
                     </label>
-                    <button
+                    {/* <button
                       onClick={() => handleStartEdit('phone', bank.bankDetails.contactPhone)}
                       className="text-xs text-primary hover:underline"
                       disabled={isEditing !== null && isEditing !== 'phone'}
                     >
                       Edit
-                    </button>
+                    </button> */}
                   </div>
 
                   {isEditing === 'phone' ? (
@@ -256,13 +256,13 @@ export default function IssuingBankDetailPage() {
                         <MapPin className="h-4 w-4" />
                         Bank Address
                       </label>
-                      <button
+                      {/* <button
                         onClick={() => handleStartEdit('address', bank.bankDetails.bankAddress || '')}
                         className="text-xs text-primary hover:underline"
                         disabled={isEditing !== null && isEditing !== 'address'}
                       >
                         Edit
-                      </button>
+                      </button> */}
                     </div>
 
                     {isEditing === 'address' ? (
@@ -375,6 +375,58 @@ export default function IssuingBankDetailPage() {
                 </div>
               </div>
             </div>
+
+            {bank.internalAffiliate && (
+              <div className="kardit-card p-6">
+                <h2 className="mb-4 text-lg font-semibold">Internal Affiliate Created</h2>
+                <div className="grid grid-cols-1 gap-6 text-sm md:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate ID</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.affiliateId}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate Type</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.affiliateType}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Owner Bank ID</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.ownerBankId}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">System Managed</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.isSystemManaged ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate Status</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.status}</p>
+                  </div>
+                  {bank.internalAffiliate.legalName && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Legal Name</p>
+                      <p className="font-semibold text-foreground">{bank.internalAffiliate.legalName}</p>
+                    </div>
+                  )}
+                  {bank.internalAffiliate.shortName && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Short Name</p>
+                      <p className="font-semibold text-foreground">{bank.internalAffiliate.shortName}</p>
+                    </div>
+                  )}
+                  {bank.internalPartnership && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Partnership Request ID</p>
+                      <p className="font-semibold text-foreground">{bank.internalPartnership.partnershipRequestId}</p>
+                    </div>
+                  )}
+                  {bank.bankId && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Bank ID</p>
+                      <p className="font-semibold text-foreground">{bank.bankId}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AppLayout>

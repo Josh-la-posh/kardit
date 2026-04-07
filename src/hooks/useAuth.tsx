@@ -41,6 +41,7 @@ export interface User {
   role: string;
   stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
   tenantId: string;
+  bankId?: string;
   tenantName: string;
   avatarUrl?: string;
 }
@@ -105,6 +106,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       role: 'User',
       stakeholderType: 'BANK',
       tenantId: 'tenant_alpha_bank',
+      bankId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
       tenantName: 'Alpha Bank',
     },
   },
@@ -168,11 +170,12 @@ function shouldUseAuthApi(): boolean {
 
 function apiUserToInternalUser(username: string, apiUser: LoginSuccessResponse['user']): User {
   const scope = apiUser.scope;
+  const bankId = scope.scopeType === 'BANK_PORTFOLIO' ? scope.bankId || undefined : undefined;
   const tenantId =
     scope.scopeType === 'AFFILIATE_TENANT'
       ? scope.tenantId || 'tenant_unknown'
       : scope.scopeType === 'BANK_PORTFOLIO'
-        ? scope.bankId || 'tenant_unknown'
+        ? bankId || 'tenant_unknown'
         : 'tenant_unknown';
 
   return {
@@ -182,6 +185,7 @@ function apiUserToInternalUser(username: string, apiUser: LoginSuccessResponse['
     role: apiUser.roles?.[0] ?? 'User',
     stakeholderType: toStakeholderType(apiUser.userType),
     tenantId,
+    bankId,
     tenantName: tenantId === 'tenant_unknown' ? 'Unknown' : tenantId,
   };
 }
@@ -189,7 +193,7 @@ function apiUserToInternalUser(username: string, apiUser: LoginSuccessResponse['
 function toScope(user: User): LoginSuccessResponse['user']['scope'] {
   const stakeholderType = user.stakeholderType;
   if (stakeholderType === 'BANK') {
-    return { scopeType: 'BANK_PORTFOLIO', bankId: user.tenantId };
+    return { scopeType: 'BANK_PORTFOLIO', bankId: user.bankId || user.tenantId };
   }
   if (stakeholderType === 'SERVICE_PROVIDER') {
     return { scopeType: 'GLOBAL' };

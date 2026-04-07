@@ -14,11 +14,14 @@ export default function BankAffiliatesListPage() {
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
-    return affiliates.filter((affiliate) => {
+    const items = Array.isArray(affiliates) ? affiliates : [];
+    return items.filter((affiliate) => {
       if (!query) return true;
+      const affiliateId = affiliate.affiliateId || '';
+      const tenantId = affiliate.tenantId || '';
       return (
-        affiliate.affiliateId.toLowerCase().includes(query) ||
-        affiliate.tenantId.toLowerCase().includes(query)
+        affiliateId.toLowerCase().includes(query) ||
+        tenantId.toLowerCase().includes(query)
       );
     });
   }, [affiliates, search]);
