@@ -5,6 +5,42 @@ export interface CustomerSearchRequestContext {
   scopeType: 'AFFILIATE_TENANT' | 'BANK_PORTFOLIO' | 'GLOBAL';
 }
 
+export interface CustomerDraftRequestContext {
+  requestId: string;
+  affiliateId: string;
+  tenantId: string;
+}
+
+export interface CreateCustomerDraftRequest {
+  requestContext: CustomerDraftRequestContext;
+  customer: {
+    identity: {
+      firstName: string;
+      lastName: string;
+      dob: string;
+      phone: string;
+      email: string;
+      address: {
+        line1: string;
+        city: string;
+        state: string;
+        country: string;
+      };
+    };
+    kyc: {
+      idType: string;
+      idNumber: string;
+      kycLevel: string;
+    };
+  };
+}
+
+export interface CreateCustomerDraftResponse {
+  customerId: string;
+  status: string;
+  savedAt: string;
+}
+
 export interface CustomerSearchCriteria {
   phone?: string | null;
   name?: string | null;

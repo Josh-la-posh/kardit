@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
 import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
+import { getCustomer } from '@/services/customerApi';
 import { store, type Card } from '@/stores/mockStore';
 import type {
   CreateCardRequest,
@@ -24,14 +25,14 @@ export interface CreateCardInput {
   deliveryMethod?: string;
   tenantId?: string;
   affiliateId?: string;
-  customerIdentity: {
+  customerIdentity?: {
     firstName: string;
     lastName: string;
     dob: string;
     phone: string;
     email: string;
   };
-  customerKyc: {
+  customerKyc?: {
     idType: string;
     idNumber: string;
     kycLevel?: string;
@@ -47,7 +48,7 @@ function randomId(prefix: string) {
 }
 
 function toCardStatus(status: string | undefined): Card['status'] {
-  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED') {
+  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED' || status === 'PERSONALIZING') {
     return status;
   }
 
@@ -220,6 +221,25 @@ export function useCreateCard() {
   const { user } = useAuth();
 
   const createCard = useCallback(async (data: CreateCardInput) => {
+    const customerResponse =
+      data.customerIdentity && data.customerKyc
+        ? null
+        : await getCustomer(data.customerId);
+
+    const customerIdentity = data.customerIdentity || {
+      firstName: customerResponse?.identity.firstName || '',
+      lastName: customerResponse?.identity.lastName || '',
+      dob: customerResponse?.identity.dob || '',
+      phone: customerResponse?.identity.phone || '',
+      email: customerResponse?.identity.email || '',
+    };
+
+    const customerKyc = data.customerKyc || {
+      idType: customerResponse?.kyc.idType || '',
+      idNumber: customerResponse?.kyc.idNumberMasked || '',
+      kycLevel: customerResponse?.kyc.kycLevel || 'FULL',
+    };
+
     const request: CreateCardRequest = {
       requestContext: {
         requestId: randomId('card-request'),
@@ -237,16 +257,16 @@ export function useCreateCard() {
         customerId: data.customerId,
         embeddedPayload: {
           identity: {
-            firstName: data.customerIdentity.firstName,
-            lastName: data.customerIdentity.lastName,
-            dob: data.customerIdentity.dob,
-            phone: data.customerIdentity.phone,
-            email: data.customerIdentity.email,
+            firstName: customerIdentity.firstName,
+            lastName: customerIdentity.lastName,
+            dob: customerIdentity.dob,
+            phone: customerIdentity.phone,
+            email: customerIdentity.email,
           },
           kyc: {
-            idType: data.customerKyc.idType,
-            idNumber: data.customerKyc.idNumber,
-            kycLevel: data.customerKyc.kycLevel || 'FULL',
+            idType: customerKyc.idType,
+            idNumber: customerKyc.idNumber,
+            kycLevel: customerKyc.kycLevel || 'FULL',
           },
         },
       },

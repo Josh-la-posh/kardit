@@ -1,9 +1,19 @@
 import { ApiError } from '@/services/authApi';
 import type {
+  CreateCustomerDraftRequest,
+  CreateCustomerDraftResponse,
   CustomerDetailResponse,
   SearchCustomersRequest,
   SearchCustomersResponse,
 } from '@/types/customerContracts';
+
+type ApiEnvelope<T> = {
+  data?: {
+    isSuccess?: boolean;
+    value?: T;
+    error?: unknown;
+  };
+};
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
@@ -52,10 +62,47 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   return (await res.json()) as TResponse;
 }
 
+function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object' && 'data' in response) {
+    const envelope = response as ApiEnvelope<TResponse>;
+    if (envelope.data?.isSuccess === false) {
+      throw new ApiError('Request failed', 200, envelope.data.error);
+    }
+
+    if (envelope.data?.value !== undefined) {
+      return envelope.data.value;
+    }
+  }
+
+  return response as TResponse;
+}
+
 export async function searchCustomers(request: SearchCustomersRequest): Promise<SearchCustomersResponse> {
-  return postJson<SearchCustomersResponse>('/customers/search', request);
+  const value = unwrapApiValue(
+    await postJson<SearchCustomersResponse | ApiEnvelope<SearchCustomersResponse & { result?: SearchCustomersResponse['results'] }>>(
+      '/customers/search',
+      request
+    )
+  ) as SearchCustomersResponse & { result?: SearchCustomersResponse['results'] };
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    total: value.total,
+    results: Array.isArray(value.results) ? value.results : Array.isArray(value.result) ? value.result : [],
+  };
+}
+
+export async function createCustomerDraft(
+  request: CreateCustomerDraftRequest
+): Promise<CreateCustomerDraftResponse> {
+  return postJson<CreateCustomerDraftResponse>('/customers/draft', request);
 }
 
 export async function getCustomer(customerRefId: string): Promise<CustomerDetailResponse> {
-  return getJson<CustomerDetailResponse>(`/customers/${encodeURIComponent(customerRefId)}`);
+  return unwrapApiValue(
+    await getJson<CustomerDetailResponse | ApiEnvelope<CustomerDetailResponse>>(
+      `/customers/${encodeURIComponent(customerRefId)}`
+    )
+  );
 }

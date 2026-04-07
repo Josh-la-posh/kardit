@@ -23,6 +23,7 @@ export default function AffiliateDetailPages() {
   const [toDate, setToDate] = useState('');
   const [actionReason, setActionReason] = useState('');
   const [working, setWorking] = useState(false);
+  const visibleCards = Array.isArray(cards) ? cards : [];
 
   const affiliate = useMemo(
     () => affiliates.find((item) => item.affiliateId === affiliateId) || null,
@@ -161,7 +162,7 @@ export default function AffiliateDetailPages() {
                     </div>
                   ) : error ? (
                     <div className="text-sm text-muted-foreground">{error}</div>
-                  ) : cards.length === 0 ? (
+                  ) : visibleCards.length === 0 ? (
                     <div className="py-8 text-center text-gray-500">
                       <p>No cards found for this affiliate.</p>
                     </div>
@@ -179,7 +180,7 @@ export default function AffiliateDetailPages() {
                           </tr>
                         </thead>
                         <tbody>
-                          {cards.map((card) => (
+                          {visibleCards.map((card) => (
                             <tr key={card.cardId} className="border-b border-gray-100 hover:bg-gray-50">
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">{card.cardId}</td>
                               <td className="px-4 py-3 text-sm text-gray-600">{card.maskedPan}</td>
@@ -228,7 +229,7 @@ export default function AffiliateDetailPages() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Portfolio Snapshot</p>
-                    <p className="font-semibold">{cards.length} visible cards</p>
+                    <p className="font-semibold">{visibleCards.length} visible cards</p>
                   </div>
                 </div>
               </Card>

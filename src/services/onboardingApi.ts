@@ -234,7 +234,7 @@ export async function uploadDocument(
   draftId: string,
   payload: UploadOnboardingDocumentRequest
 ): Promise<UploadOnboardingDocumentResponse> {
-  const response = await putJson<UploadOnboardingDocumentResponse>(
+  const response = await postJson<UploadOnboardingDocumentResponse>(
     `/affiliates/onboarding/drafts/${encodeURIComponent(draftId)}/documents`,
     payload
   );

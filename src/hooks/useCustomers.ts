@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ApiError } from '@/services/authApi';
 import { useAuth } from '@/hooks/useAuth';
-import { getCustomer, searchCustomers } from '@/services/customerApi';
+import { createCustomerDraft as createCustomerDraftApi, getCustomer, searchCustomers } from '@/services/customerApi';
 import type { CustomerSearchCriteria } from '@/types/customerContracts';
 import { store } from '@/stores/mockStore';
-import type { Card, Customer, KycDocument } from '@/stores/mockStore';
+import type { Card, KycDocument } from '@/stores/mockStore';
 
 export interface CustomerListItem {
   id: string;
@@ -44,6 +45,31 @@ export interface CustomerDetailItem {
   verifiedAt?: string;
   tenantId: string;
   affiliateId: string;
+}
+
+export interface CreateCustomerDraftInput {
+  firstName: string;
+  lastName: string;
+  dob: string;
+  phone: string;
+  email: string;
+  address: {
+    line1: string;
+    city: string;
+    state: string;
+    country: string;
+  };
+  kyc: {
+    idType: string;
+    idNumber: string;
+    kycLevel?: string;
+  };
+}
+
+export interface CreateCustomerDraftResult {
+  customerId: string;
+  status: string;
+  savedAt: string;
 }
 
 const toScopeType = (stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER') => {
@@ -210,24 +236,54 @@ export function useCustomer(customerId: string | undefined) {
 
 export function useCreateCustomer() {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const createCustomerWithCard = useCallback(async (
-    customerData: Omit<Customer, 'id' | 'customerId' | 'createdAt' | 'status'>,
-    cardData: { productName: string; productCode: string; issuingBankName: string; currency: string; embossName?: string; deliveryMethod?: string },
-    kycDocs: { type: string; fileName: string }[]
-  ) => {
+  const createCustomerDraft = useCallback(async (
+    data: CreateCustomerDraftInput
+  ): Promise<CreateCustomerDraftResult> => {
+    const tenantId = user?.tenantId || 'tenant_unknown';
+    const affiliateId = user?.tenantId || 'affiliate_unknown';
+    const requestId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? `REQ-CUST-DRAFT-${crypto.randomUUID()}`
+        : `REQ-CUST-DRAFT-${Date.now()}`;
+
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const tenantId = user?.tenantId || 'tenant_alpha_affiliate';
-    const customer = store.createCustomer({ ...customerData, tenantId });
-    store.createCard({ tenantId, customerId: customer.id, ...cardData });
-    kycDocs.forEach((doc) => {
-      store.addKycDocument({ tenantId, customerId: customer.id, type: doc.type, status: 'UPLOADED', fileName: doc.fileName });
-    });
-    setIsLoading(false);
-    return customer;
+    setError(null);
+
+    try {
+      return await createCustomerDraftApi({
+        requestContext: {
+          requestId,
+          affiliateId,
+          tenantId,
+        },
+        customer: {
+          identity: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            dob: data.dob,
+            phone: data.phone,
+            email: data.email,
+            address: data.address,
+          },
+          kyc: {
+            idType: data.kyc.idType,
+            idNumber: data.kyc.idNumber,
+            kycLevel: data.kyc.kycLevel || 'LEVEL_2',
+          },
+        },
+      });
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to create customer draft';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   }, [user?.tenantId]);
 
-  return { createCustomerWithCard, isLoading };
+  return { createCustomerDraft, isLoading, error };
 }

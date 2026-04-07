@@ -32,10 +32,18 @@ export function useCreateIssuingBankSession() {
     });
 
     return store.updateIssuingBankSession(session.sessionId, {
+      bankId: apiResponse.bankId,
       bankDetails: {
         ...session.bankDetails,
         name: apiResponse.legalName,
+        shortName: apiResponse.shortName || session.bankDetails.shortName,
       },
+      internalAffiliate: {
+        ...apiResponse.internalAffiliate,
+        legalName: apiResponse.internalAffiliate.legalName || apiResponse.legalName,
+        shortName: apiResponse.internalAffiliate.shortName || apiResponse.shortName || session.bankDetails.shortName,
+      },
+      internalPartnership: apiResponse.internalPartnership,
       updatedAt: apiResponse.provisionedAt,
     }) || session;
   }, [user?.tenantId]);

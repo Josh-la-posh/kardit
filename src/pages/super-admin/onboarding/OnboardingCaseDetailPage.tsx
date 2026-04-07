@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { useOnboardingCase, useReviewerOnboardingCases } from '@/hooks/useOnboarding';
+import { useCreateAffiliate } from '@/hooks/useAffiliates';
 import { Loader2 } from 'lucide-react';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
@@ -26,11 +27,14 @@ export default function OnboardingCaseDetailPage() {
   const navigate = useNavigate();
   const { caseItem, isLoading, error, refresh } = useOnboardingCase(caseId);
   const { decide, provision } = useReviewerOnboardingCases();
+  const { createAffiliate, isLoading: isCreatingAffiliate } = useCreateAffiliate();
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
+  const [affiliateCreated, setAffiliateCreated] = useState(false);
 
   const canProvision = caseItem?.status === 'APPROVED';
+  const canCreateAffiliate = caseItem?.status === 'APPROVED' && !affiliateCreated;
 
   const title = useMemo(() => caseItem?.organization?.legalName || 'Onboarding case', [caseItem?.organization?.legalName]);
 
@@ -57,6 +61,40 @@ export default function OnboardingCaseDetailPage() {
       console.log(res);
     } finally {
       setWorking(false);
+    }
+  };
+
+  const doCreateAffiliate = async () => {
+    if (!caseItem || !caseId) return;
+
+    const primaryContact =
+      caseItem.contact
+        ? {
+            fullName: caseItem.contact.contactName,
+            email: caseItem.contact.contactEmail,
+            phone: caseItem.contact.contactPhone,
+          }
+        : caseItem.organization?.primaryContact;
+
+    if (!caseItem.organization?.legalName || !primaryContact) {
+      toast.error('This case is missing organization or admin contact details.');
+      return;
+    }
+
+    try {
+      const response = await createAffiliate({
+        affiliateType: 'EXTERNAL',
+        onboardingCaseId: caseId,
+        legalName: caseItem.organization.legalName,
+        shortName: caseItem.organization.tradingName || caseItem.organization.legalName,
+        adminContact: primaryContact,
+        selectedBankIds: caseItem.issuingBankIds,
+      });
+      setAffiliateCreated(true);
+      toast.success(`Affiliate record created for ${response.shortName}`);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create affiliate record');
     }
   };
 
@@ -117,9 +155,23 @@ export default function OnboardingCaseDetailPage() {
                     <Button variant="outline" onClick={() => doDecision('REQUEST_CLARIFICATION')} disabled={working}>Request clarification</Button>
                     <Button variant="outline" onClick={() => doDecision('REJECT')} disabled={working}>Reject</Button>
                     <Button onClick={() => doDecision('APPROVE')} disabled={working}>Approve</Button>
+                    <Button variant="secondary" onClick={doCreateAffiliate} disabled={working || isCreatingAffiliate || !canCreateAffiliate}>
+                      {isCreatingAffiliate ? 'Creating affiliate...' : 'Create Affiliate Record'}
+                    </Button>
                     <Button variant="secondary" onClick={doProvision} disabled={working || !canProvision}>Provision</Button>
                   </div>
                 </div>
+
+                {caseItem.status === 'APPROVED' && (
+                  <div className="rounded-md border border-border bg-muted p-4">
+                    <p className="mb-2 text-sm font-semibold">Affiliate creation payload</p>
+                    <p className="text-sm text-muted-foreground">Type: EXTERNAL</p>
+                    <p className="text-sm text-muted-foreground">Case ID: {caseItem.caseId}</p>
+                    <p className="text-sm text-muted-foreground">Legal name: {caseItem.organization?.legalName || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">Short name: {caseItem.organization?.tradingName || caseItem.organization?.legalName || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">Selected banks: {caseItem.issuingBankIds.length ? caseItem.issuingBankIds.join(', ') : 'None'}</p>
+                  </div>
+                )}
 
                 {caseItem.status === 'PROVISIONED' && (
                   <div className="rounded-md border border-border bg-muted p-4">

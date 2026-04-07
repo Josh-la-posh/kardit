@@ -32,6 +32,13 @@ const safeJson = async (res: Response) => {
 };
 
 type QueryValue = string | number | undefined;
+type ReportEnvelope<T> = {
+  data?: {
+    isSuccess?: boolean;
+    value?: T;
+    error?: unknown;
+  };
+};
 
 function buildQuery(params: Record<string, QueryValue>) {
   const search = new URLSearchParams();
@@ -57,8 +64,28 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
   return (await res.json()) as TResponse;
 }
 
-export function getCardTransactionsReport(cardId: string, params: ReportPageRequest) {
-  return getJson<CardTransactionsReportResponse>(
+function unwrapReportValue<TResponse>(response: TResponse | ReportEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object' && 'data' in response) {
+    const envelope = response as ReportEnvelope<TResponse>;
+    if (envelope.data?.isSuccess === false) {
+      throw new ApiError('Report request failed', 200, envelope.data.error);
+    }
+
+    if (envelope.data?.value !== undefined) {
+      return envelope.data.value;
+    }
+  }
+
+  return response as TResponse;
+}
+
+async function getReportJson<TResponse>(path: string): Promise<TResponse> {
+  const response = await getJson<TResponse | ReportEnvelope<TResponse>>(path);
+  return unwrapReportValue(response);
+}
+
+export async function getCardTransactionsReport(cardId: string, params: ReportPageRequest) {
+  const value = await getReportJson<CardTransactionsReportResponse & { record?: CardTransactionsReportResponse['transactions'] }>(
     `/transactions/reports/cards/${cardId}/transactions${buildQuery(
       toQueryParams({
         page: params.page,
@@ -68,10 +95,17 @@ export function getCardTransactionsReport(cardId: string, params: ReportPageRequ
       })
     )}`
   );
+
+  return {
+    cardId: value.cardId,
+    page: value.page,
+    pageSize: value.pageSize,
+    transactions: Array.isArray(value.transactions) ? value.transactions : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardLoadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
-  return getJson<CardLoadsReportResponse>(
+export async function getCardLoadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
+  const value = await getReportJson<CardLoadsReportResponse & { record?: CardLoadsReportResponse['loads'] }>(
     `/transactions/reports/cards/${cardId}/loads${buildQuery(
       toQueryParams({
         page: params.page,
@@ -79,10 +113,15 @@ export function getCardLoadsReport(cardId: string, params: Pick<ReportPageReques
       })
     )}`
   );
+
+  return {
+    cardId: value.cardId,
+    loads: Array.isArray(value.loads) ? value.loads : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardUnloadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
-  return getJson<CardUnloadsReportResponse>(
+export async function getCardUnloadsReport(cardId: string, params: Pick<ReportPageRequest, 'page' | 'pageSize'>) {
+  const value = await getReportJson<CardUnloadsReportResponse & { record?: CardUnloadsReportResponse['unloads'] }>(
     `/transactions/reports/cards/${cardId}/unloads${buildQuery(
       toQueryParams({
         page: params.page,
@@ -90,23 +129,35 @@ export function getCardUnloadsReport(cardId: string, params: Pick<ReportPageRequ
       })
     )}`
   );
+
+  return {
+    cardId: value.cardId,
+    unloads: Array.isArray(value.unloads) ? value.unloads : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardLifecycleEventsReport(cardId: string, params: ReportPageRequest) {
-  return getJson<CardLifecycleEventsReportResponse>(
+export async function getCardLifecycleEventsReport(cardId: string, params: ReportPageRequest) {
+  const value = await getReportJson<CardLifecycleEventsReportResponse & { record?: CardLifecycleEventsReportResponse['events'] }>(
     `/transactions/reports/cards/${cardId}/lifecycle-events${buildQuery(
       toQueryParams({
-        page: params.page,
+        pageNumber: params.page,
         pageSize: params.pageSize,
         fromDate: params.fromDate,
         toDate: params.toDate,
       })
     )}`
   );
+
+  return {
+    cardId: value.cardId,
+    page: value.page,
+    pageSize: value.pageSize,
+    events: Array.isArray(value.events) ? value.events : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardBalancesReport(cardId: string, params: ReportPageRequest) {
-  return getJson<CardBalancesReportResponse>(
+export async function getCardBalancesReport(cardId: string, params: ReportPageRequest) {
+  const value = await getReportJson<CardBalancesReportResponse & { record?: CardBalancesReportResponse['snapshots'] }>(
     `/transactions/reports/cards/${cardId}/balances${buildQuery(
       toQueryParams({
         page: params.page,
@@ -116,10 +167,17 @@ export function getCardBalancesReport(cardId: string, params: ReportPageRequest)
       })
     )}`
   );
+
+  return {
+    cardId: value.cardId,
+    page: value.page,
+    pageSize: value.pageSize,
+    snapshots: Array.isArray(value.snapshots) ? value.snapshots : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardsIssuanceReport(params: ReportPageRequest & { productType?: string }) {
-  return getJson<CardsIssuanceReportResponse>(
+export async function getCardsIssuanceReport(params: ReportPageRequest & { productType?: string }) {
+  const value = await getReportJson<CardsIssuanceReportResponse & { record?: CardsIssuanceReportResponse['records'] }>(
     `/transactions/reports/cards/issuance${buildQuery(
       toQueryParams({
         page: params.page,
@@ -130,10 +188,16 @@ export function getCardsIssuanceReport(params: ReportPageRequest & { productType
       })
     )}`
   );
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    records: Array.isArray(value.records) ? value.records : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCardsFulfillmentReport(params: ReportPageRequest & { status?: string }) {
-  return getJson<CardsFulfillmentReportResponse>(
+export async function getCardsFulfillmentReport(params: ReportPageRequest & { status?: string }) {
+  const value = await getReportJson<CardsFulfillmentReportResponse & { record?: CardsFulfillmentReportResponse['records'] }>(
     `/transactions/reports/cards/fulfillment${buildQuery(
       toQueryParams({
         page: params.page,
@@ -144,10 +208,16 @@ export function getCardsFulfillmentReport(params: ReportPageRequest & { status?:
       })
     )}`
   );
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    records: Array.isArray(value.records) ? value.records : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getBatchesReport(params: ReportPageRequest & { operationType?: string }) {
-  return getJson<BatchesReportResponse>(
+export async function getBatchesReport(params: ReportPageRequest & { operationType?: string }) {
+  const value = await getReportJson<BatchesReportResponse & { record?: BatchesReportResponse['records'] }>(
     `/transactions/reports/batches${buildQuery(
       toQueryParams({
         page: params.page,
@@ -158,10 +228,16 @@ export function getBatchesReport(params: ReportPageRequest & { operationType?: s
       })
     )}`
   );
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    records: Array.isArray(value.records) ? value.records : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCmsTracesReport(params: Pick<ReportPageRequest, 'page' | 'pageSize'> & { cardId?: string; operationType?: string }) {
-  return getJson<CmsTracesReportResponse>(
+export async function getCmsTracesReport(params: Pick<ReportPageRequest, 'page' | 'pageSize'> & { cardId?: string; operationType?: string }) {
+  const value = await getReportJson<CmsTracesReportResponse & { record?: CmsTracesReportResponse['records'] }>(
     `/transactions/reports/cms-traces${buildQuery(
       toQueryParams({
         page: params.page,
@@ -171,16 +247,22 @@ export function getCmsTracesReport(params: Pick<ReportPageRequest, 'page' | 'pag
       })
     )}`
   );
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    records: Array.isArray(value.records) ? value.records : Array.isArray(value.record) ? value.record : [],
+  };
 }
 
-export function getCustomerSupportViewReport(customerRefId: string) {
-  return getJson<CustomerSupportViewReportResponse>(
+export async function getCustomerSupportViewReport(customerRefId: string) {
+  return getReportJson<CustomerSupportViewReportResponse>(
     `/transactions/reports/customers/${customerRefId}/support-view`
   );
 }
 
-export function getExceptionsReport(params: ReportPageRequest & { operationType?: string }) {
-  return getJson<ExceptionsReportResponse>(
+export async function getExceptionsReport(params: ReportPageRequest & { operationType?: string }) {
+  const value = await getReportJson<ExceptionsReportResponse & { record?: ExceptionsReportResponse['records'] }>(
     `/transactions/reports/exceptions${buildQuery(
       toQueryParams({
         page: params.page,
@@ -191,4 +273,10 @@ export function getExceptionsReport(params: ReportPageRequest & { operationType?
       })
     )}`
   );
+
+  return {
+    page: value.page,
+    pageSize: value.pageSize,
+    records: Array.isArray(value.records) ? value.records : Array.isArray(value.record) ? value.record : [],
+  };
 }

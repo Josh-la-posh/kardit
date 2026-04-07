@@ -59,7 +59,7 @@ const REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'card-fulfillment', code: 'CARD_FULFILLMENT', name: 'Card Fulfillment Report', description: 'Fulfillment and delivery tracking report', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'batches', code: 'BATCHES', name: 'Batch Operations', description: 'Summary of batch operations filtered by date and operation type', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'cms-traces', code: 'CMS_TRACES', name: 'CMS Traces', description: 'Trace external CMS requests by card and operation type', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'exceptions', code: 'EXCEPTIONS', name: 'Exceptions Report', description: 'Operational failures and retry-worthy exceptions', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
+  // { id: 'exceptions', code: 'EXCEPTIONS', name: 'Exceptions Report', description: 'Operational failures and retry-worthy exceptions', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'customer-support-view', code: 'CUSTOMER_SUPPORT_VIEW', name: 'Customer Support View', description: 'Support snapshot of a customer and associated cards', category: 'Customers', groupId: 'customers', allowedFormats: ['CSV', 'XLSX'] },
 ];
 
@@ -166,6 +166,67 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
 
   if (records) {
     const first = records[0];
+    if (first?.fundingTransactionId !== undefined) {
+      return {
+        columns: ['Funding Transaction ID', 'Amount', 'Currency', 'Funding Source', 'Transfer Reference', 'Status', 'Balance After', 'Created At'],
+        rows: records.map((item: any) => [
+          item.fundingTransactionId,
+          item.amount,
+          item.currency,
+          item.fundingSource,
+          item.bankTransferReference,
+          item.status,
+          item.balanceAfter,
+          item.createdAt,
+        ]),
+      };
+    }
+
+    if (first?.unloadTransactionId !== undefined) {
+      return {
+        columns: ['Unload Transaction ID', 'Amount', 'Currency', 'Destination Account', 'Destination Bank', 'Status', 'Balance After', 'Processed At'],
+        rows: records.map((item: any) => [
+          item.unloadTransactionId,
+          item.amount,
+          item.currency,
+          item.destinationAccount,
+          item.destinationBank,
+          item.status,
+          item.balanceAfter,
+          item.processedAt,
+        ]),
+      };
+    }
+
+    if (first?.eventId !== undefined) {
+      return {
+        columns: ['Event ID', 'Event Type', 'Actor User ID', 'Actor Role', 'Reason', 'Previous Status', 'New Status', 'Timestamp'],
+        rows: records.map((item: any) => [
+          item.eventId,
+          item.eventType,
+          item.actorUserId,
+          item.actorRole,
+          item.reason,
+          item.previousStatus,
+          item.newStatus,
+          item.timestamp,
+        ]),
+      };
+    }
+
+    if (first?.ledgerBalance !== undefined || first?.availableBalance !== undefined) {
+      return {
+        columns: ['Ledger Balance', 'Available Balance', 'Currency', 'Source', 'Retrieved At'],
+        rows: records.map((item: any) => [
+          item.ledgerBalance,
+          item.availableBalance,
+          item.currency,
+          item.source,
+          item.retrievedAt,
+        ]),
+      };
+    }
+
     if (first?.issuedAt !== undefined) {
       return {
         columns: ['Card ID', 'Customer ID', 'Product ID', 'Bank ID', 'Card Type', 'Status', 'Issued At', 'Virtual Account Status'],
@@ -225,21 +286,6 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
           item.responseMessage,
         ]),
       };
-    }
-
-    if(records){
-      return {
-      columns: ['Operation Type', 'Entity ID', 'Card ID', 'Status', 'Error Code', 'Error Message', 'Occurred At'],
-      rows: records.map((item: any) => [
-        item.operationType,
-        item.entityId,
-        item.cardId,
-        item.status,
-        item.errorCode,
-        item.errorMessage,
-        item.occurredAt,
-      ]),
-    };
     }
   }
 

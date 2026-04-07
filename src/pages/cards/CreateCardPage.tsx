@@ -198,13 +198,13 @@ export default function CreateCardPage() {
                                   </p>
                                 </button>
                               ))}
-                              {customerSearch && (
+                              {/* {customerSearch && (
                                 <div className="mt-2 border-t border-border pt-2">
                                   <Button type="button" variant="outline" className="w-full" onClick={handleCreateNewCustomer}>
                                     <Plus className="mr-1 h-4 w-4" /> Add New Customer
                                   </Button>
                                 </div>
-                              )}
+                              )} */}
                             </>
                           )}
 

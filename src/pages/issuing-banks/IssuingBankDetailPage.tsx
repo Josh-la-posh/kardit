@@ -375,6 +375,58 @@ export default function IssuingBankDetailPage() {
                 </div>
               </div>
             </div>
+
+            {bank.internalAffiliate && (
+              <div className="kardit-card p-6">
+                <h2 className="mb-4 text-lg font-semibold">Internal Affiliate Created</h2>
+                <div className="grid grid-cols-1 gap-6 text-sm md:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate ID</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.affiliateId}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate Type</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.affiliateType}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Owner Bank ID</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.ownerBankId}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">System Managed</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.isSystemManaged ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-muted-foreground">Affiliate Status</p>
+                    <p className="font-semibold text-foreground">{bank.internalAffiliate.status}</p>
+                  </div>
+                  {bank.internalAffiliate.legalName && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Legal Name</p>
+                      <p className="font-semibold text-foreground">{bank.internalAffiliate.legalName}</p>
+                    </div>
+                  )}
+                  {bank.internalAffiliate.shortName && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Short Name</p>
+                      <p className="font-semibold text-foreground">{bank.internalAffiliate.shortName}</p>
+                    </div>
+                  )}
+                  {bank.internalPartnership && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Partnership Request ID</p>
+                      <p className="font-semibold text-foreground">{bank.internalPartnership.partnershipRequestId}</p>
+                    </div>
+                  )}
+                  {bank.bankId && (
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Bank ID</p>
+                      <p className="font-semibold text-foreground">{bank.bankId}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AppLayout>
