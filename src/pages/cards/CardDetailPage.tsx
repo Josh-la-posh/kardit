@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCard } from '@/hooks/useCards';
 import { useCardTransactions, TransactionFilters } from '@/hooks/useTransactions';
 import { useAuth } from '@/hooks/useAuth';
+import type { TransactionStatus as ApiTransactionStatus, TransactionType as ApiTransactionType } from '@/types/transactionContracts';
 import {
   completeCardLimitRequest,
   createCardLimitRequest,
@@ -617,25 +618,31 @@ export default function CardDetailPage() {
                 value={filters.dateTo || ''}
                 onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value || undefined }))}
               />
-              <Select value={filters.type || 'ALL'} onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value as any }))}>
+              <Select
+                value={filters.type || 'ALL'}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value as ApiTransactionType | 'ALL' }))}
+              >
                 <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Types</SelectItem>
+                  <SelectItem value="POS">POS</SelectItem>
+                  <SelectItem value="ATM_WITHDRAWAL">ATM Withdrawal</SelectItem>
                   <SelectItem value="LOAD">Load</SelectItem>
-                  <SelectItem value="PURCHASE">Purchase</SelectItem>
-                  <SelectItem value="REFUND">Refund</SelectItem>
-                  <SelectItem value="FEE">Fee</SelectItem>
-                  <SelectItem value="REVERSAL">Reversal</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  <SelectItem value="UNLOAD">Unload</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filters.status || 'ALL'} onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as any }))}>
+              <Select
+                value={filters.status || 'ALL'}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as ApiTransactionStatus | 'ALL' }))}
+              >
                 <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="POSTED">Posted</SelectItem>
-                  <SelectItem value="DECLINED">Declined</SelectItem>
+                  <SelectItem value="AUTHORIZED">Authorized</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="REFUSED">Refused</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>

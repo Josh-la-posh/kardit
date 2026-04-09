@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
@@ -10,6 +11,7 @@ import {
   Users, 
   CreditCard, 
   Wallet, 
+  Receipt,
   Layers, 
   FileText,
   Bell, 
@@ -28,7 +30,7 @@ import {
  * Affiliate dashboard with metrics and module navigation
  */
 
-const modules: Array<{ label: string; icon: any; path: string; description: string; roles?: string[] }> = [
+const modules: Array<{ label: string; icon: LucideIcon; path: string; description: string; roles?: string[] }> = [
   { 
     label: 'Customers', 
     icon: Users, 
@@ -46,6 +48,12 @@ const modules: Array<{ label: string; icon: any; path: string; description: stri
     icon: Wallet, 
     path: '/loads',
     description: 'Load transactions'
+  },
+  { 
+    label: 'Transactions',
+    icon: Receipt,
+    path: '/transactions',
+    description: 'Search and review card activity'
   },
   { 
     label: 'Batch Operations', 
@@ -138,7 +146,7 @@ export default function DashboardPage() {
           />
 
           {/* Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className='cursor-pointer '
             onClick={() => navigate('/customers')}
             >
@@ -170,10 +178,10 @@ export default function DashboardPage() {
               value={formatCurrency(metrics.totalDebits)} 
               icon={TrendingDown}
             />
-          </div>
+          </div> */}
 
           {/* Customer Status Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="kardit-card p-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -196,7 +204,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Quick Actions */}
           <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
   Users,
   CreditCard,
   Wallet,
+  Receipt,
   Layers,
   FileText,
   Bell,
@@ -50,7 +52,7 @@ interface AppLayoutProps {
   navVariant?: 'affiliate' | 'bank' | 'service-provider';
 }
 
-type NavItem = { label: string; icon: any; path: string; roles?: string[] };
+type NavItem = { label: string; icon: LucideIcon; path: string; roles?: string[] };
 
 const affiliateNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -58,6 +60,7 @@ const affiliateNavItems: NavItem[] = [
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
   { label: 'Loads', icon: Wallet, path: '/loads' },
+  { label: 'Transactions', icon: Receipt, path: '/transactions' },
   { label: 'Batch Operations', icon: Layers, path: '/batch-operations' },
   { label: 'Reports', icon: FileText, path: '/reports' },
   { label: 'Notifications', icon: Bell, path: '/notifications' },

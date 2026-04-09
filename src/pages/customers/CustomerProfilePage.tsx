@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Calendar, CreditCard, FileText, Globe, Loader2, Mail, MapPin, Phone } from 'lucide-react';
@@ -7,12 +7,22 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, type StatusType } from '@/components/ui/status-chip';
-import { useCustomer } from '@/hooks/useCustomers';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useCustomer, useCustomerTransactions } from '@/hooks/useCustomers';
+
+function toTransactionStatus(status: string): StatusType {
+  if (status === 'AUTHORIZED' || status === 'COMPLETED') return 'COMPLETED';
+  if (status === 'REFUSED' || status === 'CANCELLED') return 'DECLINED';
+  if (status === 'PENDING') return 'PENDING';
+  return 'INFO';
+}
 
 export default function CustomerProfilePage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { customer, kycDocuments, cards, isLoading, error } = useCustomer(customerId);
+  const { transactions, total, isLoading: txLoading, error: txError } = useCustomerTransactions(customerId);
+  const [cardsDialogOpen, setCardsDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -44,9 +54,14 @@ export default function CustomerProfilePage() {
             title={customer.fullName}
             subtitle={customer.customerRefId}
             actions={
-              <Button onClick={() => navigate(`/customers/${customer.customerRefId}/cards/new`)}>
-                <CreditCard className="h-4 w-4" /> Issue Additional Card
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setCardsDialogOpen(true)}>
+                  <CreditCard className="h-4 w-4" /> View Cards ({cards.length})
+                </Button>
+                <Button onClick={() => navigate(`/customers/${customer.customerRefId}/cards/new`)}>
+                  <CreditCard className="h-4 w-4" /> Issue Additional Card
+                </Button>
+              </>
             }
           />
 
@@ -109,10 +124,70 @@ export default function CustomerProfilePage() {
 
           <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
             <div className="border-b border-border px-6 py-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cards</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Transactions
+              </h3>
             </div>
+            {txLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : txError ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">{txError}</div>
+            ) : transactions.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No transactions found for this customer.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Currency</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {transactions.map((transaction) => (
+                      <tr key={transaction.transactionId} className="transition-colors hover:bg-muted/40">
+                        <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
+                        <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
+                        <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
+                        <td className="px-4 py-3 text-right text-sm font-mono">
+                          {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-sm">{transaction.currency}</td>
+                        <td className="px-4 py-3">
+                          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="border-t border-border px-6 py-3 text-sm text-muted-foreground">
+              {total} transaction{total === 1 ? '' : 's'} for this customer
+            </div>
+          </div>
+        </div>
+
+        <Dialog open={cardsDialogOpen} onOpenChange={setCardsDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Customer Cards</DialogTitle>
+              <DialogDescription>Cards currently owned by {customer.fullName}.</DialogDescription>
+            </DialogHeader>
             {cards.length === 0 ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">No cards issued.</div>
+              <div className="py-6 text-center text-sm text-muted-foreground">No cards issued.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -127,7 +202,14 @@ export default function CustomerProfilePage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {cards.map((card) => (
-                      <tr key={card.id} onClick={() => navigate(`/cards/${card.id}`)} className="cursor-pointer transition-colors hover:bg-muted/40">
+                      <tr
+                        key={card.id}
+                        onClick={() => {
+                          setCardsDialogOpen(false);
+                          navigate(`/cards/${card.id}`);
+                        }}
+                        className="cursor-pointer transition-colors hover:bg-muted/40"
+                      >
                         <td className="px-4 py-3 text-sm font-mono">{card.maskedPan}</td>
                         <td className="px-4 py-3 text-sm">{card.productName}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuingBankName}</td>
@@ -139,8 +221,8 @@ export default function CustomerProfilePage() {
                 </table>
               </div>
             )}
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     </ProtectedRoute>
   );

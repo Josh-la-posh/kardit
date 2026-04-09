@@ -83,6 +83,7 @@ import LoadsHomePage from "./pages/loads/LoadsHomePage";
 import SingleLoadPage from "./pages/loads/SingleLoadPage";
 import LoadReversalPage from "./pages/loads/LoadReversalPage";
 import LoadBatchesPage from "./pages/loads/LoadBatchesPage";
+import TransactionsPage from "./pages/transactions/TransactionsPage";
 
 // Reports
 import ReportsLandingPage from "./pages/reports/ReportsLandingPage";
@@ -194,6 +195,7 @@ const App = () => (
             <Route path="/loads/reversal" element={<LoadReversalPage />} />
             <Route path="/loads/batches" element={<LoadBatchesPage />} />
             <Route path="/loads/batches/:batchId" element={<LoadBatchesPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
 
             {/* Reports */}
             <Route path="/reports" element={<ReportsLandingPage />} />

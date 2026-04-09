@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
 import { useAuth } from '@/hooks/useAuth';
 import { createCustomerDraft as createCustomerDraftApi, getCustomer, searchCustomers } from '@/services/customerApi';
+import { getCustomerTransactions } from '@/services/transactionApi';
 import type { CustomerSearchCriteria } from '@/types/customerContracts';
+import type { CustomerTransactionsResponse } from '@/types/transactionContracts';
 import { store } from '@/stores/mockStore';
 import type { Card, KycDocument } from '@/stores/mockStore';
 
@@ -70,6 +72,17 @@ export interface CreateCustomerDraftResult {
   customerId: string;
   status: string;
   savedAt: string;
+}
+
+export interface CustomerTransactionListItem {
+  transactionId: string;
+  cardId: string;
+  transactionType: string;
+  amount: number;
+  currency: string;
+  status: string;
+  merchantName?: string;
+  transactionDate: string;
 }
 
 const toScopeType = (stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER') => {
@@ -144,8 +157,8 @@ export function useCustomers(query = '') {
         })
       );
       setTotal(response.total);
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load customers');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load customers');
       setCustomers([]);
       setTotal(0);
     } finally {
@@ -219,8 +232,8 @@ export function useCustomer(customerId: string | undefined) {
           embossName: fullName.toUpperCase(),
         }))
       );
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load customer');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load customer');
       setCustomer(null);
       setKycDocuments([]);
       setCards([]);
@@ -232,6 +245,43 @@ export function useCustomer(customerId: string | undefined) {
   useEffect(() => { fetch(); }, [fetch]);
 
   return { customer, kycDocuments, cards, isLoading, error, refetch: fetch };
+}
+
+export function useCustomerTransactions(customerId: string | undefined) {
+  const [transactions, setTransactions] = useState<CustomerTransactionListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetch = useCallback(async () => {
+    if (!customerId) {
+      setTransactions([]);
+      setTotal(0);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response: CustomerTransactionsResponse = await getCustomerTransactions(customerId);
+      setTransactions(response.data);
+      setTotal(response.total);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to load customer transactions';
+      setError(message);
+      setTransactions([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [customerId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { transactions, total, isLoading, error, refetch: fetch };
 }
 
 export function useCreateCustomer() {
