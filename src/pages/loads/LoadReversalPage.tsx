@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
-import { useCard, useCards } from '@/hooks/useCards';
+import { useCard, useCardsQuery } from '@/hooks/useCards';
 import { createCardUnload, getCardBalance } from '@/services/cardsApi';
 import type { CardUnloadResponse } from '@/types/cardContracts';
 import { ArrowLeft, CheckCircle, ChevronDown, Code, CreditCard, Landmark, Loader2, Search, Wallet } from 'lucide-react';
@@ -25,7 +25,10 @@ function randomId(prefix: string) {
 export default function LoadReversalPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cards } = useCards();
+  const { cards } = useCardsQuery({
+    page: 1,
+    pageSize: 100,
+  });
 
   const [search, setSearch] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);

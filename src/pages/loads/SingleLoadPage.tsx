@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
-import { useCard, useCards } from '@/hooks/useCards';
+import { useCard, useCardsQuery } from '@/hooks/useCards';
 import { createCardLoad, getCardBalance } from '@/services/cardsApi';
 import type { CardLoadResponse } from '@/types/cardContracts';
 import { ArrowLeft, CheckCircle, ChevronDown, Code, CreditCard, Landmark, Loader2, Search, Wallet } from 'lucide-react';
@@ -23,7 +23,13 @@ function randomId(prefix: string) {
 export default function SingleLoadPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cards } = useCards();
+  const { cards } = useCardsQuery({
+    filters: {
+      status: ['ACTIVE'],
+    },
+    page: 1,
+    pageSize: 100,
+  });
 
   const [search, setSearch] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);

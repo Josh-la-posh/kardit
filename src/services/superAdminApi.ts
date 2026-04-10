@@ -5,6 +5,10 @@ import type {
   GetReportStatusResponse,
   GetSuperAdminDashboardResponse,
   ListNotificationsResponse,
+  QueryAffiliatesRequest,
+  QueryAffiliatesResponse,
+  QueryBanksRequest,
+  QueryBanksResponse,
   ListSuperAdminAuditLogsRequest,
   ListSuperAdminAuditLogsResponse,
   SaveNotificationSettingsRequest,
@@ -88,4 +92,12 @@ export function generateReport(request: GenerateReportRequest) {
 
 export function getReportStatus(reportExecutionId: string) {
   return getJson<GetReportStatusResponse>(`/reports/${encodeURIComponent(reportExecutionId)}`);
+}
+
+export function queryBanks(request: QueryBanksRequest) {
+  return sendJson<QueryBanksResponse>('POST', '/banks/query', request);
+}
+
+export function queryAffiliates(request: QueryAffiliatesRequest) {
+  return sendJson<QueryAffiliatesResponse>('POST', '/affiliates/query', request);
 }

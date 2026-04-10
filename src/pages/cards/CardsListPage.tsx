@@ -5,7 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useCards } from '@/hooks/useCards';
+import { useCardsQuery } from '@/hooks/useCards';
 import { store } from '@/stores/mockStore';
 import { Search, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,14 +13,24 @@ import { Button } from '@/components/ui/button';
 
 export default function CardsListPage() {
   const navigate = useNavigate();
-  const { cards, isLoading } = useCards();
   const { user } = useAuth();
 
   const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [productFilter, setProductFilter] = useState('ALL');
+  const [cardTypeFilter, setCardTypeFilter] = useState('ALL');
+
+  const queryRequest = useMemo(() => ({
+    filters: {
+      status: statusFilter === 'ALL' ? undefined : [statusFilter],
+      cardType: cardTypeFilter === 'ALL' ? undefined : [cardTypeFilter],
+    },
+    page: 1,
+    pageSize: 50,
+  }), [cardTypeFilter, statusFilter]);
+
+  const { cards, isLoading } = useCardsQuery(queryRequest);
 
   const customers = store.getCustomers(tenantScope);
   const customerMap = useMemo(() => {
@@ -29,21 +39,14 @@ export default function CardsListPage() {
     return m;
   }, [customers]);
 
-  const products = useMemo(() => {
-    const s = new Set(cards.map((c) => c.productName));
-    return Array.from(s);
-  }, [cards]);
-
   const filtered = useMemo(() => {
     return cards.filter((c) => {
       const q = search.toLowerCase();
       const custName = customerMap[c.customerId] || '';
       const matchesSearch = !q || c.maskedPan.includes(q) || custName.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      const matchesProduct = productFilter === 'ALL' || c.productName === productFilter;
-      return matchesSearch && matchesStatus && matchesProduct;
+      return matchesSearch;
     });
-  }, [cards, search, statusFilter, productFilter, customerMap]);
+  }, [cards, search, customerMap]);
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
@@ -83,15 +86,14 @@ export default function CardsListPage() {
                   <SelectItem value="BLOCKED">Blocked</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={productFilter} onValueChange={setProductFilter}>
+              <Select value={cardTypeFilter} onValueChange={setCardTypeFilter}>
                 <SelectTrigger className="w-full sm:w-48 bg-muted border-border">
-                  <SelectValue placeholder="Product" />
+                  <SelectValue placeholder="Card Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Products</SelectItem>
-                  {products.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
+                  <SelectItem value="ALL">All Card Types</SelectItem>
+                  <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                  <SelectItem value="PHYSICAL">Physical</SelectItem>
                 </SelectContent>
               </Select>
             </div>

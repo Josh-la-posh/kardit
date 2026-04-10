@@ -56,10 +56,12 @@ export interface CreateCardRequest {
 
 export interface CardListItem {
   cardId: string;
+  bankId?: string;
+  affiliateId?: string;
   customerId?: string;
   customerRefId?: string;
-  bankId?: string;
   productId?: string;
+  cardType?: string;
   productType?: string;
   productName?: string;
   productCode?: string;
@@ -72,13 +74,27 @@ export interface CardListItem {
   issuedAt?: string;
 }
 
-export type GetCardsResponse =
-  | CardListItem[]
-  | {
-      cards?: CardListItem[];
-      items?: CardListItem[];
-      data?: CardListItem[];
-    };
+export interface QueryCardsRequest {
+  filters?: {
+    bankId?: string;
+    affiliateId?: string;
+    customerId?: string;
+    status?: string[];
+    cardType?: string[];
+    productId?: string;
+    fromDate?: string;
+    toDate?: string;
+  };
+  page?: number;
+  pageSize?: number;
+}
+
+export interface QueryCardsResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: CardListItem[];
+}
 
 export interface CreateCardResponse {
   cardId: string;

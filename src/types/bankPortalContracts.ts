@@ -141,6 +141,38 @@ export interface GetPartnershipRequestResponse {
   requestedAt: string;
 }
 
+export interface QueryPartnershipRequestsFilters {
+  bankId?: string | null;
+  affiliateId?: string | null;
+  status?: string[] | null;
+  fromDate?: string | null;
+  toDate?: string | null;
+}
+
+export interface QueryPartnershipRequestsRequest {
+  filters: QueryPartnershipRequestsFilters;
+  page: number;
+  pageSize: number;
+}
+
+export interface PartnershipRequestQueryItem {
+  partnershipRequestId: string;
+  affiliateId: string;
+  bankId: string;
+  bankName?: string;
+  status: string;
+  note?: string;
+  requestedAt: string;
+  decisionedAt?: string;
+}
+
+export interface QueryPartnershipRequestsResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: PartnershipRequestQueryItem[];
+}
+
 export interface ApprovePartnershipResponse {
   partnershipId: string;
   status: string;

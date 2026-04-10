@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
-import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus } from '@/services/cardsApi';
+import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus, queryCards } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
 import { getCustomer } from '@/services/customerApi';
-import { store, type Card } from '@/stores/mockStore';
+import type { Card } from '@/stores/mockStore';
 import type {
+  CardListItem,
   CreateCardRequest,
   CreateCardResponse,
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
+  QueryCardsRequest,
 } from '@/types/cardContracts';
 
 export interface CreateCardInput {
@@ -94,6 +96,28 @@ function toCardModel(
   };
 }
 
+function mapQueriedCard(item: CardListItem, tenantId?: string): Card {
+  return toCardModel(
+    {
+      cardId: item.cardId,
+      customerId: item.customerId,
+      customerRefId: item.customerRefId,
+      bankId: item.bankId,
+      productType: item.cardType || item.productType,
+      productName: item.productName || item.cardType || item.productType,
+      productCode: item.productCode || item.productId || item.cardType || item.productType,
+      status: item.status,
+      maskedPan: item.maskedPan,
+      currency: item.currency,
+      createdAt: item.createdAt,
+      issuedAt: item.issuedAt,
+      embossName: item.embossName,
+      deliveryMethod: item.deliveryMethod,
+    },
+    tenantId
+  );
+}
+
 function toErrorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
@@ -137,26 +161,42 @@ function mapCardDetail(response: GetCardResponse, fundingDetails: GetCardFunding
 }
 
 export function useCards() {
+  return useCardsQuery();
+}
+
+export function useCardsQuery(request?: QueryCardsRequest) {
   const [cards, setCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const tenantScope = user?.role === 'Super Admin' ? undefined : user?.tenantId;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setCards(store.getCards(tenantScope));
+      const response = await queryCards({
+        filters: {
+          affiliateId: request?.filters?.affiliateId ?? (user?.stakeholderType === 'AFFILIATE' ? user?.tenantId : undefined),
+          bankId: request?.filters?.bankId,
+          customerId: request?.filters?.customerId,
+          status: request?.filters?.status,
+          cardType: request?.filters?.cardType,
+          productId: request?.filters?.productId,
+          fromDate: request?.filters?.fromDate,
+          toDate: request?.filters?.toDate,
+        },
+        page: request?.page ?? 1,
+        pageSize: request?.pageSize ?? 25,
+      });
+      setCards(response.data.map((item) => mapQueriedCard(item, user?.tenantId)));
     } catch (err) {
       setCards([]);
       setError(toErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [tenantScope]);
+  }, [request?.filters?.affiliateId, request?.filters?.bankId, request?.filters?.cardType, request?.filters?.customerId, request?.filters?.fromDate, request?.filters?.productId, request?.filters?.status, request?.filters?.toDate, request?.page, request?.pageSize, user?.stakeholderType, user?.tenantId]);
 
   useEffect(() => {
     fetch();

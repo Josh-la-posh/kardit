@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
@@ -7,67 +7,44 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { store, type PlatformAffiliate } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Loader2 } from 'lucide-react';
+import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
+import type { BankQueryItem } from '@/types/superAdminContracts';
+import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
-  PENDING: 'PENDING',
+  APPROVED: 'PENDING',
   SUSPENDED: 'WARNING',
   INACTIVE: 'INACTIVE',
 };
 
-/**
- * BankDetailPage - Super Admin view of a specific bank's affiliates
- * Shows all affiliates under a selected bank
- */
 export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
-  
-  const bank = bankId ? store.getPlatformBank(bankId) : null;
-  const affiliates = useMemo(() => 
-    bankId ? store.getPlatformAffiliates(bankId) : [], 
-    [bankId]
-  );
-  
+  const location = useLocation();
+  const bank = (location.state as { bank?: BankQueryItem } | null)?.bank ?? null;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const { affiliates, total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
+    search,
+    status: statusFilter,
+  });
 
-  const filtered = useMemo(() => {
-    return affiliates.filter((affiliate) => {
-      const q = search.toLowerCase();
-      const matchesSearch = !q || 
-        affiliate.name.toLowerCase().includes(q) ||
-        affiliate.contactEmail.toLowerCase().includes(q) ||
-        affiliate.contactName.toLowerCase().includes(q) ||
-        affiliate.registrationNumber.toLowerCase().includes(q) ||
-        affiliate.country.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'ALL' || affiliate.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [affiliates, search, statusFilter]);
-
-  const statuses = useMemo(() => [...new Set(affiliates.map(a => a.status))], [affiliates]);
-
-  // Calculate totals for this bank
   const totals = useMemo(() => {
     return {
-      totalAffiliates: affiliates.length,
-      activeAffiliates: affiliates.filter(a => a.status === 'ACTIVE').length,
-      totalCustomers: affiliates.reduce((sum, a) => sum + a.totalCustomers, 0),
-      totalCards: affiliates.reduce((sum, a) => sum + a.totalCards, 0),
+      totalAffiliates: total,
+      activeAffiliates: affiliates.filter((affiliate) => affiliate.status === 'ACTIVE').length,
+      approvedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'APPROVED').length,
+      suspendedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'SUSPENDED').length,
     };
-  }, [affiliates]);
+  }, [affiliates, total]);
 
-  if (!bank) {
+  if (!bankId) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
-          <div className="text-center py-20 text-muted-foreground">
-            Bank not found
-          </div>
+          <div className="text-center py-20 text-muted-foreground">Bank not found</div>
         </AppLayout>
       </ProtectedRoute>
     );
@@ -78,11 +55,11 @@ export default function BankDetailPage() {
       <AppLayout navVariant="service-provider">
         <div className="animate-fade-in">
           <PageHeader
-            title={bank.name}
-            subtitle={`Affiliates under ${bank.name}`}
+            title={bank?.bankName || `Bank ${bankId}`}
+            subtitle={`Affiliates under ${bank?.bankName || bankId}`}
             actions={
               <div className="flex items-center gap-2">
-                <StatusChip status={statusToChip[bank.status] || 'INACTIVE'} label={bank.status} />
+                {bank?.status && <StatusChip status={statusToChip[bank.status] || 'INACTIVE'} label={bank.status} />}
                 <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
                 </Button>
@@ -90,40 +67,33 @@ export default function BankDetailPage() {
             }
           />
 
-          {/* Bank Info Card */}
           <div className="kardit-card p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank Code</p>
-                <p className="font-medium">{bank.code}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank ID</p>
+                <p className="font-medium">{bankId}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Country</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank Code</p>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{bank.country}</span>
+                  <span className="font-medium">{bank?.bankCode || '-'}</span>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Email</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Supported Currencies</p>
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{bank.contactEmail}</span>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{bank?.supportedCurrencies?.join(', ') || '-'}</span>
                 </div>
               </div>
-              {bank.contactPhone && (
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Phone</p>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{bank.contactPhone}</span>
-                  </div>
-                </div>
-              )}
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Created</p>
+                <p className="font-medium">{bank?.createdAt ? format(new Date(bank.createdAt), 'MMM d, yyyy') : '-'}</p>
+              </div>
             </div>
           </div>
 
-          {/* Summary Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
@@ -131,8 +101,8 @@ export default function BankDetailPage() {
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.activeAffiliates}/{totals.totalAffiliates}</p>
-                  <p className="text-xs text-muted-foreground">Active Affiliates</p>
+                  <p className="text-2xl font-bold">{totals.totalAffiliates}</p>
+                  <p className="text-xs text-muted-foreground">Affiliates Returned</p>
                 </div>
               </div>
             </div>
@@ -142,36 +112,42 @@ export default function BankDetailPage() {
                   <Users className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.totalCustomers.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Total Customers</p>
+                  <p className="text-2xl font-bold">{totals.activeAffiliates}</p>
+                  <p className="text-xs text-muted-foreground">Active Affiliates</p>
                 </div>
               </div>
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <CreditCard className="h-5 w-5 text-purple-500" />
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Users className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.totalCards.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Total Cards</p>
+                  <p className="text-2xl font-bold">{totals.approvedAffiliates}</p>
+                  <p className="text-xs text-muted-foreground">Approved Affiliates</p>
                 </div>
               </div>
             </div>
             <div className="kardit-card p-4">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Member Since</div>
-              <p className="text-lg font-medium">{format(new Date(bank.createdAt), 'MMM d, yyyy')}</p>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10">
+                  <Users className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{totals.suspendedAffiliates}</p>
+                  <p className="text-xs text-muted-foreground">Suspended Affiliates</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Filter Bar */}
           <div className="kardit-card p-4 mb-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Search by name, contact, registration number..."
+                  placeholder="Search by affiliate name, tenant, or registration number..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -182,17 +158,25 @@ export default function BankDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
-                  {statuses.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
+                  <SelectItem value="APPROVED">APPROVED</SelectItem>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+              </Button>
             </div>
           </div>
 
-          {/* Affiliates Table */}
           <div className="kardit-card overflow-hidden">
-            {filtered.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <div className="p-6 text-sm text-muted-foreground">{error}</div>
+            ) : affiliates.length === 0 ? (
               <div className="p-12 text-center">
                 <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">No affiliates found for this bank</p>
@@ -203,21 +187,21 @@ export default function BankDetailPage() {
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant ID</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Registration</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customers</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Cards</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Provisioned</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {filtered.map((affiliate, i) => (
+                    {affiliates.map((affiliate, i) => (
                       <tr
-                        key={affiliate.id}
+                        key={affiliate.affiliateId}
                         className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                        onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.id}`)}
+                        onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`)}
                       >
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
@@ -225,28 +209,17 @@ export default function BankDetailPage() {
                               <Building2 className="h-4 w-4 text-blue-500" />
                             </div>
                             <div>
-                              <p className="font-medium">{affiliate.name}</p>
-                              <p className="text-xs text-muted-foreground">{affiliate.country}</p>
+                              <p className="font-medium">{affiliate.legalName}</p>
+                              <p className="text-xs text-muted-foreground">{affiliate.tradingName || '-'}</p>
                             </div>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.affiliateId}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {affiliate.registrationNumber}
-                        </td>
-                        <td className="px-4 py-3 text-sm max-w-[200px]">
-                          <p className="truncate">{affiliate.contactName}</p>
-                          <p className="text-xs text-muted-foreground truncate">{affiliate.contactEmail}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {affiliate.totalCustomers.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {affiliate.totalCards.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {affiliate.provisionedAt 
-                            ? format(new Date(affiliate.provisionedAt), 'MMM d, yyyy')
-                            : '—'}
+                          {format(new Date(affiliate.createdAt), 'MMM d, yyyy')}
                         </td>
                         <td className="px-4 py-3">
                           <StatusChip status={statusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
@@ -257,7 +230,7 @@ export default function BankDetailPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.id}`);
+                              navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`);
                             }}
                           >
                             <Eye className="h-3 w-3 mr-1" /> View

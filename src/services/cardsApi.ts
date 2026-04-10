@@ -22,6 +22,8 @@ import type {
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
+  QueryCardsRequest,
+  QueryCardsResponse,
   PinResetRequest,
   PinResetResponse,
   RefreshCardFulfillmentRequest,
@@ -84,6 +86,10 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 
 export function createCard(request: CreateCardRequest): Promise<CreateCardResponse> {
   return postJson<CreateCardResponse>('/cards/issuance', request);
+}
+
+export function queryCards(request: QueryCardsRequest): Promise<QueryCardsResponse> {
+  return postJson<QueryCardsResponse>('/cards/query', request);
 }
 
 export function getCard(cardId: string): Promise<GetCardResponse> {

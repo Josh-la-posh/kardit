@@ -9,9 +9,9 @@ import {
   listBankAuditLogs,
   listBankCards,
   listBankReports,
+  queryPartnershipRequests,
   rejectPartnershipRequest,
   resolveBankId,
-  resolvePendingPartnershipRequestIds,
   suspendAffiliate,
 } from '@/services/bankPortalApi';
 import type {
@@ -303,7 +303,20 @@ export function usePendingPartnershipRequests() {
     try {
       const resolvedBankId = resolveBankId(user);
       setBankId(resolvedBankId);
-      const requestIds = resolvePendingPartnershipRequestIds();
+      const queryResponse = await queryPartnershipRequests({
+        filters: {
+          bankId: resolvedBankId,
+          status: ['PENDING_BANK_APPROVAL'],
+          affiliateId: null,
+          fromDate: null,
+          toDate: null,
+        },
+        page: 1,
+        pageSize: 25,
+      });
+      const requestIds = queryResponse.data
+        .filter((request) => request.status === 'PENDING_BANK_APPROVAL')
+        .map((request) => request.partnershipRequestId);
 
       if (!requestIds.length) {
         setRequests([]);
