@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -7,9 +7,16 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { store, type Customer } from '@/stores/mockStore';
-import { Search, Building2, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Calendar, User } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { store } from '@/stores/mockStore';
+import { Search, Building2, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Calendar, User, Activity, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getAffiliateTransactionVolume, getCustomerTransactions, queryTransactions } from '@/services/transactionApi';
+import type {
+  AffiliateTransactionVolumeResponse,
+  CustomerTransactionsResponse,
+  TransactionListItem,
+} from '@/types/transactionContracts';
 
 const affiliateStatusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -23,6 +30,22 @@ const customerStatusToChip: Record<string, StatusType> = {
   PENDING: 'PENDING',
   REJECTED: 'FAILED',
 };
+
+function formatMoney(value: number | undefined, currency = 'NGN') {
+  if (value === undefined) return '-';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function toTransactionStatus(status: string): StatusType {
+  if (status === 'AUTHORIZED' || status === 'COMPLETED') return 'COMPLETED';
+  if (status === 'REFUSED' || status === 'CANCELLED') return 'DECLINED';
+  if (status === 'PENDING') return 'PENDING';
+  return 'INFO';
+}
 
 /**
  * AffiliateDetailPage - Super Admin view of customers under a specific affiliate
@@ -41,6 +64,13 @@ export default function AffiliateDetailPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [affiliateVolume, setAffiliateVolume] = useState<AffiliateTransactionVolumeResponse | null>(null);
+  const [affiliateTransactions, setAffiliateTransactions] = useState<TransactionListItem[]>([]);
+  const [affiliateTxLoading, setAffiliateTxLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [customerTransactions, setCustomerTransactions] = useState<CustomerTransactionsResponse['data']>([]);
+  const [customerTxLoading, setCustomerTxLoading] = useState(false);
+  const [customerTxError, setCustomerTxError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return customers.filter((customer) => {
@@ -66,6 +96,52 @@ export default function AffiliateDetailPage() {
       pendingCustomers: customers.filter(c => c.status === 'PENDING').length,
     };
   }, [customers]);
+
+  useEffect(() => {
+    if (!affiliateId) return;
+
+    let active = true;
+    setAffiliateTxLoading(true);
+
+    Promise.all([
+      getAffiliateTransactionVolume(affiliateId).catch(() => null),
+      queryTransactions({
+        filters: {
+          bankId,
+          affiliateId,
+        },
+        page: 1,
+        pageSize: 10,
+      }).catch(() => null),
+    ])
+      .then(([volumeResponse, transactionsResponse]) => {
+        if (!active) return;
+        setAffiliateVolume(volumeResponse);
+        setAffiliateTransactions(transactionsResponse?.data ?? []);
+      })
+      .finally(() => {
+        if (active) setAffiliateTxLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [affiliateId, bankId]);
+
+  const openCustomerTransactions = async (customerId: string, name: string) => {
+    setSelectedCustomer({ id: customerId, name });
+    setCustomerTransactions([]);
+    setCustomerTxError(null);
+    setCustomerTxLoading(true);
+    try {
+      const response = await getCustomerTransactions(customerId);
+      setCustomerTransactions(response.data);
+    } catch (err) {
+      setCustomerTxError(err instanceof Error ? err.message : 'Unable to load customer transactions');
+    } finally {
+      setCustomerTxLoading(false);
+    }
+  };
 
   if (!bank || !affiliate) {
     return (
@@ -169,7 +245,7 @@ export default function AffiliateDetailPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-500/10">
@@ -214,6 +290,78 @@ export default function AffiliateDetailPage() {
                 </div>
               </div>
             </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Activity className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {affiliateTxLoading ? '...' : formatMoney(affiliateVolume?.volumes?.totalFundingVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Affiliate Funding</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Affiliate Transactions */}
+          <div className="kardit-card overflow-hidden mb-4">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Affiliate Transactions</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Latest transactions scoped to this affiliate.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/transactions?affiliateId=${encodeURIComponent(affiliateId || '')}`)}
+              >
+                View All
+              </Button>
+            </div>
+            {affiliateTxLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : affiliateTransactions.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">No affiliate transactions found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {affiliateTransactions.map((transaction, index) => (
+                      <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
+                        <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
+                        <td className="px-4 py-3 text-sm font-mono">{transaction.customerId}</td>
+                        <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
+                        <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
+                        <td className="px-4 py-3 text-right text-sm font-mono">
+                          {formatMoney(transaction.amount, transaction.currency)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Filter Bar */}
@@ -260,6 +408,7 @@ export default function AffiliateDetailPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transactions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -296,6 +445,18 @@ export default function AffiliateDetailPage() {
                         <td className="px-4 py-3 text-sm text-muted-foreground">
                           {format(new Date(customer.createdAt), 'MMM d, yyyy')}
                         </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openCustomerTransactions(
+                              customer.customerId,
+                              `${customer.firstName} ${customer.lastName}`
+                            )}
+                          >
+                            <Activity className="h-3 w-3 mr-1" /> View
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -304,6 +465,61 @@ export default function AffiliateDetailPage() {
             )}
           </div>
         </div>
+
+        <Dialog open={selectedCustomer !== null} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
+          <DialogContent className="max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>Customer Transactions</DialogTitle>
+              <DialogDescription>
+                {selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.id})` : 'Customer transaction history'}
+              </DialogDescription>
+            </DialogHeader>
+            {customerTxLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : customerTxError ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">{customerTxError}</div>
+            ) : customerTransactions.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No transactions found for this customer.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {customerTransactions.map((transaction, index) => (
+                      <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
+                        <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
+                        <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
+                        <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
+                        <td className="px-4 py-3 text-right text-sm font-mono">
+                          {formatMoney(transaction.amount, transaction.currency)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     </ProtectedRoute>
   );

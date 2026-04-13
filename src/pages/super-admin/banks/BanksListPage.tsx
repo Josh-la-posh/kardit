@@ -8,15 +8,25 @@ import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { store, type PlatformBank } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, RefreshCw, Download, Plus } from 'lucide-react';
+import { Search, Building2, Eye, Users, CreditCard, RefreshCw, Download, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useBankTransactionVolumes } from '@/hooks/useTransactionVolumes';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
   INACTIVE: 'INACTIVE',
   SUSPENDED: 'WARNING',
 };
+
+function formatMoney(value: number | undefined) {
+  if (value === undefined) return '-';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 /**
  * BanksListPage - Super Admin view of all banks on the platform
@@ -28,6 +38,8 @@ export default function BanksListPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [downloading, setDownloading] = useState(false);
+  const bankIds = useMemo(() => banks.map((bank) => bank.id), [banks]);
+  const { volumes, isLoading: volumesLoading } = useBankTransactionVolumes(bankIds);
 
   const handleDownloadReport = async () => {
     setDownloading(true);
@@ -65,8 +77,12 @@ export default function BanksListPage() {
       totalAffiliates: banks.reduce((sum, b) => sum + b.totalAffiliates, 0),
       totalCustomers: banks.reduce((sum, b) => sum + b.totalCustomers, 0),
       totalCards: banks.reduce((sum, b) => sum + b.totalCards, 0),
+      totalTransactionVolume: bankIds.reduce(
+        (sum, bankId) => sum + (volumes[bankId]?.volumes?.totalTransactionVolume ?? 0),
+        0
+      ),
     };
-  }, [banks]);
+  }, [bankIds, banks, volumes]);
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
@@ -93,7 +109,7 @@ export default function BanksListPage() {
           />
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -124,6 +140,19 @@ export default function BanksListPage() {
                 <div>
                   <p className="text-2xl font-bold">{totals.totalCustomers.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">Total Customers</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Activity className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {volumesLoading ? '...' : formatMoney(totals.totalTransactionVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Transaction Volume</p>
                 </div>
               </div>
             </div>
@@ -184,6 +213,7 @@ export default function BanksListPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliates</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customers</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Cards</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transactions</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
                     </tr>
@@ -223,6 +253,16 @@ export default function BanksListPage() {
                         </td>
                         <td className="px-4 py-3 text-sm font-medium">
                           {bank.totalCards.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div>
+                            <p className="font-medium">
+                              {volumesLoading ? 'Loading...' : formatMoney(volumes[bank.id]?.volumes?.totalTransactionVolume)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Funding {formatMoney(volumes[bank.id]?.volumes?.totalFundingVolume)}
+                            </p>
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <StatusChip status={statusToChip[bank.status] || 'INACTIVE'} label={bank.status} />

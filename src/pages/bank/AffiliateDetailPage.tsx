@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -7,22 +7,46 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, CreditCard, Loader2, ShieldAlert, StopCircle } from 'lucide-react';
+import { Activity, ChevronLeft, CreditCard, Loader2, ShieldAlert, StopCircle } from 'lucide-react';
 import { useBankAffiliateCards, useBankAffiliates } from '@/hooks/useBankPortal';
+import { queryTransactions } from '@/services/transactionApi';
+import type { TransactionListItem, TransactionStatus, TransactionType } from '@/types/transactionContracts';
+
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function toTransactionStatus(status: string) {
+  if (status === 'AUTHORIZED' || status === 'COMPLETED') return 'COMPLETED';
+  if (status === 'REFUSED' || status === 'CANCELLED') return 'DECLINED';
+  if (status === 'PENDING') return 'PENDING';
+  return 'INFO';
+}
 
 export default function AffiliateDetailPages() {
   const { affiliateId } = useParams<{ affiliateId: string }>();
   const navigate = useNavigate();
   const { affiliates } = useBankAffiliates();
-  const { cards, total, isLoading, error, fetchCards, suspend, block } = useBankAffiliateCards(affiliateId);
+  const { bankId, cards, total, isLoading, error, fetchCards, suspend, block } = useBankAffiliateCards(affiliateId);
 
-  const [status, setStatus] = useState('ALL');
+  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | 'ALL'>('ALL');
+  const [transactionType, setTransactionType] = useState<TransactionType | 'ALL'>('ALL');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [actionReason, setActionReason] = useState('');
   const [working, setWorking] = useState(false);
+  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
+  const [transactionTotal, setTransactionTotal] = useState(0);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [cardsDialogOpen, setCardsDialogOpen] = useState(false);
   const visibleCards = Array.isArray(cards) ? cards : [];
 
   const affiliate = useMemo(
@@ -30,9 +54,41 @@ export default function AffiliateDetailPages() {
     [affiliates, affiliateId]
   );
 
+  const fetchTransactions = useCallback(async () => {
+    if (!affiliateId) return;
+    setTransactionsLoading(true);
+    setTransactionsError(null);
+    try {
+      const response = await queryTransactions({
+        filters: {
+          bankId: bankId || undefined,
+          affiliateId,
+          status: transactionStatus === 'ALL' ? undefined : [transactionStatus],
+          transactionType: transactionType === 'ALL' ? undefined : [transactionType],
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+        },
+        page: 1,
+        pageSize: 25,
+      });
+      setTransactions(response.data);
+      setTransactionTotal(response.total);
+    } catch (err) {
+      setTransactions([]);
+      setTransactionTotal(0);
+      setTransactionsError(err instanceof Error ? err.message : 'Failed to load affiliate transactions');
+    } finally {
+      setTransactionsLoading(false);
+    }
+  }, [affiliateId, bankId, fromDate, toDate, transactionStatus, transactionType]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
   const applyFilters = async () => {
+    await fetchTransactions();
     await fetchCards({
-      status: status === 'ALL' ? undefined : status,
       fromDate: fromDate || undefined,
       toDate: toDate || undefined,
     });
@@ -47,8 +103,8 @@ export default function AffiliateDetailPages() {
     try {
       const response = await suspend(actionReason.trim());
       toast.warning(`Affiliate suspended: ${response.currentStatus}`);
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to suspend affiliate');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to suspend affiliate');
     } finally {
       setWorking(false);
     }
@@ -63,8 +119,8 @@ export default function AffiliateDetailPages() {
     try {
       const response = await block(actionReason.trim());
       toast.error(`Affiliate blocked: ${response.currentStatus}`);
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to block affiliate');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to block affiliate');
     } finally {
       setWorking(false);
     }
@@ -80,9 +136,14 @@ export default function AffiliateDetailPages() {
               Back
             </Button>
             <PageHeader
-              title={affiliate?.affiliateId || affiliateId || 'Affiliate'}
-              subtitle={affiliate ? `Tenant ID: ${affiliate.tenantId}` : 'Affiliate card portfolio'}
+              title={affiliate?.affiliateName}
+              subtitle=''
               showBack={false}
+              actions={
+                <Button variant="outline" onClick={() => setCardsDialogOpen(true)}>
+                  <CreditCard className="h-4 w-4" /> View Cards ({total})
+                </Button>
+              }
             />
           </div>
 
@@ -91,15 +152,7 @@ export default function AffiliateDetailPages() {
               <Card className="border-0 shadow-lg p-6">
                 <h3 className="mb-4 text-lg font-semibold">Affiliate Summary</h3>
                 {affiliate ? (
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Affiliate ID</p>
-                      <p className="font-semibold">{affiliate.affiliateId}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tenant ID</p>
-                      <p className="font-semibold">{affiliate.tenantId}</p>
-                    </div>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="text-sm text-muted-foreground">Funding Volume</p>
                       <p className="font-semibold">{affiliate.totalFundingVolume.toLocaleString()}</p>
@@ -119,20 +172,37 @@ export default function AffiliateDetailPages() {
               </Card>
 
               <Card className="border-0 shadow-lg p-6">
-                <h3 className="mb-4 text-lg font-semibold">Card Filters</h3>
+                <h3 className="mb-4 text-lg font-semibold">Transaction Filters</h3>
                 <div className="grid gap-4 md:grid-cols-4">
                   <div>
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="transactionStatus">Status</Label>
                     <select
-                      id="status"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
+                      id="transactionStatus"
+                      value={transactionStatus}
+                      onChange={(e) => setTransactionStatus(e.target.value as TransactionStatus | 'ALL')}
                       className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
                     >
                       <option value="ALL">All</option>
-                      <option value="ACTIVE">Active</option>
-                      <option value="FROZEN">Frozen</option>
-                      <option value="TERMINATED">Terminated</option>
+                      <option value="AUTHORIZED">Authorized</option>
+                      <option value="REFUSED">Refused</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="PENDING">Pending</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="transactionType">Type</Label>
+                    <select
+                      id="transactionType"
+                      value={transactionType}
+                      onChange={(e) => setTransactionType(e.target.value as TransactionType | 'ALL')}
+                      className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
+                    >
+                      <option value="ALL">All</option>
+                      <option value="POS">POS</option>
+                      <option value="ATM_WITHDRAWAL">ATM Withdrawal</option>
+                      <option value="LOAD">Load</option>
+                      <option value="UNLOAD">Unload</option>
                     </select>
                   </div>
                   <div>
@@ -152,42 +222,50 @@ export default function AffiliateDetailPages() {
               <Card className="border-0 shadow-lg">
                 <div className="p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Cards</h2>
-                    <p className="text-sm text-muted-foreground">{total} result(s)</p>
+                    <h2 className="text-2xl font-bold">Transactions</h2>
+                    <p className="text-sm text-muted-foreground">{transactionTotal} result(s)</p>
                   </div>
 
-                  {isLoading ? (
+                  {transactionsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ) : error ? (
-                    <div className="text-sm text-muted-foreground">{error}</div>
-                  ) : visibleCards.length === 0 ? (
+                  ) : transactionsError ? (
+                    <div className="text-sm text-muted-foreground">{transactionsError}</div>
+                  ) : transactions.length === 0 ? (
                     <div className="py-8 text-center text-gray-500">
-                      <p>No cards found for this affiliate.</p>
+                      <p>No transactions found for this affiliate.</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-200">
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Transaction ID</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Card ID</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Masked PAN</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Product</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Customer Ref</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Issued At</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
+                            <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Amount</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Merchant</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {visibleCards.map((card) => (
-                            <tr key={card.cardId} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{card.cardId}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{card.maskedPan}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{card.productType}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{card.status}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{card.customerRefId}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{format(new Date(card.issuedAt), 'MMM d, yyyy HH:mm')}</td>
+                          {transactions.map((transaction) => (
+                            <tr key={transaction.transactionId} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{transaction.transactionId}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{transaction.cardId}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{transaction.customerId}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{transaction.transactionType}</td>
+                              <td className="px-4 py-3 text-right text-sm font-mono text-gray-600">
+                                {formatMoney(transaction.amount, transaction.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{transaction.merchantName || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -229,13 +307,60 @@ export default function AffiliateDetailPages() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Portfolio Snapshot</p>
-                    <p className="font-semibold">{visibleCards.length} visible cards</p>
+                    <p className="font-semibold">{transactionTotal} transaction results</p>
                   </div>
                 </div>
               </Card>
             </div>
           </div>
         </div>
+
+        <Dialog open={cardsDialogOpen} onOpenChange={setCardsDialogOpen}>
+          <DialogContent className="max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>Affiliate Cards</DialogTitle>
+              <DialogDescription>
+                Cards owned by {affiliate?.affiliateId || affiliateId || 'this affiliate'}.
+              </DialogDescription>
+            </DialogHeader>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">{error}</div>
+            ) : visibleCards.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No cards found for this affiliate.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Masked PAN</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer Ref</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Issued At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {visibleCards.map((card) => (
+                      <tr key={card.cardId}>
+                        <td className="px-4 py-3 text-sm font-medium">{card.cardId}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.maskedPan}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.productType}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.status}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.customerRefId}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(card.issuedAt), 'MMM d, yyyy HH:mm')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     </ProtectedRoute>
   );

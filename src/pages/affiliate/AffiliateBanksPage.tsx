@@ -65,7 +65,7 @@ export default function AffiliateBanksPage() {
         <div className="animate-fade-in">
           <PageHeader
             title="Bank Partnerships"
-            subtitle={affiliateId ? `Affiliate ID: ${affiliateId}` : 'Manage your issuing-bank partnerships'}
+            subtitle=''
             actions={
               <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
                 <RefreshCw className="mr-1 h-4 w-4" /> Refresh

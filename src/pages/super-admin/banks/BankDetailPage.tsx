@@ -8,8 +8,9 @@ import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { store, type PlatformAffiliate } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Loader2 } from 'lucide-react';
+import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Activity, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -18,6 +19,15 @@ const statusToChip: Record<string, StatusType> = {
   INACTIVE: 'INACTIVE',
 };
 
+function formatMoney(value: number | undefined) {
+  if (value === undefined) return '-';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 /**
  * BankDetailPage - Super Admin view of a specific bank's affiliates
  * Shows all affiliates under a selected bank
@@ -25,6 +35,7 @@ const statusToChip: Record<string, StatusType> = {
 export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
+  const { volume, isLoading: volumeLoading } = useBankTransactionVolume(bankId);
   
   const bank = bankId ? store.getPlatformBank(bankId) : null;
   const affiliates = useMemo(() => 
@@ -124,7 +135,7 @@ export default function BankDetailPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 xl:grid-cols-7 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -161,6 +172,45 @@ export default function BankDetailPage() {
             <div className="kardit-card p-4">
               <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Member Since</div>
               <p className="text-lg font-medium">{format(new Date(bank.createdAt), 'MMM d, yyyy')}</p>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Activity className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalTransactionVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Transaction Volume</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalFundingVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Funding Volume</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <TrendingDown className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalUnloadVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Unload Volume</p>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -19,6 +19,7 @@ export interface GetBankDashboardResponse {
 export interface BankAffiliateSummary {
   affiliateId: string;
   tenantId: string;
+  affiliateName: string;
   totalCards: number;
   activeCards: number;
   totalFundingVolume: number;
