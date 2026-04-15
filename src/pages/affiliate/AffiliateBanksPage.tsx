@@ -10,12 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { useAffiliateBankPartnerships } from '@/hooks/useAffiliateBanks';
-
-const AVAILABLE_BANKS = [
-  { bankId: 'BNK-UBA-001', bankName: 'UBA' },
-  { bankId: 'BNK-ZEN-002', bankName: 'Zenith Bank' },
-  { bankId: 'BNK-GTB-003', bankName: 'GTBank' },
-];
+import { useBankQuery } from '@/hooks/useBanks';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -27,13 +22,25 @@ const statusToChip: Record<string, StatusType> = {
 export default function AffiliateBanksPage() {
   const { affiliateId, banks, isLoading, isSubmitting, error, refresh, requestPartnership } = useAffiliateBankPartnerships();
   const [selectedBankId, setSelectedBankId] = useState('');
+  const [bankSearch, setBankSearch] = useState('');
   const [note, setNote] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const bankCatalogStatuses = useMemo(() => ['ACTIVE'], []);
+  const {
+    banks: bankCatalog,
+    isLoading: bankCatalogLoading,
+    error: bankCatalogError,
+  } = useBankQuery({
+    status: bankCatalogStatuses,
+    search: bankSearch,
+    page: 1,
+    pageSize: 25,
+  });
 
   const requestableBanks = useMemo(() => {
     const existing = new Set(banks.map((bank) => bank.bankId));
-    return AVAILABLE_BANKS.filter((bank) => !existing.has(bank.bankId));
-  }, [banks]);
+    return bankCatalog.filter((bank) => !existing.has(bank.bankId));
+  }, [bankCatalog, banks]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,18 +149,36 @@ export default function AffiliateBanksPage() {
                   {localError || error}
                 </div>
               )}
+              {bankCatalogError && (
+                <div className="mb-4 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  {bankCatalogError}
+                </div>
+              )}
 
               <form className="space-y-4" onSubmit={onSubmit}>
                 <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">Search Banks</label>
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Search by bank name or code..."
+                    value={bankSearch}
+                    onChange={(e) => {
+                      setBankSearch(e.target.value);
+                      setSelectedBankId('');
+                    }}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
                   <label className="mb-2 block text-sm font-medium text-foreground">Bank</label>
-                  <Select value={selectedBankId} onValueChange={setSelectedBankId} disabled={isSubmitting}>
+                  <Select value={selectedBankId} onValueChange={setSelectedBankId} disabled={isSubmitting || bankCatalogLoading}>
                     <SelectTrigger className="bg-muted border-border">
-                      <SelectValue placeholder={requestableBanks.length ? 'Select a bank' : 'No banks available'} />
+                      <SelectValue placeholder={bankCatalogLoading ? 'Loading banks...' : requestableBanks.length ? 'Select a bank' : 'No banks available'} />
                     </SelectTrigger>
                     <SelectContent>
                       {requestableBanks.map((bank) => (
                         <SelectItem key={bank.bankId} value={bank.bankId}>
-                          {bank.bankName}
+                          {bank.bankName} ({bank.bankCode})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -171,7 +196,7 @@ export default function AffiliateBanksPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting || !requestableBanks.length}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || bankCatalogLoading || !requestableBanks.length}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Submitting...

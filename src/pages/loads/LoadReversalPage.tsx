@@ -175,7 +175,7 @@ export default function LoadReversalPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder="Search by PAN, customer ID, or product..."
+                    placeholder="Search by PAN, or product..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -205,7 +205,7 @@ export default function LoadReversalPage() {
               ) : selectedCard ? (
                 <div className="kardit-surface p-4 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" /> <span className="font-mono">{selectedCard.maskedPan}</span></div>
-                  <p className="text-muted-foreground">Customer ID: {selectedCard.customerId}</p>
+                  {/* <p className="text-muted-foreground">Customer ID: {selectedCard.customerId}</p> */}
                   <p className="text-muted-foreground">Product: {selectedCard.productName}</p>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Landmark className="h-4 w-4" />

@@ -61,6 +61,7 @@ export interface CardListItem {
   bankId?: string;
   productId?: string;
   productType?: string;
+  cardType?: string;
   productName?: string;
   productCode?: string;
   status: string;
@@ -70,6 +71,31 @@ export interface CardListItem {
   deliveryMethod?: string;
   createdAt?: string;
   issuedAt?: string;
+}
+
+export type CardQueryStatus = 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' | 'BLOCKED' | string;
+export type CardQueryType = 'VIRTUAL' | 'PHYSICAL' | string;
+
+export interface QueryCardsRequest {
+  filters: {
+    bankId?: string;
+    affiliateId?: string;
+    customerId?: string;
+    status?: CardQueryStatus[];
+    cardType?: CardQueryType[];
+    productId?: string;
+    fromDate?: string;
+    toDate?: string;
+  };
+  page: number;
+  pageSize: number;
+}
+
+export interface QueryCardsResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: CardListItem[];
 }
 
 export type GetCardsResponse =
