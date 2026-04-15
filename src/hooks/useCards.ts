@@ -169,6 +169,8 @@ export function useCardsQuery(request?: QueryCardsRequest) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const statusFilterKey = request?.filters?.status?.join('|') ?? '';
+  const cardTypeFilterKey = request?.filters?.cardType?.join('|') ?? '';
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
@@ -180,8 +182,8 @@ export function useCardsQuery(request?: QueryCardsRequest) {
           affiliateId: request?.filters?.affiliateId ?? (user?.stakeholderType === 'AFFILIATE' ? user?.tenantId : undefined),
           bankId: request?.filters?.bankId,
           customerId: request?.filters?.customerId,
-          status: request?.filters?.status,
-          cardType: request?.filters?.cardType,
+          status: statusFilterKey ? statusFilterKey.split('|') : undefined,
+          cardType: cardTypeFilterKey ? cardTypeFilterKey.split('|') : undefined,
           productId: request?.filters?.productId,
           fromDate: request?.filters?.fromDate,
           toDate: request?.filters?.toDate,
@@ -196,7 +198,7 @@ export function useCardsQuery(request?: QueryCardsRequest) {
     } finally {
       setIsLoading(false);
     }
-  }, [request?.filters?.affiliateId, request?.filters?.bankId, request?.filters?.cardType, request?.filters?.customerId, request?.filters?.fromDate, request?.filters?.productId, request?.filters?.status, request?.filters?.toDate, request?.page, request?.pageSize, user?.stakeholderType, user?.tenantId]);
+  }, [cardTypeFilterKey, request?.filters?.affiliateId, request?.filters?.bankId, request?.filters?.customerId, request?.filters?.fromDate, request?.filters?.productId, request?.filters?.toDate, request?.page, request?.pageSize, statusFilterKey, user?.stakeholderType, user?.tenantId]);
 
   useEffect(() => {
     fetch();

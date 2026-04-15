@@ -23,13 +23,14 @@ function randomId(prefix: string) {
 export default function SingleLoadPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cards } = useCardsQuery({
+  const activeCardsRequest = useMemo(() => ({
     filters: {
       status: ['ACTIVE'],
     },
     page: 1,
     pageSize: 100,
-  });
+  }), []);
+  const { cards } = useCardsQuery(activeCardsRequest);
 
   const [search, setSearch] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);

@@ -78,7 +78,7 @@ export default function IssuingBanksListPage() {
           />
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -123,7 +123,7 @@ export default function IssuingBanksListPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Filter Bar */}
           <div className="kardit-card p-4 mb-4">
