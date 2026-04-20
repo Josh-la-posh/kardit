@@ -21,6 +21,9 @@ type ApiEnvelope<T> = {
   };
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -76,13 +79,31 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 
 function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
   if (response && typeof response === 'object' && 'data' in response) {
-    const envelope = response as ApiEnvelope<TResponse>;
+    const envelope = response as ApiEnvelope<TResponse> & {
+      status?: string;
+      meta?: unknown;
+      correlationId?: string;
+      timestamp?: string;
+      data?: unknown;
+    };
     if (envelope.data?.isSuccess === false) {
       throw new ApiError('Request failed', 200, envelope.data.error);
     }
 
     if (envelope.data?.value !== undefined) {
       return envelope.data.value;
+    }
+
+    // Supports backend responses like:
+    // { status: "success", data: { ...payload }, meta, correlationId, timestamp }
+    if (
+      envelope.data !== undefined &&
+      (envelope.status !== undefined ||
+        envelope.meta !== undefined ||
+        envelope.correlationId !== undefined ||
+        envelope.timestamp !== undefined)
+    ) {
+      return envelope.data as TResponse;
     }
   }
 
@@ -92,8 +113,10 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>)
 function normalizeListResponse<TItem>(
   value: {
     page?: number;
+    pageNumber?: number;
     pageSize?: number;
     total?: number;
+    totalRecords?: number;
     data?: unknown;
     results?: unknown;
     items?: unknown;
@@ -103,24 +126,84 @@ function normalizeListResponse<TItem>(
   fallbackPage = 1,
   fallbackPageSize = 25
 ) {
+  const nestedPayload =
+    value.data && typeof value.data === 'object' && !Array.isArray(value.data)
+      ? (value.data as {
+          page?: number;
+          pageNumber?: number;
+          pageSize?: number;
+          total?: number;
+          totalRecords?: number;
+          data?: unknown;
+          results?: unknown;
+          items?: unknown;
+          records?: unknown;
+          transactions?: unknown;
+        })
+      : undefined;
+
+  const resolved = nestedPayload ?? value;
+
   const list =
-    Array.isArray(value.data)
-      ? value.data
-      : Array.isArray(value.results)
-        ? value.results
-        : Array.isArray(value.items)
-          ? value.items
-          : Array.isArray(value.records)
-            ? value.records
-            : Array.isArray(value.transactions)
-              ? value.transactions
+    Array.isArray(resolved.data)
+      ? resolved.data
+      : Array.isArray(resolved.results)
+        ? resolved.results
+        : Array.isArray(resolved.items)
+          ? resolved.items
+          : Array.isArray(resolved.records)
+            ? resolved.records
+            : Array.isArray(resolved.transactions)
+              ? resolved.transactions
               : [];
 
   return {
-    page: value.page ?? fallbackPage,
-    pageSize: value.pageSize ?? fallbackPageSize,
-    total: value.total ?? list.length,
+    page: resolved.page ?? resolved.pageNumber ?? fallbackPage,
+    pageSize: resolved.pageSize ?? fallbackPageSize,
+    total: resolved.total ?? resolved.totalRecords ?? list.length,
     data: list as TItem[],
+  };
+}
+
+function normalizeTransactionDetailResponse(value: unknown): TransactionDetail {
+  const pickCandidate = (source: unknown): Record<string, unknown> | undefined => {
+    if (!isRecord(source)) return undefined;
+    if (typeof source.transactionId === 'string') return source;
+
+    const nestedKeys = ['data', 'result', 'transaction', 'item'];
+    for (const key of nestedKeys) {
+      const nested = source[key];
+      if (isRecord(nested) && typeof nested.transactionId === 'string') {
+        return nested;
+      }
+    }
+
+    return source;
+  };
+
+  const candidate = pickCandidate(value) ?? {};
+
+  return {
+    transactionId: String(candidate.transactionId ?? ''),
+    cardId: String(candidate.cardId ?? ''),
+    customerId: String(candidate.customerId ?? ''),
+    bankId: String(candidate.bankId ?? ''),
+    affiliateId: String(candidate.affiliateId ?? ''),
+    transactionType: String(candidate.transactionType ?? 'POS') as TransactionDetail['transactionType'],
+    amount: Number(candidate.amount ?? 0),
+    currency: String(candidate.currency ?? 'NGN'),
+    status: String(candidate.status ?? 'PENDING') as TransactionDetail['status'],
+    merchantName: typeof candidate.merchantName === 'string' ? candidate.merchantName : undefined,
+    merchantCategoryCode:
+      typeof candidate.merchantCategoryCode === 'string'
+        ? candidate.merchantCategoryCode
+        : typeof candidate.merchantCategory === 'string'
+          ? candidate.merchantCategory
+          : undefined,
+    authorizationCode: typeof candidate.authorizationCode === 'string' ? candidate.authorizationCode : undefined,
+    sourceRef: typeof candidate.sourceRef === 'string' ? candidate.sourceRef : undefined,
+    transactionDate: String(candidate.transactionDate ?? ''),
+    createdAt: String(candidate.createdAt ?? ''),
   };
 }
 
@@ -139,7 +222,8 @@ export function queryTransactions(request: TransactionQueryRequest): Promise<Tra
 
 export function getTransaction(transactionId: string): Promise<TransactionDetail> {
   return getJson<TransactionDetail | ApiEnvelope<TransactionDetail>>(`/transactions/${encodeURIComponent(transactionId)}`)
-    .then(unwrapApiValue);
+    .then(unwrapApiValue)
+    .then(normalizeTransactionDetailResponse);
 }
 
 export function getCustomerTransactions(customerId: string): Promise<CustomerTransactionsResponse> {

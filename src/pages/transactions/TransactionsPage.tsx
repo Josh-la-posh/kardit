@@ -29,14 +29,28 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 25;
 const transactionTypeOptions: Array<TransactionType | 'ALL'> = ['ALL', 'POS', 'ATM_WITHDRAWAL', 'LOAD', 'UNLOAD'];
-const transactionStatusOptions: Array<TransactionStatus | 'ALL'> = ['ALL', 'AUTHORIZED', 'REFUSED', 'CANCELLED', 'COMPLETED', 'PENDING'];
+const transactionStatusOptions: Array<TransactionStatus | 'ALL'> = [
+  'ALL',
+  'SUCCESS',
+  'FAILED',
+  'AUTHORIZED',
+  'REFUSED',
+  'CANCELLED',
+  'COMPLETED',
+  'PENDING',
+];
 
 function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const safeCurrency = (currency || '').trim() || 'NGN';
+  try {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: safeCurrency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString('en-NG')} ${safeCurrency}`;
+  }
 }
 
 function formatDateTime(value?: string) {
@@ -49,8 +63,8 @@ function formatDateTime(value?: string) {
 }
 
 function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (status === 'AUTHORIZED' || status === 'COMPLETED') return 'default';
-  if (status === 'REFUSED' || status === 'CANCELLED') return 'destructive';
+  if (status === 'SUCCESS' || status === 'AUTHORIZED' || status === 'COMPLETED') return 'default';
+  if (status === 'FAILED' || status === 'REFUSED' || status === 'CANCELLED') return 'destructive';
   if (status === 'PENDING') return 'secondary';
   return 'outline';
 }

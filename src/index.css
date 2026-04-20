@@ -23,8 +23,8 @@
     --popover: 220 12% 12%;
     --popover-foreground: 0 0% 96%;
 
-    /* Tangerine Orange Primary */
-    --primary: 28 85% 52%;              /* #E67E22 - Dark tangerine */
+    /* Primary */
+    --primary: 147.38 100% 31.37%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary - Subtle Teal */
@@ -36,7 +36,7 @@
     --muted-foreground: 220 10% 60%;    /* Cool grey text */
 
     /* Accent - same as primary for consistency */
-    --accent: 28 85% 52%;
+    --accent: 147.38 100% 31.37%;
     --accent-foreground: 0 0% 100%;
 
     /* Status Colors */
@@ -55,19 +55,19 @@
     /* Borders & Inputs */
     --border: 220 10% 20%;
     --input: 220 10% 20%;
-    --ring: 28 85% 52%;
+    --ring: 147.38 100% 31.37%;
 
     --radius: 0.5rem;
 
     /* Sidebar */
     --sidebar-background: 220 15% 9%;
     --sidebar-foreground: 220 10% 70%;
-    --sidebar-primary: 28 85% 52%;
+    --sidebar-primary: 147.38 100% 31.37%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 12% 14%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 220 10% 18%;
-    --sidebar-ring: 28 85% 52%;
+    --sidebar-ring: 147.38 100% 31.37%;
 
     /* Custom Kardit tokens */
     --surface: 220 12% 10%;
@@ -77,14 +77,14 @@
     --text-muted: 220 10% 45%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(28 85% 52%), hsl(20 90% 45%));
+    --gradient-primary: linear-gradient(135deg, hsl(147.38 100% 31.37%), hsl(147.38 100% 24%));
     --gradient-surface: linear-gradient(180deg, hsl(220 12% 12%), hsl(220 12% 10%));
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
-    --shadow-glow: 0 0 20px hsl(28 85% 52% / 0.15);
+    --shadow-glow: 0 0 20px hsl(147.38 100% 31.37% / 0.15);
   }
 
   /* Light mode override (not default, but available) */
@@ -95,17 +95,17 @@
     --card-foreground: 220 15% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 10%;
-    --primary: 28 85% 48%;
+    --primary: 147.38 100% 31.37%;
     --primary-foreground: 0 0% 100%;
     --secondary: 200 60% 40%;
     --secondary-foreground: 0 0% 100%;
     --muted: 220 10% 95%;
     --muted-foreground: 220 10% 40%;
-    --accent: 28 85% 48%;
+    --accent: 147.38 100% 31.37%;
     --accent-foreground: 0 0% 100%;
     --border: 220 10% 90%;
     --input: 220 10% 90%;
-    --ring: 28 85% 48%;
+    --ring: 147.38 100% 31.37%;
 
     /* Status Colors for Light Mode */
     --success: 142 70% 40%;
@@ -120,12 +120,12 @@
     /* Sidebar for Light Mode */
     --sidebar-background: 220 10% 96%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 28 85% 48%;
+    --sidebar-primary: 147.38 100% 31.37%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 10% 92%;
     --sidebar-accent-foreground: 220 15% 10%;
     --sidebar-border: 220 10% 88%;
-    --sidebar-ring: 28 85% 48%;
+    --sidebar-ring: 147.38 100% 31.37%;
 
     /* Custom Kardit tokens for Light Mode */
     --surface: 0 0% 98%;
@@ -138,7 +138,7 @@
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-glow: 0 0 20px hsl(28 85% 52% / 0.1);
+    --shadow-glow: 0 0 20px hsl(147.38 100% 31.37% / 0.1);
   }
 }
 
@@ -236,8 +236,8 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(28 85% 52% / 0); }
-    50% { box-shadow: 0 0 20px 4px hsl(28 85% 52% / 0.3); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(147.38 100% 31.37% / 0); }
+    50% { box-shadow: 0 0 20px 4px hsl(147.38 100% 31.37% / 0.3); }
   }
 
   .animate-pulse-glow {

@@ -5,7 +5,9 @@ export type TransactionStatus =
   | 'REFUSED'
   | 'CANCELLED'
   | 'COMPLETED'
-  | 'PENDING';
+  | 'PENDING'
+  | 'SUCCESS'
+  | 'FAILED';
 
 export interface TransactionQueryFilters {
   bankId?: string;
