@@ -27,28 +27,10 @@ const modules: Array<{ label: string; icon: LucideIcon; path: string; descriptio
     description: "Manage platform banks",
   },
   {
-    label: "Affiliates",
-    icon: Users,
-    path: "/super-admin/affiliates",
-    description: "Review affiliate records",
-  },
-  {
     label: "Onboarding",
     icon: ClipboardCheck,
     path: "/super-admin/onboarding/cases",
     description: "Review submitted cases",
-  },
-  {
-    label: "Issuing Banks",
-    icon: Landmark,
-    path: "/issuing-banks",
-    description: "Provision issuing banks",
-  },
-  {
-    label: "Pending Approval",
-    icon: Shield,
-    path: "/super-admin/pending-approval",
-    description: "Handle approval queues",
   },
   {
     label: "Transactions",
@@ -57,29 +39,11 @@ const modules: Array<{ label: string; icon: LucideIcon; path: string; descriptio
     description: "Search card activity",
   },
   {
-    label: "Reports",
-    icon: FileText,
-    path: "/reports",
-    description: "View reporting tools",
-  },
-  {
-    label: "Notifications",
-    icon: Bell,
-    path: "/notifications",
-    description: "Open system alerts",
-  },
-  {
     label: "Audit Logs",
     icon: Banknote,
     path: "/audit-logs",
     description: "Trace platform events",
-  },
-  {
-    label: "User Management",
-    icon: UserCog,
-    path: "/users",
-    description: "Manage users and roles",
-  },
+  }
 ];
 
 export default function SuperAdminDashboardPage() {
