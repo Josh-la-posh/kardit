@@ -23,7 +23,7 @@ export default function BankDashboardPage() {
         <div className="animate-fade-in">
           <PageHeader
             title={`${user?.tenantName || 'Bank'} Portal`}
-            subtitle={bankId ? `Bank ID: ${bankId}` : 'Overview of bank operations'}
+            subtitle={''}
             actions={
               <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
                 <RefreshCw className="mr-1 h-4 w-4" /> Refresh
@@ -43,7 +43,7 @@ export default function BankDashboardPage() {
                 Generated {generatedAt ? format(new Date(generatedAt), 'MMM d, yyyy HH:mm') : '-'}
               </div>
 
-              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard title="Cards Issued" value={formatNumber(metrics.totalCardsIssued)} icon={CreditCard} subtitle={`${formatNumber(metrics.activeCards)} active`} />
                 <StatCard title="Funding Volume" value={formatNumber(metrics.totalFundingVolume)} icon={TrendingUp} subtitle={`Unload ${formatNumber(metrics.totalUnloadVolume)}`} />
                 <StatCard title="Transactions" value={formatNumber(metrics.totalTransactionVolume)} icon={ScrollText} subtitle={`${formatNumber(metrics.failedCmsRequests)} failed CMS`} />
@@ -69,8 +69,8 @@ export default function BankDashboardPage() {
                         <thead>
                           <tr className="border-b border-border bg-muted/50">
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Cards</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Cards</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Cards</th>
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Funding</th>
                           </tr>
                         </thead>
@@ -81,10 +81,12 @@ export default function BankDashboardPage() {
                               className="cursor-pointer hover:bg-muted/30"
                               onClick={() => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
                             >
-                              <td className="px-4 py-3 text-sm font-medium">{affiliate.affiliateId}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{formatNumber(affiliate.activeCards)}</td>
                               <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {formatNumber(affiliate.activeCards)} active / {formatNumber(affiliate.totalCards)} total
+                                {formatNumber(affiliate.totalCards)}
                               </td>
                               <td className="px-4 py-3 text-sm text-muted-foreground">{formatNumber(affiliate.totalFundingVolume)}</td>
                             </tr>
@@ -107,9 +109,6 @@ export default function BankDashboardPage() {
                         {auditLogs.map((log) => (
                           <div key={log.auditLogId} className="rounded-md border border-border p-3">
                             <p className="text-sm font-medium">{log.eventType}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {log.resourceType} {log.resourceId} by {log.actorUserId}
-                            </p>
                             <p className="mt-1 text-xs text-muted-foreground">{format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm')}</p>
                           </div>
                         ))}

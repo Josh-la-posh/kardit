@@ -58,7 +58,7 @@ export default function CustomersListPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer ID</th>
+                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer ID</th> */}
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Email</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone</th>
@@ -73,7 +73,7 @@ export default function CustomersListPage() {
                         onClick={() => navigate(`/customers/${customer.customerRefId}`)}
                         className={`cursor-pointer transition-colors hover:bg-muted/40 ${index % 2 === 1 ? 'bg-muted/20' : ''}`}
                       >
-                        <td className="px-4 py-3 text-sm font-mono text-primary">{customer.customerRefId}</td>
+                        {/* <td className="px-4 py-3 text-sm font-mono text-primary">{customer.customerRefId}</td> */}
                         <td className="px-4 py-3 text-sm font-medium">{customer.fullName}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{customer.email}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{customer.phone || '-'}</td>

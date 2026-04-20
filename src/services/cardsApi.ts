@@ -26,6 +26,8 @@ import type {
   QueryCardsResponse,
   PinResetRequest,
   PinResetResponse,
+  // QueryCardsRequest,
+  // QueryCardsResponse,
   RefreshCardFulfillmentRequest,
   RefreshCardFulfillmentResponse,
   ReinitiateCardFulfillmentRequest,

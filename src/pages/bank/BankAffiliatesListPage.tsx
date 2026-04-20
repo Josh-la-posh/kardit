@@ -19,9 +19,11 @@ export default function BankAffiliatesListPage() {
       if (!query) return true;
       const affiliateId = affiliate.affiliateId || '';
       const tenantId = affiliate.tenantId || '';
+      const affiliateName = affiliate.affiliateName || '';
       return (
         affiliateId.toLowerCase().includes(query) ||
-        tenantId.toLowerCase().includes(query)
+        tenantId.toLowerCase().includes(query) ||
+        affiliateName.toLowerCase().includes(query)
       );
     });
   }, [affiliates, search]);
@@ -32,7 +34,7 @@ export default function BankAffiliatesListPage() {
         <div className="animate-fade-in">
           <PageHeader
             title="Affiliates"
-            subtitle={bankId ? `Attached affiliates for ${bankId}` : 'Attached affiliates'}
+            subtitle=''
             actions={
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliate-partnership-requests')}>
@@ -50,7 +52,7 @@ export default function BankAffiliatesListPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Search by affiliate ID or tenant ID..."
+                placeholder="Search by affiliate name, ID, or tenant ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -74,9 +76,9 @@ export default function BankAffiliatesListPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Cards</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tptal Cards</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Cards</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Funding Volume</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
                     </tr>
@@ -84,10 +86,12 @@ export default function BankAffiliatesListPage() {
                   <tbody className="divide-y divide-border">
                     {filtered.map((affiliate) => (
                       <tr key={affiliate.affiliateId} className="hover:bg-muted/30">
-                        <td className="px-4 py-3 text-sm font-medium">{affiliate.affiliateId}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.activeCards}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {affiliate.activeCards} active / {affiliate.totalCards} total
+                          {affiliate.totalCards}
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.totalFundingVolume.toLocaleString()}</td>
                         <td className="px-4 py-3">

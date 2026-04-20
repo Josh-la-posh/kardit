@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { useSearchParams } from 'react-router-dom';
 import { Download, Loader2, RefreshCcw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
@@ -14,11 +15,11 @@ import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import {
   exportTransactions,
   getAffiliateTransactionVolume,
+  getBankTransactionVolume,
   getTransaction,
   queryTransactions,
 } from '@/services/transactionApi';
 import type {
-  AffiliateTransactionVolumeResponse,
   TransactionDetail,
   TransactionListItem,
   TransactionQueryFilters,
@@ -54,24 +55,22 @@ function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destr
   return 'outline';
 }
 
-function getAffiliateFundingVolume(summary: AffiliateTransactionVolumeResponse | null) {
-  return summary?.volumes?.totalFundingVolume ?? 0;
-}
-
 export default function TransactionsPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [searchReference, setSearchReference] = useState('');
   const [merchantName, setMerchantName] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [cardId, setCardId] = useState('');
-  const [bankId, setBankId] = useState('');
+  const [bankId, setBankId] = useState(() => searchParams.get('bankId') || '');
+  const [affiliateIdFilter, setAffiliateIdFilter] = useState(() => searchParams.get('affiliateId') || '');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [transactionType, setTransactionType] = useState<TransactionType | 'ALL'>('ALL');
   const [status, setStatus] = useState<TransactionStatus | 'ALL'>('ALL');
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
-  const [summary, setSummary] = useState<AffiliateTransactionVolumeResponse | null>(null);
+  const [fundingVolume, setFundingVolume] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -88,10 +87,12 @@ export default function TransactionsPage() {
     }
   }, [user]);
 
+  const defaultBankId = user?.stakeholderType === 'BANK' ? user.bankId || user.tenantId : '';
+  
   const filters = useMemo<TransactionQueryFilters>(() => {
     const next: TransactionQueryFilters = {
-      affiliateId: affiliateId || undefined,
-      bankId: bankId.trim() || undefined,
+      affiliateId: user?.stakeholderType === 'AFFILIATE' ? affiliateId || undefined : affiliateIdFilter.trim() || undefined,
+      bankId: bankId.trim() || defaultBankId || undefined,
       customerId: customerId.trim() || undefined,
       cardId: cardId.trim() || undefined,
       fromDate: fromDate || undefined,
@@ -104,13 +105,9 @@ export default function TransactionsPage() {
     if (status !== 'ALL') next.status = [status];
 
     return next;
-  }, [affiliateId, bankId, cardId, customerId, fromDate, merchantName, searchReference, status, toDate, transactionType]);
+  }, [affiliateId, affiliateIdFilter, bankId, cardId, customerId, defaultBankId, fromDate, merchantName, searchReference, status, toDate, transactionType, user?.stakeholderType]);
 
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
-
-  const subtitle = affiliateId
-    ? `Affiliate ID: ${affiliateId} • ${total} transaction${total === 1 ? '' : 's'}`
-    : `${total} transaction${total === 1 ? '' : 's'}`;
 
   const fetchTransactions = useCallback(async (nextPage = page) => {
     setIsLoading(true);
@@ -142,20 +139,37 @@ export default function TransactionsPage() {
   }, [fetchTransactions]);
 
   useEffect(() => {
-    if (!affiliateId) {
-      setSummary(null);
+    if (user?.stakeholderType === 'AFFILIATE' && !affiliateId) {
+      setFundingVolume(0);
+      setIsSummaryLoading(false);
+      return;
+    }
+
+    if (user?.stakeholderType === 'BANK' && !defaultBankId) {
+      setFundingVolume(0);
+      setIsSummaryLoading(false);
+      return;
+    }
+
+    if (user?.stakeholderType === 'SERVICE_PROVIDER') {
+      setFundingVolume(0);
       setIsSummaryLoading(false);
       return;
     }
 
     let active = true;
     setIsSummaryLoading(true);
-    getAffiliateTransactionVolume(affiliateId)
+    const request =
+      user?.stakeholderType === 'BANK'
+        ? getBankTransactionVolume(defaultBankId)
+        : getAffiliateTransactionVolume(affiliateId);
+
+    request
       .then((response) => {
-        if (active) setSummary(response);
+        if (active) setFundingVolume(response.volumes?.totalFundingVolume ?? 0);
       })
       .catch(() => {
-        if (active) setSummary(null);
+        if (active) setFundingVolume(0);
       })
       .finally(() => {
         if (active) setIsSummaryLoading(false);
@@ -164,7 +178,7 @@ export default function TransactionsPage() {
     return () => {
       active = false;
     };
-  }, [affiliateId]);
+  }, [affiliateId, defaultBankId, user?.stakeholderType]);
 
   const handleRowClick = async (transactionId: string) => {
     setIsFetchingDetail(true);
@@ -199,6 +213,7 @@ export default function TransactionsPage() {
     setCustomerId('');
     setCardId('');
     setBankId('');
+    setAffiliateIdFilter('');
     setFromDate('');
     setToDate('');
     setTransactionType('ALL');
@@ -206,12 +221,12 @@ export default function TransactionsPage() {
   };
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader
             title="Transactions"
-            subtitle={subtitle}
+            subtitle=''
             actions={
               <>
                 <Button variant="outline" onClick={() => fetchTransactions(1)} disabled={isLoading}>
@@ -227,12 +242,12 @@ export default function TransactionsPage() {
 
           <div className="grid gap-4 lg:grid-cols-3 mb-6">
             <div className="kardit-card p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Affiliate Funding Volume</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Funding Volume</p>
               {isSummaryLoading ? (
                 <Loader2 className="mt-3 h-5 w-5 animate-spin text-primary" />
               ) : (
                 <p className="mt-2 text-2xl font-bold text-primary">
-                  {formatMoney(getAffiliateFundingVolume(summary), 'NGN')}
+                  {formatMoney(fundingVolume, 'NGN')}
                 </p>
               )}
             </div>
@@ -265,6 +280,9 @@ export default function TransactionsPage() {
               <Input placeholder="Customer ID" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
               <Input placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
               <Input placeholder="Bank ID" value={bankId} onChange={(e) => setBankId(e.target.value)} />
+              {user?.stakeholderType !== 'AFFILIATE' && (
+                <Input placeholder="Affiliate ID" value={affiliateIdFilter} onChange={(e) => setAffiliateIdFilter(e.target.value)} />
+              )}
               <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               <Select value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType | 'ALL')}>
@@ -295,7 +313,9 @@ export default function TransactionsPage() {
             <div className="mt-3 flex flex-wrap gap-3">
               <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
               <p className="text-xs text-muted-foreground self-center">
-                Affiliate scope is applied automatically when available.
+                {user?.stakeholderType === 'SERVICE_PROVIDER'
+                  ? 'Global users can filter by bank or affiliate as needed.'
+                  : 'Your organization scope is applied automatically.'}
               </p>
             </div>
           </div>

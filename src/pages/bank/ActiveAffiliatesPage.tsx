@@ -21,7 +21,8 @@ export default function ActiveAffiliatesPage() {
       if (!query) return true;
       return (
         affiliate.affiliateId.toLowerCase().includes(query) ||
-        affiliate.tenantId.toLowerCase().includes(query)
+        affiliate.tenantId.toLowerCase().includes(query) ||
+        (affiliate.affiliateName || '').toLowerCase().includes(query)
       );
     });
   }, [affiliates, searchTerm]);
@@ -49,7 +50,7 @@ export default function ActiveAffiliatesPage() {
                 <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
                 <Input
                   id="search"
-                  placeholder="Search by affiliate ID or tenant..."
+                  placeholder="Search by affiliate name, ID, or tenant..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -76,7 +77,7 @@ export default function ActiveAffiliatesPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate ID</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tenant ID</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Active Cards</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total Cards</th>
@@ -87,7 +88,10 @@ export default function ActiveAffiliatesPage() {
                     <tbody>
                       {filteredAffiliates.map((affiliate) => (
                         <tr key={affiliate.affiliateId} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{affiliate.affiliateId}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
+                            <p className="text-xs text-gray-500">{affiliate.affiliateId}</p>
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tenantId}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{affiliate.activeCards}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{affiliate.totalCards}</td>

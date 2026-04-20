@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
-import type { BankQueryItem } from '@/types/superAdminContracts';
-import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Loader2, RefreshCw } from 'lucide-react';
+import { store, type PlatformAffiliate } from '@/stores/mockStore';
+import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Activity, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -19,14 +19,33 @@ const statusToChip: Record<string, StatusType> = {
   INACTIVE: 'INACTIVE',
 };
 
+function formatMoney(value: number | undefined) {
+  if (value === undefined) return '-';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
+ * BankDetailPage - Super Admin view of a specific bank's affiliates
+ * Shows all affiliates under a selected bank
+ */
 export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const bank = (location.state as { bank?: BankQueryItem } | null)?.bank ?? null;
+  const { volume, isLoading: volumeLoading } = useBankTransactionVolume(bankId);
+  
+  const bank = bankId ? store.getPlatformBank(bankId) : null;
+  const affiliates = useMemo(() => 
+    bankId ? store.getPlatformAffiliates(bankId) : [], 
+    [bankId]
+  );
+  
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const { affiliates, total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
+  const {  total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
     search,
     status: statusFilter,
   });
@@ -35,7 +54,7 @@ export default function BankDetailPage() {
     return {
       totalAffiliates: total,
       activeAffiliates: affiliates.filter((affiliate) => affiliate.status === 'ACTIVE').length,
-      approvedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'APPROVED').length,
+      // approvedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'APPROVED').length,
       suspendedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'SUSPENDED').length,
     };
   }, [affiliates, total]);
@@ -94,7 +113,8 @@ export default function BankDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 xl:grid-cols-7 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -136,6 +156,45 @@ export default function BankDetailPage() {
                 <div>
                   <p className="text-2xl font-bold">{totals.suspendedAffiliates}</p>
                   <p className="text-xs text-muted-foreground">Suspended Affiliates</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Activity className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalTransactionVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Transaction Volume</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalFundingVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Funding Volume</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <TrendingDown className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">
+                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalUnloadVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Unload Volume</p>
                 </div>
               </div>
             </div>

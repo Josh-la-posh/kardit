@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/authApi';
 import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus, queryCards } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { getCustomer } from '@/services/customerApi';
 import type { Card } from '@/stores/mockStore';
 import type {
-  CardListItem,
+  CardQueryStatus,
+  CardQueryType,
   CreateCardRequest,
   CreateCardResponse,
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
-  QueryCardsRequest,
+  // QueryCardsRequest,
 } from '@/types/cardContracts';
 
 export interface CreateCardInput {
@@ -41,6 +43,19 @@ export interface CreateCardInput {
   };
 }
 
+export interface UseCardsOptions {
+  bankId?: string;
+  affiliateId?: string;
+  customerId?: string;
+  status?: CardQueryStatus[];
+  cardType?: CardQueryType[];
+  productId?: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 function randomId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -55,7 +70,7 @@ function toCardStatus(status: string | undefined): Card['status'] {
   }
 
   const normalized = status?.toUpperCase();
-  if (normalized === 'TERMINATED' || normalized === 'CLOSED') return 'BLOCKED';
+  if (normalized === 'TERMINATED' || normalized === 'CLOSED') return 'TERMINATED';
   if (normalized === 'SUSPENDED') return 'FROZEN';
   return 'PENDING';
 }
@@ -67,6 +82,8 @@ function toCardModel(
     customerRefId?: string;
     bankId?: string;
     productType?: string;
+    cardType?: string;
+    productId?: string;
     productName?: string;
     productCode?: string;
     status?: string;
@@ -84,8 +101,8 @@ function toCardModel(
     tenantId: tenantId || '',
     customerId: source.customerId || source.customerRefId || '',
     maskedPan: source.maskedPan || 'Unavailable',
-    productName: source.productName || source.productType || 'Card',
-    productCode: source.productCode || source.productType || 'N/A',
+    productName: source.productName || source.productType || source.cardType || source.productId || 'Card',
+    productCode: source.productCode || source.productType || source.cardType || source.productId || 'N/A',
     issuingBankName: source.bankId || 'Unknown Bank',
     status: toCardStatus(source.status),
     currency: source.currency || 'USD',
@@ -96,27 +113,27 @@ function toCardModel(
   };
 }
 
-function mapQueriedCard(item: CardListItem, tenantId?: string): Card {
-  return toCardModel(
-    {
-      cardId: item.cardId,
-      customerId: item.customerId,
-      customerRefId: item.customerRefId,
-      bankId: item.bankId,
-      productType: item.cardType || item.productType,
-      productName: item.productName || item.cardType || item.productType,
-      productCode: item.productCode || item.productId || item.cardType || item.productType,
-      status: item.status,
-      maskedPan: item.maskedPan,
-      currency: item.currency,
-      createdAt: item.createdAt,
-      issuedAt: item.issuedAt,
-      embossName: item.embossName,
-      deliveryMethod: item.deliveryMethod,
-    },
-    tenantId
-  );
-}
+// function mapQueriedCard(item: CardListItem, tenantId?: string): Card {
+//   return toCardModel(
+//     {
+//       cardId: item.cardId,
+//       customerId: item.customerId,
+//       customerRefId: item.customerRefId,
+//       bankId: item.bankId,
+//       productType: item.cardType || item.productType,
+//       productName: item.productName || item.cardType || item.productType,
+//       productCode: item.productCode || item.productId || item.cardType || item.productType,
+//       status: item.status,
+//       maskedPan: item.maskedPan,
+//       currency: item.currency,
+//       createdAt: item.createdAt,
+//       issuedAt: item.issuedAt,
+//       embossName: item.embossName,
+//       deliveryMethod: item.deliveryMethod,
+//     },
+//     tenantId
+//   );
+// }
 
 function toErrorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;
@@ -160,51 +177,95 @@ function mapCardDetail(response: GetCardResponse, fundingDetails: GetCardFunding
   );
 }
 
-export function useCards() {
-  return useCardsQuery();
+function buildDefaultCardFilters(
+  user: ReturnType<typeof useAuth>['user'],
+  options: UseCardsOptions
+): UseCardsOptions {
+  if (options.bankId || options.affiliateId || options.customerId) return options;
+
+  if (user?.stakeholderType === 'BANK') {
+    return { ...options, bankId: user.bankId || user.tenantId };
+  }
+
+  if (user?.stakeholderType === 'AFFILIATE') {
+    try {
+      return { ...options, affiliateId: resolveAffiliateId(user) };
+    } catch {
+      return options;
+    }
+  }
+
+  return options;
 }
 
-export function useCardsQuery(request?: QueryCardsRequest) {
+export function useCards(options?: UseCardsOptions) {
   const [cards, setCards] = useState<Card[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(options?.page || 1);
+  const [pageSize, setPageSize] = useState(options?.pageSize || 25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const statusFilterKey = request?.filters?.status?.join('|') ?? '';
-  const cardTypeFilterKey = request?.filters?.cardType?.join('|') ?? '';
+  const bankId = options?.bankId;
+  const affiliateId = options?.affiliateId;
+  const customerId = options?.customerId;
+  const status = options?.status;
+  const cardType = options?.cardType;
+  const productId = options?.productId;
+  const fromDate = options?.fromDate;
+  const toDate = options?.toDate;
+  const requestedPage = options?.page || 1;
+  const requestedPageSize = options?.pageSize || 25;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
+      const resolvedOptions = buildDefaultCardFilters(user, {
+        bankId,
+        affiliateId,
+        customerId,
+        status,
+        cardType,
+        productId,
+        fromDate,
+        toDate,
+        page: requestedPage,
+        pageSize: requestedPageSize,
+      });
       const response = await queryCards({
         filters: {
-          affiliateId: request?.filters?.affiliateId ?? (user?.stakeholderType === 'AFFILIATE' ? user?.tenantId : undefined),
-          bankId: request?.filters?.bankId,
-          customerId: request?.filters?.customerId,
-          status: statusFilterKey ? statusFilterKey.split('|') : undefined,
-          cardType: cardTypeFilterKey ? cardTypeFilterKey.split('|') : undefined,
-          productId: request?.filters?.productId,
-          fromDate: request?.filters?.fromDate,
-          toDate: request?.filters?.toDate,
+          ...(resolvedOptions.bankId ? { bankId: resolvedOptions.bankId } : {}),
+          ...(resolvedOptions.affiliateId ? { affiliateId: resolvedOptions.affiliateId } : {}),
+          ...(resolvedOptions.customerId ? { customerId: resolvedOptions.customerId } : {}),
+          ...(resolvedOptions.status?.length ? { status: resolvedOptions.status } : {}),
+          ...(resolvedOptions.cardType?.length ? { cardType: resolvedOptions.cardType } : {}),
+          ...(resolvedOptions.productId ? { productId: resolvedOptions.productId } : {}),
+          ...(resolvedOptions.fromDate ? { fromDate: resolvedOptions.fromDate } : {}),
+          ...(resolvedOptions.toDate ? { toDate: resolvedOptions.toDate } : {}),
         },
-        page: request?.page ?? 1,
-        pageSize: request?.pageSize ?? 25,
+        page: resolvedOptions.page || 1,
+        pageSize: resolvedOptions.pageSize || 25,
       });
-      setCards(response.data.map((item) => mapQueriedCard(item, user?.tenantId)));
+      setCards(response.data.map((card) => toCardModel(card, user?.tenantId)));
+      setTotal(response.total);
+      setPage(response.page);
+      setPageSize(response.pageSize);
     } catch (err) {
       setCards([]);
+      setTotal(0);
       setError(toErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [cardTypeFilterKey, request?.filters?.affiliateId, request?.filters?.bankId, request?.filters?.customerId, request?.filters?.fromDate, request?.filters?.productId, request?.filters?.toDate, request?.page, request?.pageSize, statusFilterKey, user?.stakeholderType, user?.tenantId]);
+  }, [affiliateId, bankId, cardType, customerId, fromDate, productId, requestedPage, requestedPageSize, status, toDate, user]);
 
   useEffect(() => {
     fetch();
   }, [fetch]);
 
-  return { cards, isLoading, error, refetch: fetch };
+  return { cards, total, page, pageSize, isLoading, error, refetch: fetch };
 }
 
 export function useCard(cardId: string | undefined) {

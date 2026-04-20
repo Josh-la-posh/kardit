@@ -7,13 +7,13 @@ import {
   getBankDashboard,
   getPartnershipRequest,
   listBankAuditLogs,
-  listBankCards,
   listBankReports,
   queryPartnershipRequests,
   rejectPartnershipRequest,
   resolveBankId,
   suspendAffiliate,
 } from '@/services/bankPortalApi';
+import { queryCards } from '@/services/cardsApi';
 import type {
   ApprovePartnershipResponse,
   BankAffiliateSummary,
@@ -54,20 +54,28 @@ function extractDashboard(payload: unknown): { metrics: BankDashboardMetrics | n
   return { metrics: null, generatedAt: null };
 }
 
-function extractCards(payload: unknown): { cards: BankCardItem[]; total: number } {
-  if (Array.isArray((payload as { cards?: unknown })?.cards)) {
-    const direct = payload as { cards: BankCardItem[]; total?: number };
-    return { cards: direct.cards, total: direct.total ?? direct.cards.length };
-  }
-  if (Array.isArray((payload as { data?: { cards?: unknown; total?: unknown } })?.data?.cards)) {
-    const wrapped = payload as { data: { cards: BankCardItem[]; total?: number } };
-    return { cards: wrapped.data.cards, total: wrapped.data.total ?? wrapped.data.cards.length };
-  }
-  if (Array.isArray((payload as { data?: unknown })?.data)) {
-    const arrayData = payload as { data: BankCardItem[]; total?: number };
-    return { cards: arrayData.data, total: arrayData.total ?? arrayData.data.length };
-  }
-  return { cards: [], total: 0 };
+function toBankCardItem(card: {
+  cardId?: string;
+  affiliateId?: string;
+  productType?: string;
+  cardType?: string;
+  productId?: string;
+  status?: string;
+  maskedPan?: string;
+  customerId?: string;
+  customerRefId?: string;
+  issuedAt?: string;
+  createdAt?: string;
+}): BankCardItem {
+  return {
+    cardId: card.cardId || '',
+    affiliateId: card.affiliateId || '',
+    productType: card.productType || card.cardType || card.productId || 'Card',
+    status: card.status || 'UNKNOWN',
+    maskedPan: card.maskedPan || 'Unavailable',
+    customerRefId: card.customerRefId || card.customerId || '',
+    issuedAt: card.issuedAt || card.createdAt || new Date().toISOString(),
+  };
 }
 
 function extractAuditLogs(payload: unknown): BankAuditLogItem[] {
@@ -198,18 +206,19 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
       try {
         const resolvedBankId = resolveBankId(user);
         setBankId(resolvedBankId);
-        const response = await listBankCards(resolvedBankId, {
+        const response = await queryCards({
           filters: {
+            bankId: resolvedBankId,
             affiliateId,
-            status: filters?.status || null,
-            fromDate: filters?.fromDate || null,
-            toDate: filters?.toDate || null,
+            ...(filters?.status ? { status: [filters.status] } : {}),
+            ...(filters?.fromDate ? { fromDate: filters.fromDate } : {}),
+            ...(filters?.toDate ? { toDate: filters.toDate } : {}),
           },
-          pagination: { page: 1, pageSize: 20 },
+          page: 1,
+          pageSize: 20,
         });
-        const normalized = extractCards(response);
-        setCards(normalized.cards);
-        setTotal(normalized.total);
+        setCards(response.data.map(toBankCardItem));
+        setTotal(response.total);
       } catch (e: any) {
         setError(e?.message || 'Failed to load affiliate cards');
         setCards([]);

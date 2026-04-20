@@ -20,6 +20,8 @@ import BankDashboardPage from "./pages/bank/BankDashboardPage";
 import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
 // import InactiveAffiliatesPage from "./pages/bank/InactiveAffiliatesPage";
 import AffiliateDetailPages from "./pages/bank/AffiliateDetailPage";
+import BankAffiliateCustomersPage from "./pages/bank/AffiliateCustomersPage";
+import BankAffiliateCustomerDetailPage from "./pages/bank/AffiliateCustomerDetailPage";
 import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankPartnershipRequestsPage from "./pages/bank/BankPartnershipRequestsPage";
@@ -33,6 +35,8 @@ import ApprovedAffiliatesPage from "./pages/super-admin/ApprovedAffiliatesPage";
 import BanksListPage from "./pages/super-admin/banks/BanksListPage";
 import BankDetailPage from "./pages/super-admin/banks/BankDetailPage";
 import AffiliateDetailPage from "./pages/super-admin/banks/AffiliateDetailPage";
+import AffiliateCustomersPage from "./pages/super-admin/banks/AffiliateCustomersPage";
+import AffiliateCustomerDetailPage from "./pages/super-admin/banks/AffiliateCustomerDetailPage";
 
 // Issuing Banks (Service Provider)
 import IssuingBanksListPage from "./pages/issuing-banks/IssuingBanksListPage";
@@ -138,8 +142,12 @@ const App = () => (
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliate-partnership-requests" element={<BankPartnershipRequestsPage />} />
             <Route path="/bank/affiliates/:affiliateId" element={<AffiliateDetailPages />} />
+            <Route path="/bank/affiliates/:affiliateId/customers" element={<BankAffiliateCustomersPage />} />
+            <Route path="/bank/affiliates/:affiliateId/customers/:customerId" element={<BankAffiliateCustomerDetailPage />} />
             <Route path="/bank/active-affiliates" element={<ActiveAffiliatesPage />} />
             <Route path="/bank/active-affiliates/:affiliateId" element={<AffiliateDetailPages />} />
+            <Route path="/bank/active-affiliates/:affiliateId/customers" element={<BankAffiliateCustomersPage />} />
+            <Route path="/bank/active-affiliates/:affiliateId/customers/:customerId" element={<BankAffiliateCustomerDetailPage />} />
             {/* <Route path="/bank/inactive-affiliates" element={<InactiveAffiliatesPage />} /> */}
             <Route path="/bank/customers" element={<CustomersPage />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboardPage />} />
@@ -152,6 +160,8 @@ const App = () => (
             <Route path="/super-admin/banks" element={<BanksListPage />} />
             <Route path="/super-admin/banks/:bankId" element={<BankDetailPage />} />
             <Route path="/super-admin/banks/:bankId/affiliates/:affiliateId" element={<AffiliateDetailPage />} />
+            <Route path="/super-admin/banks/:bankId/affiliates/:affiliateId/customers" element={<AffiliateCustomersPage />} />
+            <Route path="/super-admin/banks/:bankId/affiliates/:affiliateId/customers/:customerId" element={<AffiliateCustomerDetailPage />} />
 
             {/* Issuing Banks (Service Provider) */}
             <Route path="/issuing-banks" element={<IssuingBanksListPage />} />

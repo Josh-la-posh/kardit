@@ -72,7 +72,7 @@ export interface KycDocument {
   uploadedAt: string;
 }
 
-export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED' | 'PERSONALIZING';
+export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED' | 'TERMINATED' | 'PERSONALIZING';
 
 export interface Card {
   id: string;

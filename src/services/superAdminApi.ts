@@ -15,6 +15,14 @@ import type {
   UpdateNotificationStatusRequest,
 } from '@/types/superAdminContracts';
 
+type ApiEnvelope<T> = {
+  data?: {
+    isSuccess?: boolean;
+    value?: T;
+    error?: unknown;
+  };
+};
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -66,6 +74,21 @@ async function sendJson<TResponse>(method: 'POST' | 'PATCH', path: string, body:
   return (await res.json()) as TResponse;
 }
 
+function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object' && 'data' in response) {
+    const envelope = response as ApiEnvelope<TResponse>;
+    if (envelope.data?.isSuccess === false) {
+      throw new ApiError('Request failed', 200, envelope.data.error);
+    }
+
+    if (envelope.data?.value !== undefined) {
+      return envelope.data.value;
+    }
+  }
+
+  return response as TResponse;
+}
+
 export function getSuperAdminDashboard() {
   return getJson<GetSuperAdminDashboardResponse>('/super-admin/dashboard');
 }
@@ -95,9 +118,11 @@ export function getReportStatus(reportExecutionId: string) {
 }
 
 export function queryBanks(request: QueryBanksRequest) {
-  return sendJson<QueryBanksResponse>('POST', '/banks/query', request);
+  return sendJson<QueryBanksResponse | ApiEnvelope<QueryBanksResponse>>('POST', '/banks/query', request)
+    .then(unwrapApiValue);
 }
 
 export function queryAffiliates(request: QueryAffiliatesRequest) {
-  return sendJson<QueryAffiliatesResponse>('POST', '/affiliates/query', request);
+  return sendJson<QueryAffiliatesResponse | ApiEnvelope<QueryAffiliatesResponse>>('POST', '/affiliates/query', request)
+    .then(unwrapApiValue);
 }

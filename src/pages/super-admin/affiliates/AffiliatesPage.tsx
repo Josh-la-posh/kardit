@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -9,74 +9,24 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ChevronLeft, Eye, Download,
+  ChevronLeft, Eye, Download, Loader2, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { queryAffiliates } from "@/services/superAdminApi";
+import type { AffiliateQueryItem } from "@/types/superAdminContracts";
 
-interface Affiliate {
-  id: string;
-  affiliateName: string;
-  email: string;
-  contactPerson: string;
-  submittedDate: string;
-  status: 'pending' | 'approved' | 'rejected';
-  issuingBank: string;
-  enabled?: boolean;
-}
+const statusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'SUSPENDED'];
+const pageSizeOptions = ['10', '25', '50', '100'];
 
-// Mock data - Replace with API call
-const mockAffiliates: Affiliate[] = [
-  {
-    id: '1',
-    affiliateName: 'TechFlow Solutions',
-    email: 'info@techflow.ng',
-    contactPerson: 'Chioma Okafor',
-    submittedDate: '2024-02-28',
-    status: 'pending',
-    issuingBank: 'providus',
-    enabled: false,
-  },
-  {
-    id: '2',
-    affiliateName: 'Global Trade Partners',
-    email: 'contact@globalpartners.ng',
-    contactPerson: 'Ahmed Hassan',
-    submittedDate: '2024-02-25',
-    status: 'approved',
-    issuingBank: 'stanbic',
-    enabled: true,
-  },
-  {
-    id: '3',
-    affiliateName: 'Premium Services Ltd',
-    email: 'hello@premiumservices.ng',
-    contactPerson: 'Victoria Adeyemi',
-    submittedDate: '2024-02-20',
-    status: 'rejected',
-    issuingBank: 'wema',
-    enabled: false,
-  },
-  {
-    id: '4',
-    affiliateName: 'Digital Commerce Solutions',
-    email: 'support@digitalcommerce.ng',
-    contactPerson: 'Blessing Okonkwo',
-    submittedDate: '2024-02-15',
-    status: 'approved',
-    issuingBank: 'sterling',
-    enabled: true,
-  },
-  {
-    id: '5',
-    affiliateName: 'Tech Innovations Ltd',
-    email: 'info@techinnovations.ng',
-    contactPerson: 'Tunde Adebayo',
-    submittedDate: '2024-02-10',
-    status: 'pending',
-    issuingBank: 'firstbank',
-    enabled: false,
-  },
-];
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-NG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 export default function AffiliatesPage() {
   const navigate = useNavigate();
@@ -84,12 +34,51 @@ export default function AffiliatesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBank, setFilterBank] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPageSize, setSelectedPageSize] = useState(25);
   const [downloading, setDownloading] = useState(false);
+  const [affiliates, setAffiliates] = useState<AffiliateQueryItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [responsePage, setResponsePage] = useState(1);
+  const [responsePageSize, setResponsePageSize] = useState(25);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [affiliates, setAffiliates] = useState<Affiliate[]>(mockAffiliates);
-  
-    const pendingCount = affiliates.filter(a => a.status === 'pending').length;
-    const approvedCount = affiliates.filter(a => a.status === 'approved').length;
+  const loadAffiliates = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const trimmedSearch = searchTerm.trim();
+      const response = await queryAffiliates({
+        filters: {
+          status: filterStatus === 'all' ? null : [filterStatus],
+          bankId: filterBank === 'all' ? null : filterBank,
+          fromDate: filterDate || null,
+          toDate: filterDate || null,
+          search: trimmedSearch || null,
+        },
+        page: currentPage,
+        pageSize: selectedPageSize,
+      });
+
+      setAffiliates(response.data);
+      setTotal(response.total);
+      setResponsePage(response.page);
+      setResponsePageSize(response.pageSize);
+    } catch (e) {
+      setAffiliates([]);
+      setTotal(0);
+      setError(e instanceof Error ? e.message : 'Failed to load affiliates');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, filterBank, filterDate, filterStatus, searchTerm, selectedPageSize]);
+
+  useEffect(() => {
+    loadAffiliates();
+  }, [loadAffiliates]);
+
+  const totalPages = Math.max(1, Math.ceil(total / responsePageSize));
 
   const handleDownloadReport = async () => {
     setDownloading(true);
@@ -103,47 +92,48 @@ export default function AffiliatesPage() {
       setDownloading(false);
     }
   };
-  
 
-  const banks = ['providus', 'wema', 'stanbic', 'sterling', 'firstbank'];
-  const statuses = ['pending', 'approved', 'rejected'];
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
-  const filteredAffiliates = useMemo(() => {
-    return mockAffiliates.filter(affiliate => {
-      const matchesSearch = 
-        affiliate.affiliateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        affiliate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        affiliate.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleStatusChange = (value: string) => {
+    setFilterStatus(value);
+    setCurrentPage(1);
+  };
 
-      const matchesStatus = filterStatus === 'all' || affiliate.status === filterStatus;
-      const matchesBank = filterBank === 'all' || affiliate.issuingBank === filterBank;
-      const matchesDate = !filterDate || affiliate.submittedDate === filterDate;
+  const handleBankChange = (value: string) => {
+    setFilterBank(value);
+    setCurrentPage(1);
+  };
 
-      return matchesSearch && matchesStatus && matchesBank && matchesDate;
-    });
-  }, [searchTerm, filterStatus, filterBank, filterDate]);
+  const handleDateChange = (value: string) => {
+    setFilterDate(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    setSelectedPageSize(Number(value));
+    setCurrentPage(1);
+  };
+
+  const filteredAffiliates = useMemo(() => affiliates, [affiliates]);
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
+    switch (status.toUpperCase()) {
+      case 'APPROVED':
         return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'rejected':
+      case 'ACTIVE':
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case 'REJECTED':
         return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case 'pending':
+      case 'SUSPENDED':
+        return <Badge className="bg-orange-100 text-orange-800">Suspended</Badge>;
+      case 'PENDING':
       default:
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
     }
-  };
-
-  const getBankLabel = (bank: string) => {
-    const bankMap: { [key: string]: string } = {
-      providus: 'Providus Bank',
-      wema: 'WEMA Bank',
-      stanbic: 'Stanbic IBTC',
-      sterling: 'Sterling Bank',
-      firstbank: 'FirstBank',
-    };
-    return bankMap[bank] || bank;
   };
 
   return (
@@ -167,14 +157,14 @@ export default function AffiliatesPage() {
                 showBack={false}
               />
             </div>
-            <Button
+            {/* <Button
               onClick={handleDownloadReport}
               disabled={downloading}
               className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
               <Download className="w-4 h-4" />
               {downloading ? 'Downloading...' : 'Download Report'}
-            </Button>
+            </Button> */}
           </div>
 
           {/* Filters Section */}
@@ -185,9 +175,9 @@ export default function AffiliatesPage() {
                 <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
                 <Input
                   id="search"
-                  placeholder="Search by name, email, or contact..."
+                  placeholder="Search by name, tenant, or registration..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
 
@@ -196,34 +186,27 @@ export default function AffiliatesPage() {
                 <select
                   id="status"
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => handleStatusChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">All Statuses</option>
-                  {statuses.map(status => (
+                  {statusOptions.map(status => (
                     <option key={status} value={status}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status.charAt(0) + status.slice(1).toLowerCase()}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <Label htmlFor="bank" className="text-sm font-semibold mb-2 block">Issuing Bank</Label>
-                <select
+              {/* <div>
+                <Label htmlFor="bank" className="text-sm font-semibold mb-2 block">Bank ID</Label>
+                <Input
                   id="bank"
-                  value={filterBank}
-                  onChange={(e) => setFilterBank(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">All Banks</option>
-                  {banks.map(bank => (
-                    <option key={bank} value={bank}>
-                      {getBankLabel(bank)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  placeholder="All banks"
+                  value={filterBank === 'all' ? '' : filterBank}
+                  onChange={(e) => handleBankChange(e.target.value.trim() || 'all')}
+                />
+              </div> */}
 
               <div>
                 <Label htmlFor="date" className="text-sm font-semibold mb-2 block">Submitted Date</Label>
@@ -231,12 +214,12 @@ export default function AffiliatesPage() {
                   id="date"
                   type="date"
                   value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
+                  onChange={(e) => handleDateChange(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -244,12 +227,27 @@ export default function AffiliatesPage() {
                   setFilterStatus('all');
                   setFilterBank('all');
                   setFilterDate('');
+                  setCurrentPage(1);
                 }}
               >
                 Clear Filters
               </Button>
+              <Button variant="outline" onClick={loadAffiliates} disabled={isLoading} className="gap-2">
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Refresh
+              </Button>
+              <select
+                aria-label="Page size"
+                value={String(selectedPageSize)}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {pageSizeOptions.map(size => (
+                  <option key={size} value={size}>{size} / page</option>
+                ))}
+              </select>
               <span className="text-sm text-gray-600 self-center ml-auto">
-                Showing {filteredAffiliates.length} of {mockAffiliates.length} affiliates
+                Showing {filteredAffiliates.length} of {total} affiliates
               </span>
             </div>
           </Card>
@@ -258,49 +256,87 @@ export default function AffiliatesPage() {
           <Card className="border-0 shadow-lg">
             <div className="p-6">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Contact Person</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Bank</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Submitted Date</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAffiliates.map((affiliate) => (
-                      <tr key={affiliate.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{affiliate.affiliateName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.contactPerson}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.email}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{getBankLabel(affiliate.issuingBank)}</td>
-                        <td className="px-4 py-3 text-sm">{getStatusBadge(affiliate.status)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.submittedDate}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => navigate(`/super-admin/affiliates/${affiliate.id}`)}
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </Button>
-                        </td>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>{error}</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Trading Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tenant ID</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Registration</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Country</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Submitted Date</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredAffiliates.map((affiliate) => (
+                        <tr key={affiliate.affiliateId} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">{affiliate.legalName}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tradingName || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tenantId}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.registrationNumber}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.country}</td>
+                          <td className="px-4 py-3 text-sm">{getStatusBadge(affiliate.status)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{formatDate(affiliate.createdAt)}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => navigate(`/super-admin/affiliates/${affiliate.affiliateId}`, {
+                                state: { affiliate },
+                              })}
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
 
-              {filteredAffiliates.length === 0 && (
+              {!isLoading && !error && filteredAffiliates.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <p>No affiliates found matching your filters.</p>
                 </div>
               )}
+
+              <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">
+                  Page {responsePage} of {totalPages} - {total} total affiliate{total === 1 ? '' : 's'}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading || currentPage <= 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading || currentPage >= totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           </Card>
         </div>

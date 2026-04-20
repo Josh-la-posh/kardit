@@ -1,9 +1,13 @@
 import { ApiError } from '@/services/authApi';
-import type {
-  CreateAffiliateRequest,
-  CreateAffiliateResponse,
-  GetAffiliateKybSnapshotResponse,
-} from '@/types/affiliateContracts';
+import type { QueryBanksRequest, QueryBanksResponse } from '@/types/bankContracts';
+
+type ApiEnvelope<T> = {
+  data?: {
+    isSuccess?: boolean;
+    value?: T;
+    error?: unknown;
+  };
+};
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
@@ -25,11 +29,13 @@ const safeJson = async (res: Response) => {
 async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
+
   const res = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+
   if (!res.ok) {
     const errorBody = await safeJson(res);
     const message =
@@ -38,30 +44,27 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
         : undefined) || `Request failed (${res.status})`;
     throw new ApiError(message, res.status, errorBody);
   }
+
   return (await res.json()) as TResponse;
 }
 
-async function getJson<TResponse>(path: string): Promise<TResponse> {
-  const baseUrl = getApiBaseUrl();
-  if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
-  const res = await fetch(`${baseUrl}${path}`, { method: 'GET' });
-  if (!res.ok) {
-    const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
-        ? String((errorBody as Record<string, unknown>).message)
-        : undefined) || `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, errorBody);
+function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object' && 'data' in response) {
+    const envelope = response as ApiEnvelope<TResponse>;
+    if (envelope.data?.isSuccess === false) {
+      throw new ApiError('Request failed', 200, envelope.data.error);
+    }
+
+    if (envelope.data?.value !== undefined) {
+      return envelope.data.value;
+    }
   }
-  return (await res.json()) as TResponse;
+
+  return response as TResponse;
 }
 
-export async function createAffiliate(request: CreateAffiliateRequest): Promise<CreateAffiliateResponse> {
-  return postJson<CreateAffiliateResponse>('/affiliates', request);
-}
-
-export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetAffiliateKybSnapshotResponse> {
-  return getJson<GetAffiliateKybSnapshotResponse>(
-    `/affiliates/${encodeURIComponent(affiliateId)}/kyb-snapshot`
+export async function queryBanks(request: QueryBanksRequest): Promise<QueryBanksResponse> {
+  return unwrapApiValue(
+    await postJson<QueryBanksResponse | ApiEnvelope<QueryBanksResponse>>('/banks/query', request)
   );
 }

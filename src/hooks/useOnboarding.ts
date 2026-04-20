@@ -8,6 +8,7 @@ import type {
   UploadOnboardingDocumentRequest,
   DecisionRequest,
   ProvisionResponse,
+  OnboardingCaseStatus,
 } from '@/types/onboardingContracts';
 import {
   createOnboardingSession,
@@ -35,8 +36,8 @@ export function useOnboardingDraft(draftId: string | undefined) {
     setError(null);
     try {
       setDraft(getStoredOnboardingDraft(draftId));
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load draft');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load draft');
       setDraft(null);
     } finally {
       setIsLoading(false);
@@ -110,8 +111,8 @@ export function useCreateOnboardingSession() {
     setError(null);
     try {
       return await createOnboardingSession(payload);
-    } catch (e: any) {
-      setError(e?.message || 'Failed to start onboarding');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to start onboarding');
       throw e;
     } finally {
       setIsLoading(false);
@@ -136,8 +137,8 @@ export function useOnboardingCase(caseId: string | undefined) {
         throw new Error('Missing onboarding session. Please restart onboarding from the original device.');
       }
       setCaseItem(await getOnboardingCase(caseId, onboardingSessionId));
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load case');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load case');
       setCaseItem(null);
     } finally {
       setIsLoading(false);
@@ -151,9 +152,18 @@ export function useOnboardingCase(caseId: string | undefined) {
   return { caseItem, isLoading, error, refresh };
 }
 
-export function useReviewerOnboardingCases() {
+interface ReviewerOnboardingCasesOptions {
+  status?: OnboardingCaseStatus | 'ALL';
+  page?: number;
+  pageSize?: number;
+}
+
+export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptions = {}) {
   const { user } = useAuth();
   const [cases, setCases] = useState<OnboardingCase[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(options.page ?? 1);
+  const [pageSize, setPageSize] = useState(options.pageSize ?? 25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,7 +172,13 @@ export function useReviewerOnboardingCases() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await listOnboardingCases({ page: 1, pageSize: 25 });
+      const requestedPage = options.page ?? 1;
+      const requestedPageSize = options.pageSize ?? 25;
+      const response = await listOnboardingCases({
+        status: options.status && options.status !== 'ALL' ? options.status : undefined,
+        page: requestedPage,
+        pageSize: requestedPageSize,
+      });
       setCases(
         response.cases.map((item) => ({
           caseId: item.caseId,
@@ -189,12 +205,17 @@ export function useReviewerOnboardingCases() {
           messages: [],
         }))
       );
-    } catch (e) {
-      setError((e as Error)?.message || 'Failed to load cases');
+      setTotal(response.total);
+      setPage(response.page);
+      setPageSize(response.pageSize);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load cases');
+      setCases([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [options.page, options.pageSize, options.status]);
 
   useEffect(() => {
     refresh();
@@ -225,5 +246,5 @@ export function useReviewerOnboardingCases() {
     return res;
   }, [refresh, user?.email]);
 
-  return { cases, isLoading, error, refresh, decide, provision };
+  return { cases, total, page, pageSize, isLoading, error, refresh, decide, provision };
 }

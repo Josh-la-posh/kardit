@@ -3,7 +3,7 @@ import { ApiError } from '@/services/authApi';
 import { useAuth } from '@/hooks/useAuth';
 import { createCustomerDraft as createCustomerDraftApi, getCustomer, searchCustomers } from '@/services/customerApi';
 import { getCustomerTransactions } from '@/services/transactionApi';
-import type { CustomerSearchCriteria } from '@/types/customerContracts';
+import type { CustomerSearchCriteria, CustomerSearchRequestContext } from '@/types/customerContracts';
 import type { CustomerTransactionsResponse } from '@/types/transactionContracts';
 import { store } from '@/stores/mockStore';
 import type { Card, KycDocument } from '@/stores/mockStore';
@@ -85,6 +85,13 @@ export interface CustomerTransactionListItem {
   transactionDate: string;
 }
 
+interface UseCustomersOptions {
+  requestContext?: CustomerSearchRequestContext | null;
+  criteria?: CustomerSearchCriteria;
+  page?: number;
+  pageSize?: number;
+}
+
 const toScopeType = (stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER') => {
   if (stakeholderType === 'BANK') return 'BANK_PORTFOLIO';
   if (stakeholderType === 'SERVICE_PROVIDER') return 'GLOBAL';
@@ -112,30 +119,37 @@ const buildCriteria = (query: string): CustomerSearchCriteria => {
   return { phone: null, name: trimmed, customerRefId: null, idNumber: null };
 };
 
-export function useCustomers(query = '') {
+export function useCustomers(query = '', options: UseCustomersOptions = {}) {
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const { user } = useAuth();
+  const { requestContext, criteria, page = 1, pageSize = 20 } = options;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!user?.id || !user?.tenantId) {
+      const resolvedRequestContext =
+        requestContext ||
+        (user?.id && user?.tenantId
+          ? {
+              actorUserId: user.id,
+              userType: user.stakeholderType || 'AFFILIATE',
+              tenantId: user.tenantId,
+              scopeType: toScopeType(user.stakeholderType),
+            }
+          : null);
+
+      if (!resolvedRequestContext) {
         throw new Error('Missing customer search context');
       }
 
       const response = await searchCustomers({
-        requestContext: {
-          actorUserId: user.id,
-          userType: user.stakeholderType || 'AFFILIATE',
-          tenantId: user.tenantId,
-          scopeType: toScopeType(user.stakeholderType),
-        },
-        criteria: buildCriteria(query),
-        pagination: { page: 1, pageSize: 20 },
+        requestContext: resolvedRequestContext,
+        criteria: criteria || buildCriteria(query),
+        pagination: { page, pageSize },
       });
 
       setCustomers(
@@ -164,11 +178,11 @@ export function useCustomers(query = '') {
     } finally {
       setIsLoading(false);
     }
-  }, [query, user]);
+  }, [criteria, page, pageSize, query, requestContext, user]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  return { customers, isLoading, error, total, refetch: fetch };
+  return { customers, isLoading, error, total, page, pageSize, refetch: fetch };
 }
 
 export function useCustomer(customerId: string | undefined) {
