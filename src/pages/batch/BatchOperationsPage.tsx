@@ -234,7 +234,7 @@ function CardBatchDetail({ batchId }: { batchId: string | null }) {
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Submit
             </Button>
             <Button variant="outline" onClick={handleDownloadResults} disabled={!batch.results || downloading}>
-              {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Results
+              {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Download Results
             </Button>
           </div>
           {batch.rows.length > 0 && (

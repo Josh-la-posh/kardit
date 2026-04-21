@@ -65,7 +65,14 @@ function randomId(prefix: string) {
 }
 
 function toCardStatus(status: string | undefined): Card['status'] {
-  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED' || status === 'PERSONALIZING') {
+  if (
+    status === 'ACTIVE' ||
+    status === 'PENDING' ||
+    status === 'PENDING_ACTIVATION' ||
+    status === 'FROZEN' ||
+    status === 'BLOCKED' ||
+    status === 'PERSONALIZING'
+  ) {
     return status;
   }
 
