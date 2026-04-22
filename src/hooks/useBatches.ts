@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { executeBatch, getBatch, getBatchResults, submitBatch, uploadBatch } from '@/services/batchApi';
+import { getBatch, getBatchResultsDownload, getBatchRows, submitBatch, uploadBatch, validateBatch } from '@/services/batchApi';
 import { useAuth } from '@/hooks/useAuth';
 import type {
-  ExecuteBatchResponse,
+  BatchRow,
   GetBatchResponse,
+  GetBatchRowsResponse,
   GetBatchResultsResponse,
   SubmitBatchResponse,
   UploadBatchResponse,
+  ValidateBatchResponse,
 } from '@/types/batchContracts';
 
 const STORAGE_KEY = 'kardit_generic_batches';
@@ -32,14 +34,18 @@ export interface BatchListItem {
   uploadStatus: string;
   recordsReceived: number;
   status: string;
-  totalRecords: number;
-  successful: number;
-  failed: number;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  processedRows: number;
+  failedRows: number;
 }
 
 export interface BatchDetail {
   upload: StoredBatch;
   batch: GetBatchResponse;
+  rows: BatchRow[];
+  rowsTotal: number;
   results: GetBatchResultsResponse | null;
 }
 
@@ -80,10 +86,24 @@ function toListItem(upload: StoredBatch, batch: GetBatchResponse): BatchListItem
     uploadStatus: upload.uploadStatus,
     recordsReceived: upload.recordsReceived,
     status: batch.status,
-    totalRecords: batch.totalRecords,
-    successful: batch.successful,
-    failed: batch.failed,
+    totalRows: batch.totalRows,
+    validRows: batch.validRows,
+    invalidRows: batch.invalidRows,
+    processedRows: batch.processedRows,
+    failedRows: batch.failedRows,
   };
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error('Unable to read upload file.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function useBatches(category?: BatchCategory) {
@@ -97,6 +117,7 @@ export function useBatches(category?: BatchCategory) {
       actorUserId: user?.id || 'user_unknown',
       userType: user?.stakeholderType || 'AFFILIATE',
       tenantId: user?.tenantId || 'tenant_unknown',
+      affiliateId: user?.stakeholderType === 'AFFILIATE' ? user?.tenantId || 'affiliate_unknown' : undefined,
     }),
     [user?.id, user?.stakeholderType, user?.tenantId]
   );
@@ -130,17 +151,22 @@ export function useBatches(category?: BatchCategory) {
   }, [fetch]);
 
   const upload = useCallback(
-    async (params: { category: BatchCategory; fileName: string; productId?: string }) => {
+    async (params: { category: BatchCategory; file: File; productId?: string }) => {
+      const fileBase64 = await fileToBase64(params.file);
       const response: UploadBatchResponse = await uploadBatch({
         requestContext: context,
-        productId: params.productId,
-        fileName: params.fileName,
+        productId: params.productId || '',
+        file: {
+          fileName: params.file.name,
+          contentType: params.file.type || 'text/csv',
+          fileBase64,
+        },
       });
 
       upsertStoredBatch({
         batchId: response.batchId,
         category: params.category,
-        fileName: params.fileName,
+        fileName: params.file.name,
         productId: params.productId,
         uploadedAt: new Date().toISOString(),
         uploadStatus: response.status,
@@ -162,16 +188,16 @@ export function useBatches(category?: BatchCategory) {
     [context, fetch]
   );
 
-  const execute = useCallback(
+  const validate = useCallback(
     async (batchId: string) => {
-      const response: ExecuteBatchResponse = await executeBatch(batchId, { requestContext: context });
+      const response: ValidateBatchResponse = await validateBatch(batchId, { requestContext: context });
       await fetch();
       return response;
     },
     [context, fetch]
   );
 
-  return { batches, isLoading, error, upload, submit, execute, refetch: fetch };
+  return { batches, isLoading, error, upload, validate, submit, refetch: fetch };
 }
 
 export function useBatch(batchId: string | undefined) {
@@ -193,10 +219,19 @@ export function useBatch(batchId: string | undefined) {
       if (!upload) throw new Error('Batch not found in local history.');
 
       const batchResponse = await getBatch(batchId);
-      const resultsResponse = await getBatchResults(batchId).catch(() => null);
+      const rowsResponse: GetBatchRowsResponse = await getBatchRows(batchId, { page: 1, pageSize: 25 }).catch(() => ({
+        page: 1,
+        pageSize: 25,
+        total: 0,
+        batchId,
+        data: [],
+      }));
+      const resultsResponse = await getBatchResultsDownload(batchId).catch(() => null);
       setBatch({
         upload,
         batch: batchResponse,
+        rows: rowsResponse.data,
+        rowsTotal: rowsResponse.total,
         results: resultsResponse,
       });
     } catch (err) {

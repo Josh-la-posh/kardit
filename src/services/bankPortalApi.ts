@@ -12,6 +12,8 @@ import type {
   ListBankCardsResponse,
   ListBankReportsRequest,
   ListBankReportsResponse,
+  QueryPartnershipRequestsRequest,
+  QueryPartnershipRequestsResponse,
   RejectPartnershipRequest,
   RejectPartnershipResponse,
   SuspendAffiliateRequest,
@@ -76,16 +78,6 @@ export function resolveBankId(user?: { bankId?: string; tenantId?: string } | nu
   throw new Error('Missing bankId. Use a bank-scoped backend login that returns scope.bankId, or set VITE_BANK_ID.');
 }
 
-export function resolvePendingPartnershipRequestIds(): string[] {
-  const configuredIds = (import.meta as any).env?.VITE_BANK_PENDING_PARTNERSHIP_REQUEST_IDS as string | undefined;
-  if (!configuredIds) return [];
-
-  return configuredIds
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-}
-
 export async function getBankDashboard(bankId: string): Promise<GetBankDashboardResponse> {
   return getJson<GetBankDashboardResponse>(`/banks/${encodeURIComponent(bankId)}/dashboard`);
 }
@@ -119,6 +111,12 @@ export async function getPartnershipRequest(
   return getJson<GetPartnershipRequestResponse>(
     `/banks/${encodeURIComponent(bankId)}/affiliate-partnership-requests/${encodeURIComponent(partnershipRequestId)}`
   );
+}
+
+export async function queryPartnershipRequests(
+  request: QueryPartnershipRequestsRequest
+): Promise<QueryPartnershipRequestsResponse> {
+  return postJson<QueryPartnershipRequestsResponse>('/partnership-requests/query', request);
 }
 
 export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {

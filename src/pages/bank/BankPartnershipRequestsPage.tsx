@@ -105,8 +105,7 @@ export default function BankPartnershipRequestsPage() {
               <div className="p-6 text-sm text-muted-foreground">{error}</div>
             ) : requests.length === 0 ? (
               <div className="p-6 text-sm text-muted-foreground">
-                No pending partnership requests found. If your backend exposes request IDs out-of-band, add them to
-                `VITE_BANK_PENDING_PARTNERSHIP_REQUEST_IDS` to load them here.
+                No pending partnership requests found.
               </div>
             ) : (
               <div className="overflow-x-auto">

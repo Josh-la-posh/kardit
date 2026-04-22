@@ -30,6 +30,7 @@ export default function BanksListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState(25);
   const [downloading, setDownloading] = useState(false);
+  // const { banks, total, isLoading, error, refresh } = useSuperAdminBanks({ search, status: statusFilter });
 
   const selectedStatuses = useMemo(
     () => (statusFilter === 'ALL' ? ['ACTIVE', 'INACTIVE'] : [statusFilter]),

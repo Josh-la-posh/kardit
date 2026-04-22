@@ -56,10 +56,12 @@ export interface CreateCardRequest {
 
 export interface CardListItem {
   cardId: string;
+  bankId?: string;
+  affiliateId?: string;
   customerId?: string;
   customerRefId?: string;
-  bankId?: string;
   productId?: string;
+  cardType?: string;
   productType?: string;
   cardType?: string;
   productName?: string;
@@ -73,7 +75,7 @@ export interface CardListItem {
   issuedAt?: string;
 }
 
-export type CardQueryStatus = 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' | 'BLOCKED' | string;
+export type CardQueryStatus = 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' | 'PENDING_ACTIVATION' | 'BLOCKED' | string;
 export type CardQueryType = 'VIRTUAL' | 'PHYSICAL' | string;
 
 export interface QueryCardsRequest {
@@ -244,6 +246,28 @@ export interface UnfreezeCardResponse {
   previousStatus: string;
   currentStatus: string;
   unfrozenAt: string;
+  external: {
+    cmsReference: string;
+  };
+}
+
+export interface ActivateCardRequest {
+  requestContext: {
+    requestId: string;
+    actorUserId: string;
+    userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
+    tenantId: string;
+    affiliateId?: string;
+    idempotencyKey?: string;
+  };
+  reason: string;
+}
+
+export interface ActivateCardResponse {
+  cardId: string;
+  previousStatus: string;
+  currentStatus: string;
+  activatedAt: string;
   external: {
     cmsReference: string;
   };

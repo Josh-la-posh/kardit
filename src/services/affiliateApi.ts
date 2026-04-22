@@ -1,5 +1,9 @@
 import { ApiError } from '@/services/authApi';
-import type { CreateAffiliateRequest, CreateAffiliateResponse } from '@/types/affiliateContracts';
+import type {
+  CreateAffiliateRequest,
+  CreateAffiliateResponse,
+  GetAffiliateKybSnapshotResponse,
+} from '@/types/affiliateContracts';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
@@ -37,6 +41,27 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   return (await res.json()) as TResponse;
 }
 
+async function getJson<TResponse>(path: string): Promise<TResponse> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
+  const res = await fetch(`${baseUrl}${path}`, { method: 'GET' });
+  if (!res.ok) {
+    const errorBody = await safeJson(res);
+    const message =
+      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
+        ? String((errorBody as Record<string, unknown>).message)
+        : undefined) || `Request failed (${res.status})`;
+    throw new ApiError(message, res.status, errorBody);
+  }
+  return (await res.json()) as TResponse;
+}
+
 export async function createAffiliate(request: CreateAffiliateRequest): Promise<CreateAffiliateResponse> {
   return postJson<CreateAffiliateResponse>('/affiliates', request);
+}
+
+export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetAffiliateKybSnapshotResponse> {
+  return getJson<GetAffiliateKybSnapshotResponse>(
+    `/affiliates/${encodeURIComponent(affiliateId)}/kyb-snapshot`
+  );
 }

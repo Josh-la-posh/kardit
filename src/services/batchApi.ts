@@ -1,13 +1,15 @@
 import { ApiError } from '@/services/authApi';
 import type {
-  ExecuteBatchRequest,
-  ExecuteBatchResponse,
   GetBatchResponse,
+  GetBatchRowsRequest,
+  GetBatchRowsResponse,
   GetBatchResultsResponse,
   SubmitBatchRequest,
   SubmitBatchResponse,
   UploadBatchRequest,
   UploadBatchResponse,
+  ValidateBatchRequest,
+  ValidateBatchResponse,
 } from '@/types/batchContracts';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
@@ -59,7 +61,11 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 }
 
 export function uploadBatch(request: UploadBatchRequest): Promise<UploadBatchResponse> {
-  return postJson<UploadBatchResponse>('/batches/upload', request);
+  return postJson<UploadBatchResponse>('/batches/card-creation/upload', request);
+}
+
+export function validateBatch(batchId: string, request: ValidateBatchRequest): Promise<ValidateBatchResponse> {
+  return postJson<ValidateBatchResponse>(`/batches/${batchId}/validate`, request);
 }
 
 export function submitBatch(batchId: string, request: SubmitBatchRequest): Promise<SubmitBatchResponse> {
@@ -70,10 +76,15 @@ export function getBatch(batchId: string): Promise<GetBatchResponse> {
   return getJson<GetBatchResponse>(`/batches/${batchId}`);
 }
 
-export function getBatchResults(batchId: string): Promise<GetBatchResultsResponse> {
-  return getJson<GetBatchResultsResponse>(`/batches/${batchId}/results`);
+export function getBatchRows(batchId: string, request: GetBatchRowsRequest = {}): Promise<GetBatchRowsResponse> {
+  const query = new URLSearchParams();
+  if (request.status) query.set('status', request.status);
+  if (request.page) query.set('page', String(request.page));
+  if (request.pageSize) query.set('pageSize', String(request.pageSize));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return getJson<GetBatchRowsResponse>(`/batches/${batchId}/rows${suffix}`);
 }
 
-export function executeBatch(batchId: string, request: ExecuteBatchRequest): Promise<ExecuteBatchResponse> {
-  return postJson<ExecuteBatchResponse>(`/batches/${batchId}/execute`, request);
+export function getBatchResultsDownload(batchId: string): Promise<GetBatchResultsResponse> {
+  return getJson<GetBatchResultsResponse>(`/batches/${batchId}/results/download`);
 }
