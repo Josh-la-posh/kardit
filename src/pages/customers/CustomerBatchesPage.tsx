@@ -42,7 +42,7 @@ export default function CustomerBatchesPage() {
 
     setUploading(true);
     try {
-      const response = await upload({ category: 'customers', fileName: file.name });
+      const response = await upload({ category: 'customers', file });
       setSelectedBatchId(response.batchId);
       toast.success(`Batch ${response.batchId} uploaded.`);
     } catch (error) {
@@ -112,7 +112,7 @@ export default function CustomerBatchesPage() {
                           <td className="px-4 py-3 text-sm font-mono text-primary">{batch.batchId}</td>
                           <td className="px-4 py-3 text-sm">{batch.fileName}</td>
                           <td className="px-4 py-3"><StatusChip status={mapStatus(batch.status)} label={batch.status} /></td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{batch.successful}/{batch.totalRecords}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{batch.processedRows}/{batch.totalRows}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(batch.uploadedAt), 'MMM d, yyyy HH:mm')}</td>
                         </tr>
                       ))}
@@ -132,10 +132,24 @@ export default function CustomerBatchesPage() {
 
 function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
   const { batch, isLoading, refetch } = useBatch(batchId || undefined);
-  const { submit, execute } = useBatches('customers');
+  const { validate, submit } = useBatches('customers');
+  const [validating, setValidating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [executing, setExecuting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  const handleValidate = async () => {
+    if (!batchId) return;
+    setValidating(true);
+    try {
+      const response = await validate(batchId);
+      toast.success(`Batch ${response.batchId} validated.`);
+      await refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to validate batch');
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!batchId) return;
@@ -148,20 +162,6 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
       toast.error(error instanceof Error ? error.message : 'Unable to submit batch');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleExecute = async () => {
-    if (!batchId) return;
-    setExecuting(true);
-    try {
-      const response = await execute(batchId);
-      toast.success(`Batch ${response.batchId} execution started.`);
-      await refetch();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to execute batch');
-    } finally {
-      setExecuting(false);
     }
   };
 
@@ -195,21 +195,40 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
             <StatusChip status={mapStatus(batch.batch.status)} label={batch.batch.status} />
           </div>
           <div className="grid grid-cols-3 gap-3 text-sm">
-            <div><p className="text-xs text-muted-foreground uppercase">Total</p><p>{batch.batch.totalRecords}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Successful</p><p>{batch.batch.successful}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Failed</p><p>{batch.batch.failed}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Total</p><p>{batch.batch.totalRows}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Valid</p><p>{batch.batch.validRows}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Invalid</p><p>{batch.batch.invalidRows}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Processed</p><p>{batch.batch.processedRows}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Failed</p><p>{batch.batch.failedRows}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Rows Shown</p><p>{batch.rows.length}/{batch.rowsTotal}</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleValidate} disabled={validating}>
+              {validating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Validate
+            </Button>
             <Button variant="outline" onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Submit
-            </Button>
-            <Button onClick={handleExecute} disabled={executing}>
-              {executing && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Execute
             </Button>
             <Button variant="outline" onClick={handleDownloadResults} disabled={!batch.results || downloading}>
               {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Results
             </Button>
           </div>
+          {batch.rows.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase">Rows</p>
+              {batch.rows.slice(0, 5).map((row) => (
+                <div key={row.rowNumber} className="rounded-md border border-border p-2 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <span className="font-mono">Row {row.rowNumber}</span>
+                    <span>{row.status}</span>
+                  </div>
+                  {row.errors?.map((error) => (
+                    <p key={`${row.rowNumber}-${error.errorCode}`} className="mt-1 text-muted-foreground">{error.message}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
           {batch.results && (
             <div className="text-sm text-muted-foreground">
               Result file: <span className="font-mono text-foreground">{batch.results.resultFile}</span>

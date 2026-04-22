@@ -2,6 +2,8 @@ import { ApiError } from '@/services/authApi';
 import type {
   BatchLoadUploadRequest,
   BatchLoadUploadResponse,
+  ActivateCardRequest,
+  ActivateCardResponse,
   CardLoadRequest,
   CardLoadResponse,
   CreateCardLimitRequestRequest,
@@ -22,10 +24,12 @@ import type {
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
-  PinResetRequest,
-  PinResetResponse,
   QueryCardsRequest,
   QueryCardsResponse,
+  PinResetRequest,
+  PinResetResponse,
+  // QueryCardsRequest,
+  // QueryCardsResponse,
   RefreshCardFulfillmentRequest,
   RefreshCardFulfillmentResponse,
   ReinitiateCardFulfillmentRequest,
@@ -124,6 +128,10 @@ export function freezeCard(cardId: string, request: FreezeCardRequest): Promise<
 
 export function unfreezeCard(cardId: string, request: UnfreezeCardRequest): Promise<UnfreezeCardResponse> {
   return postJson<UnfreezeCardResponse>(`/cards/${cardId}/unfreeze`, request);
+}
+
+export function activateCard(cardId: string, request: ActivateCardRequest): Promise<ActivateCardResponse> {
+  return postJson<ActivateCardResponse>(`/cards/${cardId}/activate`, request);
 }
 
 export function terminateCard(cardId: string, request: TerminateCardRequest): Promise<TerminateCardResponse> {

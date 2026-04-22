@@ -72,7 +72,7 @@ export interface KycDocument {
   uploadedAt: string;
 }
 
-export type CardStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'BLOCKED' | 'TERMINATED' | 'PERSONALIZING';
+export type CardStatus = 'PENDING' | 'PENDING_ACTIVATION' | 'ACTIVE' | 'FROZEN' | 'BLOCKED' | 'TERMINATED' | 'PERSONALIZING';
 
 export interface Card {
   id: string;
@@ -804,13 +804,16 @@ export const store = {
     const cards = _cards.filter((c) => c.customerId === customerId);
     return tenantId ? cards.filter((c) => c.tenantId === tenantId) : cards;
   },
-  createCard: (data: Omit<Card, 'id' | 'createdAt' | 'status' | 'currentBalance' | 'maskedPan'>): Card => {
+  createCard: (
+    data: Omit<Card, 'id' | 'createdAt' | 'status' | 'currentBalance' | 'maskedPan'> & { productType?: string }
+  ): Card => {
     const last4 = String(Math.floor(1000 + Math.random() * 9000));
+    const normalizedProductType = data.productType?.toUpperCase();
     const card: Card = {
       ...data,
       id: genId('card'),
       maskedPan: `****-****-****-${last4}`,
-      status: (data as any).type === 'virtual' ? 'ACTIVE' : 'PENDING',
+      status: normalizedProductType === 'VIRTUAL' ? 'ACTIVE' : 'PENDING_ACTIVATION',
       currentBalance: 0,
       createdAt: new Date().toISOString(),
     };

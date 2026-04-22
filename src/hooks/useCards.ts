@@ -13,6 +13,7 @@ import type {
   GetCardFundingDetails,
   GetCardFulfillmentStatusResponse,
   GetCardResponse,
+  // QueryCardsRequest,
 } from '@/types/cardContracts';
 
 export interface CreateCardInput {
@@ -64,7 +65,14 @@ function randomId(prefix: string) {
 }
 
 function toCardStatus(status: string | undefined): Card['status'] {
-  if (status === 'ACTIVE' || status === 'PENDING' || status === 'FROZEN' || status === 'BLOCKED' || status === 'PERSONALIZING') {
+  if (
+    status === 'ACTIVE' ||
+    status === 'PENDING' ||
+    status === 'PENDING_ACTIVATION' ||
+    status === 'FROZEN' ||
+    status === 'BLOCKED' ||
+    status === 'PERSONALIZING'
+  ) {
     return status;
   }
 
@@ -111,6 +119,28 @@ function toCardModel(
     deliveryMethod: source.deliveryMethod,
   };
 }
+
+// function mapQueriedCard(item: CardListItem, tenantId?: string): Card {
+//   return toCardModel(
+//     {
+//       cardId: item.cardId,
+//       customerId: item.customerId,
+//       customerRefId: item.customerRefId,
+//       bankId: item.bankId,
+//       productType: item.cardType || item.productType,
+//       productName: item.productName || item.cardType || item.productType,
+//       productCode: item.productCode || item.productId || item.cardType || item.productType,
+//       status: item.status,
+//       maskedPan: item.maskedPan,
+//       currency: item.currency,
+//       createdAt: item.createdAt,
+//       issuedAt: item.issuedAt,
+//       embossName: item.embossName,
+//       deliveryMethod: item.deliveryMethod,
+//     },
+//     tenantId
+//   );
+// }
 
 function toErrorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;

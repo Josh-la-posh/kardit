@@ -30,8 +30,6 @@ import AffiliatesPage from "./pages/super-admin/affiliates/AffiliatesPage";
 import SuperAdminAffiliateDetailPage from "./pages/super-admin/affiliates/SuperAdminAffiliateDetailPage";
 import PendingApprovalPage from "./pages/super-admin/affiliates/PendingApprovalPage";
 import ApprovedAffiliatesPage from "./pages/super-admin/ApprovedAffiliatesPage";
-import BanksPage from "./pages/super-admin/bank/BanksPage";
-import BankDetailsPage from "./pages/super-admin/bank/BankDetailsPage";
 
 // Super Admin Bank Management
 import BanksListPage from "./pages/super-admin/banks/BanksListPage";
@@ -157,8 +155,6 @@ const App = () => (
             <Route path="/super-admin/affiliates/:affiliateId" element={<SuperAdminAffiliateDetailPage />} />
             <Route path="/super-admin/pending-approval" element={<PendingApprovalPage />} />
             <Route path="/super-admin/approved" element={<ApprovedAffiliatesPage />} />
-            {/* <Route path="/super-admin/banks" element={<BanksPage />} />
-            <Route path="/super-admin/banks/:bankId" element={<BankDetailsPage />} /> */}
 
             {/* Service provider bank management */}
             <Route path="/super-admin/banks" element={<BanksListPage />} />

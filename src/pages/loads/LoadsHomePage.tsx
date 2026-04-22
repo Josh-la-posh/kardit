@@ -9,7 +9,7 @@ import { Loader2, ArrowRight, CreditCard, RotateCcw, Layers } from 'lucide-react
 const tiles = [
   { label: 'Single Load', description: 'Load funds to a single card', icon: CreditCard, path: '/loads/single' },
   { label: 'Card Unload', description: 'Move funds from a card to a destination account', icon: RotateCcw, path: '/loads/reversal' },
-  { label: 'Batch Load', description: 'Process multiple loads from a file', icon: Layers, path: '/loads/batches' },
+  // { label: 'Batch Load', description: 'Process multiple loads from a file', icon: Layers, path: '/loads/batches' },
 ];
 
 export default function LoadsHomePage() {

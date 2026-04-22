@@ -26,3 +26,20 @@ export interface CreateInternalBankAffiliateRequest {
 export type CreateAffiliateRequest = CreateExternalAffiliateRequest | CreateInternalBankAffiliateRequest;
 
 export type CreateAffiliateResponse = CreateAffiliateRequest;
+
+export interface AffiliateKybSnapshotDocument {
+  documentId: string;
+  documentType: string;
+  verificationStatus: string;
+}
+
+export interface AffiliateKybSnapshot {
+  caseId: string;
+  status: string;
+  documents: AffiliateKybSnapshotDocument[];
+}
+
+export interface GetAffiliateKybSnapshotResponse {
+  affiliateId: string;
+  onboardingSnapshot: AffiliateKybSnapshot;
+}

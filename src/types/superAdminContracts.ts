@@ -128,3 +128,64 @@ export interface GetReportStatusResponse {
   downloadUrl?: string;
   completedAt?: string;
 }
+
+export interface QueryBanksFilters {
+  status?: string[] | null;
+  country?: string | null;
+  search?: string | null;
+}
+
+export interface QueryBanksRequest {
+  filters: QueryBanksFilters;
+  page: number;
+  pageSize: number;
+}
+
+export interface BankQueryItem {
+  bankId: string;
+  bankName: string;
+  bankCode: string;
+  status: string;
+  supportedCurrencies?: string[];
+  createdAt: string;
+}
+
+export interface QueryBanksResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: BankQueryItem[];
+}
+
+export interface QueryAffiliatesFilters {
+  status?: string[] | null;
+  bankId?: string | null;
+  country?: string | null;
+  fromDate?: string | null;
+  toDate?: string | null;
+  search?: string | null;
+}
+
+export interface QueryAffiliatesRequest {
+  filters: QueryAffiliatesFilters;
+  page: number;
+  pageSize: number;
+}
+
+export interface AffiliateQueryItem {
+  affiliateId: string;
+  tenantId: string;
+  legalName: string;
+  tradingName?: string;
+  registrationNumber: string;
+  country: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface QueryAffiliatesResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: AffiliateQueryItem[];
+}

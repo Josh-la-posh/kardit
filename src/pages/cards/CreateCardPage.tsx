@@ -12,6 +12,11 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCard } from '@/hooks/useCards';
 import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS } from '@/stores/mockStore';
 
+const CARD_TYPES = [
+  { value: 'VIRTUAL', label: 'Virtual Card' },
+  { value: 'PHYSICAL', label: 'Physical Card' },
+];
+
 export default function CreateCardPage() {
   const navigate = useNavigate();
   const { createCard, isLoading } = useCreateCard();
@@ -43,7 +48,11 @@ export default function CreateCardPage() {
   const selectedCustomer = customers.find((customer) => customer.id === form.customerId);
 
   const set = (key: string, val: string) => {
-    setForm((prev) => ({ ...prev, [key]: val }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: val,
+      ...(key === 'cardType' && val === 'VIRTUAL' ? { deliveryMethod: '' } : {}),
+    }));
     setErrors((prev) => ({ ...prev, [key]: '' }));
 
     if (key === 'customerId') {
@@ -62,9 +71,10 @@ export default function CreateCardPage() {
     const nextErrors: Record<string, string> = {};
     if (!form.customerId) nextErrors.customerId = 'Required';
     if (!form.embossName.trim()) nextErrors.embossName = 'Required';
+    if (!form.cardType) nextErrors.cardType = 'Required';
     if (!form.cardProduct) nextErrors.cardProduct = 'Required';
     if (!form.currency) nextErrors.currency = 'Required';
-    if (!form.deliveryMethod) nextErrors.deliveryMethod = 'Required';
+    if (form.cardType === 'PHYSICAL' && !form.deliveryMethod) nextErrors.deliveryMethod = 'Required';
     if (!form.issuingBank) nextErrors.issuingBank = 'Required';
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -80,12 +90,15 @@ export default function CreateCardPage() {
 
       await createCard({
         customerId: form.customerId,
+        bankId: selectedBank!.id,
+        productId: selectedProduct!.id,
+        productType: form.cardType,
         productName: selectedProduct!.name,
         productCode: selectedProduct!.code,
         issuingBankName: selectedBank!.name,
         currency: form.currency,
         embossName: form.embossName.trim(),
-        deliveryMethod: selectedDelivery?.code,
+        deliveryMethod: form.cardType === 'PHYSICAL' ? selectedDelivery?.code : undefined,
       });
 
       toast.success('Card created successfully');
@@ -240,6 +253,22 @@ export default function CreateCardPage() {
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Card Type', true)}</label>
+                    <Select value={form.cardType} onValueChange={(value) => set('cardType', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CARD_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.cardType && <p className="text-xs text-destructive">{errors.cardType}</p>}
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
                     <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
                       <SelectTrigger className="border-border bg-muted">
@@ -288,8 +317,8 @@ export default function CreateCardPage() {
                     {errors.currency && <p className="text-xs text-destructive">{errors.currency}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', true)}</label>
-                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId}>
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Delivery Method', form.cardType === 'PHYSICAL')}</label>
+                    <Select value={form.deliveryMethod} onValueChange={(v) => set('deliveryMethod', v)} disabled={!form.customerId || form.cardType !== 'PHYSICAL'}>
                       <SelectTrigger className="bg-muted border-border">
                         <SelectValue placeholder="Select delivery" />
                       </SelectTrigger>
@@ -330,6 +359,10 @@ export default function CreateCardPage() {
                     <dd>{selectedBank?.name || '-'}</dd>
                   </div>
                   <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Card Type</dt>
+                    <dd>{form.cardType || '-'}</dd>
+                  </div>
+                  <div className="flex justify-between">
                     <dt className="text-muted-foreground">Product</dt>
                     <dd>{selectedProduct?.name || '-'}</dd>
                   </div>
@@ -340,6 +373,10 @@ export default function CreateCardPage() {
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Emboss Name</dt>
                     <dd className="font-mono text-xs">{form.embossName || '-'}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Delivery</dt>
+                    <dd>{selectedDelivery?.label || '-'}</dd>
                   </div>
                 </dl>
               </div>
