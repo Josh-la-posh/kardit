@@ -85,8 +85,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'glow': '0 0 20px hsl(147.38 100% 31.37% / 0.15)',
-        'glow-lg': '0 0 40px hsl(147.38 100% 31.37% / 0.2)',
+        'glow': '0 0 20px hsl(28 85% 52% / 0.15)',
+        'glow-lg': '0 0 40px hsl(28 85% 52% / 0.2)',
       },
       keyframes: {
         "accordion-down": {

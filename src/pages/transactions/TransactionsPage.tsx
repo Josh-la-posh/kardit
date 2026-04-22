@@ -349,8 +349,6 @@ export default function TransactionsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
@@ -371,8 +369,6 @@ export default function TransactionsPage() {
                                 : ''
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
-                          <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
                           <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
                           <td className="px-4 py-3 text-sm font-medium">{formatMoney(transaction.amount, transaction.currency)}</td>
