@@ -25,15 +25,10 @@ const LS_DRAFTS = 'kardit.onboarding.drafts.v2';
 const LS_CASE_SESSIONS = 'kardit.onboarding.case-sessions.v1';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
-const forceHttpsOnSecurePages = (baseUrl: string) => {
-  if (typeof window === 'undefined') return baseUrl;
-  if (window.location.protocol !== 'https:') return baseUrl;
-  return baseUrl.replace(/^http:\/\//i, 'https://');
-};
 
 const getApiBaseUrl = () => {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  return base ? normalizeBaseUrl(forceHttpsOnSecurePages(base)) : '';
+  return base ? normalizeBaseUrl(base) : '';
 };
 
 const safeJson = async (res: Response) => {
