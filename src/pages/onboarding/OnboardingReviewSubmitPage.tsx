@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
+import { useIssuingBanks } from '@/hooks/useIssuingBank';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
-import { ISSUING_BANKS } from '@/stores/mockStore';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -11,15 +11,16 @@ export default function OnboardingReviewSubmitPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
   const { draft, isLoading, error, submit } = useOnboardingDraft(draftId);
+  const { banks } = useIssuingBanks();
   const [infoAccurate, setInfoAccurate] = useState(false);
   const [authorizedSigner, setAuthorizedSigner] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const issuingBankNames = useMemo(() => {
-    const map = new Map(ISSUING_BANKS.map((bank) => [bank.id, bank.name] as const));
-    return (draft?.issuingBankIds || []).map((id) => map.get(id) || id);
-  }, [draft?.issuingBankIds]);
+    const map = new Map(banks.map((bank) => [bank.bankDetails.code, bank.bankDetails.name] as const));
+    return (draft?.issuingBankIds || []).map((code) => map.get(code) || code);
+  }, [banks, draft?.issuingBankIds]);
 
   const onSubmit = async () => {
     setLocalError(null);

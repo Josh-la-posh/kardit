@@ -116,7 +116,7 @@ export async function getPartnershipRequest(
 export async function queryPartnershipRequests(
   request: QueryPartnershipRequestsRequest
 ): Promise<QueryPartnershipRequestsResponse> {
-  return postJson<QueryPartnershipRequestsResponse>('/partnership-requests/query', request);
+  return postJson<QueryPartnershipRequestsResponse>('/affiliates/partnership-requests/query', request);
 }
 
 export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {

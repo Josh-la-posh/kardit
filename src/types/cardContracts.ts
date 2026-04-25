@@ -63,7 +63,6 @@ export interface CardListItem {
   productId?: string;
   cardType?: string;
   productType?: string;
-  cardType?: string;
   productName?: string;
   productCode?: string;
   status: string;

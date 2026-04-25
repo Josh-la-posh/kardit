@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { store, type PlatformAffiliate } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Mail, Phone, Globe, Activity, TrendingDown, TrendingUp } from 'lucide-react';
+import { store } from '@/stores/mockStore';
+import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Activity, TrendingDown, TrendingUp, RefreshCw, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
+import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
+import type { BankQueryItem } from '@/types/superAdminContracts';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -35,26 +37,30 @@ function formatMoney(value: number | undefined) {
 export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { volume, isLoading: volumeLoading } = useBankTransactionVolume(bankId);
   
-  const bank = bankId ? store.getPlatformBank(bankId) : null;
-  const affiliates = useMemo(() => 
-    bankId ? store.getPlatformAffiliates(bankId) : [], 
-    [bankId]
-  );
+  const routeState = location.state as { bank?: BankQueryItem } | null;
+  const selectedBank = routeState?.bank;
+  const fallbackBank = bankId ? store.getPlatformBank(bankId) : null;
+  const bankName = selectedBank?.bankName || fallbackBank?.name || `Bank ${bankId}`;
+  const bankCode = selectedBank?.bankCode || fallbackBank?.code || '-';
+  const bankStatus = selectedBank?.status || fallbackBank?.status;
+  const supportedCurrencies = selectedBank?.supportedCurrencies || [];
+  const createdAt = selectedBank?.createdAt || fallbackBank?.createdAt;
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const {  total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
+  const { affiliates, total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
     search,
-    status: statusFilter,
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
   });
 
   const totals = useMemo(() => {
     return {
       totalAffiliates: total,
       activeAffiliates: affiliates.filter((affiliate) => affiliate.status === 'ACTIVE').length,
-      // approvedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'APPROVED').length,
+      approvedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'APPROVED').length,
       suspendedAffiliates: affiliates.filter((affiliate) => affiliate.status === 'SUSPENDED').length,
     };
   }, [affiliates, total]);
@@ -74,11 +80,11 @@ export default function BankDetailPage() {
       <AppLayout navVariant="service-provider">
         <div className="animate-fade-in">
           <PageHeader
-            title={bank?.bankName || `Bank ${bankId}`}
-            subtitle={`Affiliates under ${bank?.bankName || bankId}`}
+            title={bankName}
+            subtitle={`Affiliates under ${bankName}`}
             actions={
               <div className="flex items-center gap-2">
-                {bank?.status && <StatusChip status={statusToChip[bank.status] || 'INACTIVE'} label={bank.status} />}
+                {bankStatus && <StatusChip status={statusToChip[bankStatus] || 'INACTIVE'} label={bankStatus} />}
                 <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
                 </Button>
@@ -96,19 +102,19 @@ export default function BankDetailPage() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank Code</p>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{bank?.bankCode || '-'}</span>
+                  <span className="font-medium">{bankCode}</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Supported Currencies</p>
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{bank?.supportedCurrencies?.join(', ') || '-'}</span>
+                  <span className="font-medium">{supportedCurrencies.length ? supportedCurrencies.join(', ') : '-'}</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Created</p>
-                <p className="font-medium">{bank?.createdAt ? format(new Date(bank.createdAt), 'MMM d, yyyy') : '-'}</p>
+                <p className="font-medium">{createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : '-'}</p>
               </div>
             </div>
           </div>

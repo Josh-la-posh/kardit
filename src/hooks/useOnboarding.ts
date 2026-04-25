@@ -69,11 +69,11 @@ export function useOnboardingDraft(draftId: string | undefined) {
   );
 
   const updateIssuingBanks = useCallback(
-    async (issuingBankIds: string[], onboardingSessionId: string) => {
+    async (issuingBankCodes: string[], onboardingSessionId: string) => {
       if (!draftId) return null;
       const req = {
         onboardingSessionId,
-        selectedBanks: issuingBankIds.map(bankId => ({ bankId })),
+        selectedBanks: issuingBankCodes.map((bankId) => ({ bankId })),
       };
       const res = await saveIssuingBanks(draftId, req);
       setDraft(getStoredOnboardingDraft(draftId));

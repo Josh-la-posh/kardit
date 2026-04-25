@@ -1,335 +1,320 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Activity, ChevronLeft, Loader2, ShieldAlert, StopCircle, Users } from 'lucide-react';
-import { useBankAffiliateCards, useBankAffiliates } from '@/hooks/useBankPortal';
-import { queryTransactions } from '@/services/transactionApi';
-import type { TransactionListItem, TransactionStatus, TransactionType } from '@/types/transactionContracts';
+import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuth } from '@/hooks/useAuth';
+import { useCard, useCards } from '@/hooks/useCards';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
+import { createCardUnload, getCardBalance } from '@/services/cardsApi';
+import type { CardUnloadResponse } from '@/types/cardContracts';
+import { ArrowLeft, CheckCircle, ChevronDown, Code, CreditCard, Landmark, Loader2, Search, Wallet } from 'lucide-react';
 
-type AffiliateAction = 'suspend' | 'block' | null;
+function randomId(prefix: string) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
 
-function formatMoney(amount: number, currency = 'NGN') {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
-function toTransactionStatus(status: string) {
-  if (status === 'AUTHORIZED' || status === 'COMPLETED') return 'COMPLETED';
-  if (status === 'REFUSED' || status === 'CANCELLED') return 'DECLINED';
-  if (status === 'PENDING') return 'PENDING';
-  return 'INFO';
-}
-
-export default function AffiliateDetailPages() {
-  const { affiliateId } = useParams<{ affiliateId: string }>();
+export default function LoadReversalPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { affiliates } = useBankAffiliates();
-  const { bankId, fetchCards, suspend, block } = useBankAffiliateCards(affiliateId);
+  const { user } = useAuth();
+  const affiliateId = useMemo(() => {
+    try {
+      return resolveAffiliateId(user);
+    } catch {
+      return user?.tenantId || 'affiliate_unknown';
+    }
+  }, [user]);
+  const { cards, isLoading: cardsLoading, error: cardsError } = useCards();
+  console.log('Cards loaded:', cards, 'Loading:', cardsLoading, 'Error:', cardsError);
 
-  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | 'ALL'>('ALL');
-  const [transactionType, setTransactionType] = useState<TransactionType | 'ALL'>('ALL');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [actionReason, setActionReason] = useState('');
-  const [working, setWorking] = useState(false);
-  const [actionType, setActionType] = useState<AffiliateAction>(null);
-  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
-  const [transactionTotal, setTransactionTotal] = useState(0);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [amount, setAmount] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [bankCode, setBankCode] = useState('');
+  const [accountNumberMasked, setAccountNumberMasked] = useState('');
+  const [reason, setReason] = useState('CUSTOMER_CASH_OUT');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ response: CardUnloadResponse; previousBalance: number | null } | null>(null);
 
-  const basePath = location.pathname.startsWith('/bank/active-affiliates')
-    ? `/bank/active-affiliates/${affiliateId}`
-    : `/bank/affiliates/${affiliateId}`;
+  const { card: selectedCard, fundingDetails, isLoading: cardLoading } = useCard(selectedCardId || undefined);
 
-  const affiliate = useMemo(
-    () => affiliates.find((item) => item.affiliateId === affiliateId) || null,
-    [affiliates, affiliateId]
+  const filteredCards = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return cards.filter((card) => {
+      if (!query) return true;
+      return (
+        card.maskedPan.toLowerCase().includes(query) ||
+        card.customerId.toLowerCase().includes(query) ||
+        card.productName.toLowerCase().includes(query)
+      );
+    });
+  }, [cards, search]);
+
+  const requestPreview = useMemo(
+    () => ({
+      requestContext: {
+        requestId: randomId('unload-request'),
+        actorUserId: user?.id || 'user_unknown',
+        userType: user?.stakeholderType || 'AFFILIATE',
+        tenantId: user?.tenantId || 'tenant_unknown',
+        affiliateId,
+        idempotencyKey: randomId('idem-unload'),
+      },
+      amount: {
+        value: Number(amount) || 0,
+        currency: selectedCard?.currency || fundingDetails?.fundingInstructions.currency || 'NGN',
+      },
+      destinationAccount: {
+        accountId: accountId || '',
+        bankCode: bankCode || '',
+        accountNumberMasked: accountNumberMasked || '',
+      },
+      reason: reason || '',
+    }),
+    [
+      accountId,
+      accountNumberMasked,
+      amount,
+      bankCode,
+      fundingDetails?.fundingInstructions.currency,
+      reason,
+      selectedCard?.currency,
+      user?.id,
+      user?.stakeholderType,
+      affiliateId,
+      user?.tenantId,
+    ]
   );
 
-  const fetchTransactions = useCallback(async () => {
-    if (!affiliateId) return;
-    setTransactionsLoading(true);
-    setTransactionsError(null);
-    try {
-      const response = await queryTransactions({
-        filters: {
-          bankId: bankId || undefined,
-          affiliateId,
-          status: transactionStatus === 'ALL' ? undefined : [transactionStatus],
-          transactionType: transactionType === 'ALL' ? undefined : [transactionType],
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
-        },
-        page: 1,
-        pageSize: 25,
-      });
-      setTransactions(response.data);
-      setTransactionTotal(response.total);
-    } catch (err) {
-      setTransactions([]);
-      setTransactionTotal(0);
-      setTransactionsError(err instanceof Error ? err.message : 'Failed to load affiliate transactions');
-    } finally {
-      setTransactionsLoading(false);
-    }
-  }, [affiliateId, bankId, fromDate, toDate, transactionStatus, transactionType]);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
-
-  const applyFilters = async () => {
-    await fetchTransactions();
-    await fetchCards({
-      fromDate: fromDate || undefined,
-      toDate: toDate || undefined,
-    });
-  };
-
-  const openActionDialog = (nextAction: Exclude<AffiliateAction, null>) => {
-    setActionType(nextAction);
-    setActionReason('');
-  };
-
-  const handleAffiliateAction = async () => {
-    if (!actionType || !affiliateId || !actionReason.trim()) {
-      toast.error('Enter a reason first');
+  const handleSubmit = async () => {
+    if (!selectedCardId || !selectedCard || Number(amount) <= 0 || !accountId.trim() || !bankCode.trim() || !accountNumberMasked.trim() || !reason.trim()) {
       return;
     }
 
-    setWorking(true);
+    setSubmitting(true);
     try {
-      if (actionType === 'suspend') {
-        const response = await suspend(actionReason.trim());
-        toast.warning(`Affiliate suspended: ${response.currentStatus}`);
-      } else {
-        const response = await block(actionReason.trim());
-        toast.error(`Affiliate blocked: ${response.currentStatus}`);
-      }
-      setActionType(null);
-      setActionReason('');
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : `Failed to ${actionType} affiliate`);
+      const previousBalance = await getCardBalance(selectedCardId)
+        .then((response) => response.balance.availableBalance)
+        .catch(() => null);
+
+      const response = await createCardUnload(selectedCardId, {
+        requestContext: {
+          requestId: randomId('unload-request'),
+          actorUserId: user?.id || 'user_unknown',
+          userType: user?.stakeholderType || 'AFFILIATE',
+          tenantId: user?.tenantId || 'tenant_unknown',
+          affiliateId,
+          idempotencyKey: randomId('idem-unload'),
+        },
+        amount: {
+          value: Number(amount),
+          currency: selectedCard.currency || fundingDetails?.fundingInstructions.currency || 'NGN',
+        },
+        destinationAccount: {
+          accountId: accountId.trim(),
+          bankCode: bankCode.trim(),
+          accountNumberMasked: accountNumberMasked.trim(),
+        },
+        reason: reason.trim(),
+      });
+
+      setResult({ response, previousBalance });
+      toast.success('Card unload submitted successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unload failed');
     } finally {
-      setWorking(false);
+      setSubmitting(false);
     }
   };
 
-  const actionTitle = actionType === 'suspend' ? 'Suspend Affiliate' : 'Block Affiliate';
-  const actionDescription =
-    actionType === 'suspend'
-      ? 'Add the reason for suspending this affiliate. This will pause the affiliate until the issue is resolved.'
-      : 'Add the reason for blocking this affiliate. This may cascade into card and approval restrictions.';
+  if (result) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+        <AppLayout>
+          <div className="animate-fade-in max-w-lg mx-auto">
+            <div className="kardit-card p-8 text-center">
+              <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Unload Successful</h2>
+              <p className="text-sm text-muted-foreground mb-6">Transaction ID: {result.response.unloadTransactionId}</p>
+              <div className="space-y-2 text-sm text-left kardit-surface p-4 rounded-lg mb-6">
+                <div className="flex justify-between"><span className="text-muted-foreground">Card</span><span>{selectedCard?.maskedPan}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{selectedCard?.customerId}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="text-destructive">{Number(amount).toLocaleString('en-US', { style: 'currency', currency: selectedCard?.currency || 'NGN' })}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Previous Balance</span><span>{result.previousBalance === null ? 'Unavailable' : result.previousBalance.toLocaleString('en-US', { style: 'currency', currency: selectedCard?.currency || 'NGN' })}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Balance After</span><span className="font-semibold text-primary">{result.response.balanceAfter.toLocaleString('en-US', { style: 'currency', currency: selectedCard?.currency || 'NGN' })}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Transferred To</span><span>{result.response.transferredTo.accountNumberMasked}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Completed At</span><span>{format(new Date(result.response.completedAt), 'PPP p')}</span></div>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <Button variant="outline" onClick={() => navigate('/loads')}>Back to Loads</Button>
+                <Button onClick={() => navigate(`/cards/${selectedCardId}`)}>View Card</Button>
+              </div>
+            </div>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['BANK']}>
-      <AppLayout navVariant="bank">
-        <div className="animate-fade-in space-y-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/bank/affiliates')} className="gap-2">
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <PageHeader
-              title={affiliate?.affiliateName || 'Affiliate'}
-              subtitle=''
-              showBack={false}
-              actions={
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => navigate(`${basePath}/customers`)}>
-                    <Users className="h-4 w-4" /> View Customers
-                  </Button>
-                  <Button variant="outline" className="text-orange-600" onClick={() => openActionDialog('suspend')}>
-                    <StopCircle className="h-4 w-4" /> Suspend Affiliate
-                  </Button>
-                  <Button variant="destructive" onClick={() => openActionDialog('block')}>
-                    <ShieldAlert className="h-4 w-4" /> Block Affiliate
-                  </Button>
-                </div>
-              }
-            />
-          </div>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+      <AppLayout>
+        <div className="animate-fade-in">
+          <PageHeader
+            title="Card Unload"
+            subtitle="Move funds from a card to a destination account"
+            actions={<Button variant="outline" size="sm" onClick={() => navigate('/loads')}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>}
+          />
 
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="mb-4 text-lg font-semibold">Affiliate Summary</h3>
-            {affiliate ? (
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Funding Volume</p>
-                  <p className="font-semibold">{formatMoney(affiliate.totalFundingVolume)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Cards</p>
-                  <p className="font-semibold">{affiliate.totalCards.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Cards</p>
-                  <p className="font-semibold">{affiliate.activeCards.toLocaleString()}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Affiliate summary unavailable.</p>
-            )}
-          </Card>
-
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="mb-4 text-lg font-semibold">Transaction Filters</h3>
-            <div className="grid gap-4 md:grid-cols-5">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2 kardit-card p-6 space-y-5">
               <div>
-                <Label htmlFor="transactionStatus">Status</Label>
-                <select
-                  id="transactionStatus"
-                  value={transactionStatus}
-                  onChange={(e) => setTransactionStatus(e.target.value as TransactionStatus | 'ALL')}
-                  className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All</option>
-                  <option value="AUTHORIZED">Authorized</option>
-                  <option value="REFUSED">Refused</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="PENDING">Pending</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="transactionType">Type</Label>
-                <select
-                  id="transactionType"
-                  value={transactionType}
-                  onChange={(e) => setTransactionType(e.target.value as TransactionType | 'ALL')}
-                  className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All</option>
-                  <option value="POS">POS</option>
-                  <option value="ATM_WITHDRAWAL">ATM Withdrawal</option>
-                  <option value="LOAD">Load</option>
-                  <option value="UNLOAD">Unload</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="fromDate">From Date</Label>
-                <Input id="fromDate" className="mt-2" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="toDate">To Date</Label>
-                <Input id="toDate" className="mt-2" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              </div>
-              <div className="flex items-end">
-                <Button className="w-full" onClick={applyFilters}>Apply Filters</Button>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <div className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-2xl font-bold">Transactions</h2>
+                <label className="text-sm font-medium mb-1 block">Select Card <span className="text-destructive">*</span></label>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Search by PAN, or product..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 </div>
-                <p className="text-sm text-muted-foreground">{transactionTotal} result(s)</p>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {cardsLoading ? (
+                    <div className="flex items-center gap-2 p-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading cards...
+                    </div>
+                  ) : cardsError ? (
+                    <p className="text-sm text-destructive p-2">{cardsError}</p>
+                  ) : filteredCards.map((card) => (
+                    <button
+                      key={card.id}
+                      onClick={() => setSelectedCardId(card.id)}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedCardId === card.id ? 'bg-primary/20 border border-primary/40' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <span className="font-mono">{card.maskedPan}</span>
+                      <span className="text-muted-foreground ml-2">- {card.customerId}</span>
+                    </button>
+                  ))}
+                  {!cardsLoading && !cardsError && filteredCards.length === 0 && <p className="text-sm text-muted-foreground p-2">No cards found.</p>}
+                </div>
               </div>
 
-              {transactionsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {cardLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading selected card details...
                 </div>
-              ) : transactionsError ? (
-                <div className="text-sm text-muted-foreground">{transactionsError}</div>
-              ) : transactions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>No transactions found for this affiliate.</p>
+              ) : selectedCard ? (
+                <div className="kardit-surface p-4 rounded-lg space-y-2 text-sm">
+                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" /> <span className="font-mono">{selectedCard.maskedPan}</span></div>
+                  {/* <p className="text-muted-foreground">Customer ID: {selectedCard.customerId}</p> */}
+                  <p className="text-muted-foreground">Product: {selectedCard.productName}</p>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Landmark className="h-4 w-4" />
+                    <span>Funding Account: {fundingDetails?.virtualAccount.accountNumber || 'Not available yet'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Wallet className="h-4 w-4" />
+                    <span>Card Currency: {selectedCard.currency}</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer Ref</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {transactions.map((transaction, index) => (
-                        <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                          <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
-                          <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{transaction.cardId}</td>
-                          <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{transaction.customerId}</td>
-                          <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
-                          <td className="px-4 py-3 text-right text-sm font-mono">
-                            {formatMoney(transaction.amount, transaction.currency)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
+              ) : null}
 
-        <Dialog open={actionType !== null} onOpenChange={(open) => !open && setActionType(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{actionTitle}</DialogTitle>
-              <DialogDescription>{actionDescription}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
               <div>
-                <Label htmlFor="affiliateActionReason">Reason</Label>
-                <textarea
-                  id="affiliateActionReason"
-                  className="mt-2 min-h-28 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
-                  placeholder={actionType === 'suspend' ? 'REGULATORY_REVIEW_PENDING' : 'SERIOUS_COMPLIANCE_VIOLATION'}
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  disabled={working}
+                <label className="text-sm font-medium mb-1 block">Amount <span className="text-destructive">*</span></label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="50000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setActionType(null)} disabled={working}>
-                  Cancel
-                </Button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Destination Account ID <span className="text-destructive">*</span></label>
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="ACC-REG-00081"
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Bank Code <span className="text-destructive">*</span></label>
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="058"
+                    value={bankCode}
+                    onChange={(e) => setBankCode(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Account Number Masked <span className="text-destructive">*</span></label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="01******89"
+                  value={accountNumberMasked}
+                  onChange={(e) => setAccountNumberMasked(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Reason <span className="text-destructive">*</span></label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="CUSTOMER_CASH_OUT" />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => navigate('/loads')}>Cancel</Button>
                 <Button
-                  variant={actionType === 'block' ? 'destructive' : 'default'}
-                  onClick={handleAffiliateAction}
-                  disabled={working || !actionReason.trim()}
+                  onClick={handleSubmit}
+                  disabled={submitting || !selectedCardId || Number(amount) <= 0 || !accountId.trim() || !bankCode.trim() || !accountNumberMasked.trim() || !reason.trim()}
                 >
-                  {working && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Proceed
+                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Submit Unload
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+
+            <div className="xl:col-span-1">
+              <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
+                <div className="kardit-card p-4 sticky top-24">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Code className="h-4 w-4" /> API Unload Request Preview
+                    </h3>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${previewOpen ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <pre className="mt-3 text-xs bg-muted rounded-md p-3 overflow-auto max-h-96 text-foreground">
+                      {JSON.stringify(requestPreview, null, 2)}
+                    </pre>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            </div>
+          </div>
+        </div>
       </AppLayout>
     </ProtectedRoute>
   );

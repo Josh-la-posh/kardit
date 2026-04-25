@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
+import { useIssuingBanks } from '@/hooks/useIssuingBank';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
-import { ISSUING_BANKS } from '@/stores/mockStore';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,9 +11,11 @@ export default function OnboardingIssuingBanksPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
   const { draft, isLoading, updateIssuingBanks } = useOnboardingDraft(draftId);
+  const { banks, isLoading: banksLoading, error: banksError, refetch: refetchBanks } = useIssuingBanks();
   const initial = useMemo(() => new Set(draft?.issuingBankIds || []), [draft?.issuingBankIds]);
   const [selected, setSelected] = useState<Set<string>>(initial);
   const [saving, setSaving] = useState(false);
+  const loading = isLoading || banksLoading;
 
   React.useEffect(() => {
     setSelected(initial);
@@ -52,25 +54,32 @@ export default function OnboardingIssuingBanksPage() {
             <p className="text-sm text-muted-foreground">Choose the issuing banks you want to work with.</p>
           </div>
 
-          {isLoading ? (
+          {loading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : banksError ? (
+            <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+              <p>{banksError}</p>
+              <Button type="button" variant="outline" className="mt-4" onClick={refetchBanks}>
+                Retry
+              </Button>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {ISSUING_BANKS.map((b) => (
+                {banks.map((b) => (
                   <button
                     key={b.id}
                     type="button"
-                    onClick={() => toggle(b.id)}
+                    onClick={() => toggle(b.bankDetails.code)}
                     className={cn(
                       'rounded-md border border-border p-4 text-left transition-colors',
-                      selected.has(b.id) ? 'bg-muted' : 'hover:bg-muted/40'
+                      selected.has(b.bankDetails.code) ? 'bg-muted' : 'hover:bg-muted/40'
                     )}
                   >
-                    <p className="text-sm font-medium">{b.name}</p>
-                    <p className="text-xs text-muted-foreground">{selected.has(b.id) ? 'Selected' : 'Not selected'}</p>
+                    <p className="text-sm font-medium">{b.bankDetails.name}</p>
+                    <p className="text-xs text-muted-foreground">{selected.has(b.bankDetails.code) ? 'Selected' : 'Not selected'}</p>
                   </button>
                 ))}
               </div>

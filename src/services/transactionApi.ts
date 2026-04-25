@@ -248,11 +248,15 @@ export function exportTransactions(request: TransactionExportRequest): Promise<T
 }
 
 export function getBankTransactionVolume(bankId: string): Promise<BankTransactionVolumeResponse> {
-  return getJson<BankTransactionVolumeResponse>(`/transactions/volume/bank/${encodeURIComponent(bankId)}`);
+  return getJson<BankTransactionVolumeResponse | ApiEnvelope<BankTransactionVolumeResponse>>(
+    `/transactions/volume/bank/${encodeURIComponent(bankId)}`
+  ).then(unwrapApiValue);
 }
 
 export function getAffiliateTransactionVolume(affiliateId: string): Promise<AffiliateTransactionVolumeResponse> {
-  return getJson<AffiliateTransactionVolumeResponse>(`/transactions/volume/affiliate/${encodeURIComponent(affiliateId)}`);
+  return getJson<AffiliateTransactionVolumeResponse | ApiEnvelope<AffiliateTransactionVolumeResponse>>(
+    `/transactions/volume/affiliate/${encodeURIComponent(affiliateId)}`
+  ).then(unwrapApiValue);
 }
 
 export function getCardUnloadTransactions(cardId: string): Promise<CardUnloadTransactionsResponse> {
@@ -291,7 +295,7 @@ export function getCardLoadTransactions(cardId: string): Promise<CardLoadTransac
 
 export function getCardTransactions(cardId: string): Promise<CardTransactionsResponse> {
   return getJson<CardTransactionsResponse | ApiEnvelope<CardTransactionsResponse>>(
-    `/transactions/cards/${encodeURIComponent(cardId)}`
+    `/transactions/cards/${encodeURIComponent(cardId)}/transactions`
   ).then((response) => {
     const value = unwrapApiValue(response) as CardTransactionsResponse & {
       results?: CardTransactionsResponse['data'];

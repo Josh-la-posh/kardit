@@ -8,9 +8,10 @@ import { TextField } from '@/components/ui/text-field';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { useAffiliateBankPartnerships } from '@/hooks/useAffiliateBanks';
 import { useCustomer } from '@/hooks/useCustomers';
 import { useCreateCard } from '@/hooks/useCards';
-import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS, ID_TYPES, store } from '@/stores/mockStore';
+import { CARD_PRODUCTS, CURRENCIES, DELIVERY_METHODS, ID_TYPES, store } from '@/stores/mockStore';
 import { Loader2, ArrowLeft, ChevronDown, Code } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +25,7 @@ export default function IssueCardPage() {
   const navigate = useNavigate();
   const { customer, isLoading: custLoading } = useCustomer(customerId);
   const { createCard, isLoading } = useCreateCard();
+  const { banks: partneredBanks, isLoading: banksLoading, error: banksError } = useAffiliateBankPartnerships();
 
   const [form, setForm] = useState({
     embossName: '', cardType: '', cardProduct: '', currency: '', deliveryMethod: '', issuingBank: '',
@@ -77,6 +79,10 @@ export default function IssueCardPage() {
   const selectedCurrency = CURRENCIES.find(c => c.code === form.currency);
   const selectedDelivery = DELIVERY_METHODS.find(d => d.id === form.deliveryMethod);
   const selectedIdType = ID_TYPES.find(t => t.id === form.idType);
+  const availableBanks = useMemo(
+    () => partneredBanks.filter((bank) => bank.partnershipStatus === 'ACTIVE'),
+    [partneredBanks]
+  );
 
   const cmsPayload = useMemo(() => ({
     crt_emboss_name: form.embossName.trim(),
@@ -98,14 +104,18 @@ export default function IssueCardPage() {
       return;
     }
 
-    const product = CARD_PRODUCTS.find((p) => p.id === form.cardProduct)!;
-    const bank = ISSUING_BANKS.find((b) => b.id === form.issuingBank)!;
+    const product = CARD_PRODUCTS.find((p) => p.id === form.cardProduct);
+    const bank = availableBanks.find((b) => b.bankId === form.issuingBank);
+    if (!product || !bank) {
+      toast.error('Select a valid card product and issuing bank.');
+      return;
+    }
 
     try {
       const card = await createCard({
         customerId: customer.customerId,
-        bankId: bank.id,
-        issuingBankName: bank.name,
+        bankId: bank.bankId,
+        issuingBankName: bank.bankName,
         productId: product.id,
         productType: form.cardType,
         productName: product.name,
@@ -220,13 +230,28 @@ export default function IssueCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
-                    <Select value={form.issuingBank} onValueChange={(v) => set('issuingBank', v)}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select bank" /></SelectTrigger>
+                    <Select
+                      value={form.issuingBank}
+                      onValueChange={(v) => set('issuingBank', v)}
+                      disabled={banksLoading || !availableBanks.length}
+                    >
+                      <SelectTrigger className="bg-muted border-border">
+                        <SelectValue
+                          placeholder={
+                            banksLoading
+                              ? 'Loading banks...'
+                              : availableBanks.length
+                                ? 'Select bank'
+                                : 'No active bank partnerships'
+                          }
+                        />
+                      </SelectTrigger>
                       <SelectContent>
-                        {ISSUING_BANKS.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                        {availableBanks.map((b) => <SelectItem key={b.bankId} value={b.bankId}>{b.bankName}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     {errors.issuingBank && <p className="text-xs text-destructive">{errors.issuingBank}</p>}
+                    {banksError && <p className="text-xs text-destructive">{banksError}</p>}
                   </div>
                 </div>
               </div>
