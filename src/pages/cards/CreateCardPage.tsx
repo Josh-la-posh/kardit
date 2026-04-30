@@ -18,6 +18,10 @@ const CARD_TYPES = [
   { value: 'PHYSICAL', label: 'Physical Card' },
 ];
 
+const banks = [
+    { bankId: '0298dd5a-3c7a-4242-8561-1ca9fc4d2e0f', bankName: 'Alpha Bank', bankCode: 'ib1', partnershipStatus: 'ACTIVE' },
+    { bankId: '000045f9-d01b-479c-a84d-0fe82454d55a', bankName: 'UBA', bankCode: 'BNK-UBA-001', partnershipStatus: 'ACTIVE' },
+];
 export default function CreateCardPage() {
   const navigate = useNavigate();
   const { createCard, isLoading } = useCreateCard();
@@ -82,9 +86,9 @@ export default function CreateCardPage() {
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
-
   const selectedProduct = CARD_PRODUCTS.find((product) => product.id === form.cardProduct);
   const selectedBank = availableBanks.find((bank) => bank.bankId === form.issuingBank);
+  // const selectedBank = banks.find((bank) => bank.bankId === form.issuingBank);
   const selectedDelivery = DELIVERY_METHODS.find((method) => method.id === form.deliveryMethod);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -304,6 +308,23 @@ export default function CreateCardPage() {
                     {errors.issuingBank && <p className="text-xs text-destructive">{errors.issuingBank}</p>}
                     {banksError && <p className="text-xs text-destructive">{banksError}</p>}
                   </div>
+
+                  {/* <div className='space-y-1.5'>
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
+                    <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
+                        <SelectValue placeholder='select bank' />
+                      </SelectTrigger>
+                      <SelectContent>
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.bankId} value={bank.bankId}>
+                          {bank.bankName} 
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                    </Select>
+                    
+                  </div> */}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Card Product', true)}</label>
                     <Select value={form.cardProduct} onValueChange={(value) => set('cardProduct', value)} disabled={!form.customerId}>

@@ -58,12 +58,12 @@ export function resolveAffiliateId(user?: { tenantId?: string; email?: string } 
   if (user?.tenantId?.startsWith('AFF-')) return user.tenantId;
 
   const byTenant: Record<string, string> = {
-    tenant_alpha_affiliate: 'AFF-00981',
+    tenant_alpha_affiliate: '',
   };
 
   const byEmail: Record<string, string> = {
-    'affiliate@kardit.app': 'AFF-00981',
-    'demo@kardit.app': 'AFF-00981',
+    'affiliate@kardit.app': '5c1e9fd2-6d32-4d0c-9bf2-c7b0d8f2b201',
+    'demo@kardit.app': '00000000-0000-0000-0000-000000000000',
   };
 
   if (user?.tenantId && byTenant[user.tenantId]) return byTenant[user.tenantId];

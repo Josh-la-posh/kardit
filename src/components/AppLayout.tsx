@@ -83,7 +83,7 @@ const serviceProviderNavItems: NavItem[] = [
   { label: 'Transactions', icon: Receipt, path: '/transactions' },
   { label: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['Super Admin'] },
   { label: 'Reports', icon: FileText, path: '/reports' },
-  { label: 'Issuing Bank', icon: Landmark, path: '/issuing-banks' },
+  // { label: 'Issuing Bank', icon: Landmark, path: '/issuing-banks' },
   // { label: 'User Management', icon: UserCog, path: '/users', roles: ['Admin', 'Super Admin'] },
 ];
 

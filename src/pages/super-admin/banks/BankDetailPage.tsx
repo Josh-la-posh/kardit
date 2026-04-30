@@ -8,11 +8,11 @@ import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { store } from '@/stores/mockStore';
-import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Activity, TrendingDown, TrendingUp, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Activity, Snowflake, OctagonMinus, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
-import { useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
+import { useBankCardMetrics, useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
 import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
-import type { BankQueryItem } from '@/types/superAdminContracts';
+import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -39,6 +39,7 @@ export default function BankDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { volume, isLoading: volumeLoading } = useBankTransactionVolume(bankId);
+  const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useBankCardMetrics(bankId);
   
   const routeState = location.state as { bank?: BankQueryItem } | null;
   const selectedBank = routeState?.bank;
@@ -55,6 +56,15 @@ export default function BankDetailPage() {
     search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
   });
+
+  const openAffiliateDetail = (affiliate: AffiliateQueryItem) => {
+    navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`, {
+      state: {
+        bank: selectedBank,
+        affiliate,
+      },
+    });
+  };
 
   const totals = useMemo(() => {
     return {
@@ -120,7 +130,7 @@ export default function BankDetailPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 xl:grid-cols-7 gap-4 mb-6">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -134,27 +144,44 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <Users className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <CreditCard className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.activeAffiliates}</p>
-                  <p className="text-xs text-muted-foreground">Active Affiliates</p>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.totalCardsIssued?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Cards Issued</p>
                 </div>
               </div>
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Users className="h-5 w-5 text-blue-500" />
+                <div className="p-2 rounded-lg bg-cyan-500/10">
+                  <Snowflake className="h-5 w-5 text-cyan-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.approvedAffiliates}</p>
-                  <p className="text-xs text-muted-foreground">Approved Affiliates</p>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Frozen Cards</p>
                 </div>
               </div>
             </div>
             <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <OctagonMinus className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Terminated Cards</p>
+                </div>
+              </div>
+            </div>
+            {/*<div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-yellow-500/10">
                   <Users className="h-5 w-5 text-yellow-500" />
@@ -164,7 +191,10 @@ export default function BankDetailPage() {
                   <p className="text-xs text-muted-foreground">Suspended Affiliates</p>
                 </div>
               </div>
-            </div>
+            </div> */}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-amber-500/10">
@@ -193,14 +223,14 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-500/10">
-                  <TrendingDown className="h-5 w-5 text-red-500" />
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <Users className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div>
                   <p className="text-lg font-bold">
-                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalUnloadVolume)}
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
                   </p>
-                  <p className="text-xs text-muted-foreground">Unload Volume</p>
+                  <p className="text-xs text-muted-foreground">Active Cards</p>
                 </div>
               </div>
             </div>
@@ -266,7 +296,7 @@ export default function BankDetailPage() {
                       <tr
                         key={affiliate.affiliateId}
                         className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                        onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`)}
+                        onClick={() => openAffiliateDetail(affiliate)}
                       >
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
@@ -295,7 +325,7 @@ export default function BankDetailPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`);
+                              openAffiliateDetail(affiliate);
                             }}
                           >
                             <Eye className="h-3 w-3 mr-1" /> View

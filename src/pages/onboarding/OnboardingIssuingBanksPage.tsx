@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { useIssuingBanks } from '@/hooks/useIssuingBank';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
-import { Loader2 } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
 
 export default function OnboardingIssuingBanksPage() {
   const { draftId } = useParams<{ draftId: string }>();
@@ -42,56 +42,80 @@ export default function OnboardingIssuingBanksPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-3xl animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <KarditLogo size="md" />
-        </div>
+    <PublicOnboardingLayout
+      currentStep="issuing-banks"
+      draftId={draftId}
+      draft={draft}
+      title="Select issuing banks"
+      description="Choose the issuing banks you want to work with. You can select multiple partners, and you can always come back to update this list later."
+    >
+      <div className="animate-fade-in">
 
-        <div className="kardit-card p-8">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold">Select issuing banks</h1>
-            <p className="text-sm text-muted-foreground">Choose the issuing banks you want to work with.</p>
+        {loading ? (
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : banksError ? (
-            <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              <p>{banksError}</p>
-              <Button type="button" variant="outline" className="mt-4" onClick={refetchBanks}>
-                Retry
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        ) : banksError ? (
+          <div className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6 text-sm text-slate-700">
+            <p>{banksError}</p>
+            <Button type="button" variant="outline" className="mt-4 h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={refetchBanks}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <>
+            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Available issuing partners</h3>
+                  <p className="mt-1 text-sm text-slate-600">Click any card to toggle selection. Selected partners are highlighted immediately.</p>
+                </div>
+                <div className="rounded-full border border-primary/15 bg-[#e9f5eb] px-3 py-1 text-xs font-semibold text-primary">
+                  {selected.size} selected
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {banks.map((b) => (
                   <button
                     key={b.id}
                     type="button"
                     onClick={() => toggle(b.bankDetails.code)}
                     className={cn(
-                      'rounded-md border border-border p-4 text-left transition-colors',
-                      selected.has(b.bankDetails.code) ? 'bg-muted' : 'hover:bg-muted/40'
+                      'relative overflow-hidden rounded-[1.35rem] border p-5 text-left transition-all duration-200',
+                      selected.has(b.bankDetails.code)
+                        ? 'border-primary/30 bg-[#eff8f0] shadow-[0_14px_30px_rgba(14,159,76,0.08)]'
+                        : 'border-[#dde8df] bg-white hover:border-primary/25 hover:bg-[#f7fbf8]'
                     )}
                   >
-                    <p className="text-sm font-medium">{b.bankDetails.name}</p>
-                    <p className="text-xs text-muted-foreground">{selected.has(b.bankDetails.code) ? 'Selected' : 'Not selected'}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{b.bankDetails.name}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-500">{b.bankDetails.code}</p>
+                      </div>
+                      <div
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-full border transition-colors',
+                          selected.has(b.bankDetails.code)
+                            ? 'border-primary/40 bg-primary text-primary-foreground'
+                            : 'border-[#d9e4db] bg-[#f8fbf8] text-slate-500'
+                        )}
+                      >
+                        {selected.has(b.bankDetails.code) ? <Check className="h-4 w-4" /> : <span className="text-xs">{String.fromCharCode(43)}</span>}
+                      </div>
+                    </div>
+                    <p className="mt-6 text-sm text-slate-600">{selected.has(b.bankDetails.code) ? 'Selected for onboarding' : 'Tap to add this issuing bank to your draft.'}</p>
                   </button>
                 ))}
               </div>
+            </section>
 
-              <div className="flex justify-between gap-2 mt-6">
-                <Button type="button" variant="outline" onClick={() => navigate(`/onboarding/${draftId}/documents`)} disabled={saving}>Back</Button>
-                <Button type="button" onClick={onNext} disabled={saving}>Next</Button>
-              </div>
-            </>
-          )}
-        </div>
+            <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate(`/onboarding/${draftId}/documents`)} disabled={saving}>Back</Button>
+              <Button type="button" className="h-11 rounded-xl px-6" onClick={onNext} disabled={saving}>Continue to review</Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </PublicOnboardingLayout>
   );
 }

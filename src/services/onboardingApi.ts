@@ -8,6 +8,7 @@ import type {
   ListOnboardingCasesResponse,
   OnboardingCase,
   OnboardingDraft,
+  OnboardingDocumentType,
   ProvisionOnboardingCaseRequest,
   ProvisionOnboardingCaseResponse,
   SaveIssuingBanksRequest,
@@ -163,6 +164,76 @@ function deriveUpdatedAt(caseItem: {
   );
 }
 
+function mapOrganization(response: Partial<OnboardingCase>) {
+  return response.organization
+    ? {
+        ...response.organization,
+        addressLine1: response.organization.address?.line1,
+        city: response.organization.address?.city,
+        country: response.organization.address?.country,
+      }
+    : response.organization;
+}
+
+function mapContact(response: Partial<OnboardingCase>, organization: ReturnType<typeof mapOrganization>) {
+  return (
+    response.contact ||
+    (organization?.primaryContact
+      ? {
+          contactName: organization.primaryContact.fullName,
+          contactEmail: organization.primaryContact.email,
+          contactPhone: organization.primaryContact.phone,
+        }
+      : undefined)
+  );
+}
+
+function mapDocuments(response: Partial<OnboardingCase>) {
+  return (response.documents || []).map((document) => ({
+    ...document,
+    type: (document.type || document.documentType || 'OTHER') as OnboardingDocumentType,
+    documentType: (document.documentType || document.type || 'OTHER') as OnboardingDocumentType,
+    fileName: document.fileName || document.documentType || document.type || document.documentId,
+    uploadedAt: document.uploadedAt || response.submittedAt || new Date().toISOString(),
+  }));
+}
+
+function mapMessages(response: Partial<OnboardingCase>) {
+  return (response.messages || []).map((entry) => ({
+    ...entry,
+    text: entry.text || entry.message || '',
+    message: entry.message || entry.text || '',
+  }));
+}
+
+function mapOnboardingCase(response: Partial<OnboardingCase>, fallback: { caseId: string; onboardingSessionId?: string }) {
+  const organization = mapOrganization(response);
+  const contact = mapContact(response, organization);
+
+  return {
+    caseId: response.caseId || fallback.caseId,
+    affiliateId: response.affiliateId,
+    affiliateName: response.affiliateName,
+    status: response.status || 'SUBMITTED',
+    timeline: response.timeline || [],
+    messages: mapMessages(response),
+    submittedAt: deriveSubmittedAt(response),
+    updatedAt: deriveUpdatedAt(response),
+    draftId: response.draftId,
+    onboardingSessionId: fallback.onboardingSessionId,
+    kybSummary: response.kybSummary,
+    organization,
+    contact,
+    documents: mapDocuments(response),
+    issuingBankIds: response.issuingBankIds || [],
+    reviewerNote: response.reviewerNote,
+    decisionReason: response.decisionReason,
+    provisionedTenantId: response.provisionedTenantId,
+    provisionedAdminEmail: response.provisionedAdminEmail,
+    provisionedTemporaryPassword: response.provisionedTemporaryPassword,
+  } satisfies OnboardingCase;
+}
+
 export function getStoredOnboardingDraft(draftId: string): OnboardingDraft | null {
   return getDrafts()[draftId] || null;
 }
@@ -291,42 +362,12 @@ export async function getOnboardingCase(caseId: string, onboardingSessionId: str
   const response = await getJson<Partial<OnboardingCase>>(
     `/affiliates/onboarding/cases/${encodeURIComponent(caseId)}?${search.toString()}`
   );
-  const organization = response.organization
-    ? {
-        ...response.organization,
-        addressLine1: response.organization.address?.line1,
-        city: response.organization.address?.city,
-        country: response.organization.address?.country,
-      }
-    : response.organization;
-  const contact =
-    response.contact ||
-    (organization?.primaryContact
-      ? {
-          contactName: organization.primaryContact.fullName,
-          contactEmail: organization.primaryContact.email,
-          contactPhone: organization.primaryContact.phone,
-        }
-      : undefined);
-  return {
-    caseId,
-    status: response.status || 'SUBMITTED',
-    timeline: response.timeline || [],
-    messages: response.messages || [],
-    submittedAt: deriveSubmittedAt(response),
-    updatedAt: deriveUpdatedAt(response),
-    draftId: response.draftId,
-    onboardingSessionId,
-    organization,
-    contact,
-    documents: response.documents || [],
-    issuingBankIds: response.issuingBankIds || [],
-    reviewerNote: response.reviewerNote,
-    decisionReason: response.decisionReason,
-    provisionedTenantId: response.provisionedTenantId,
-    provisionedAdminEmail: response.provisionedAdminEmail,
-    provisionedTemporaryPassword: response.provisionedTemporaryPassword,
-  };
+  return mapOnboardingCase(response, { caseId, onboardingSessionId });
+}
+
+export async function getReviewerOnboardingCase(caseId: string): Promise<OnboardingCase> {
+  const response = await getJson<Partial<OnboardingCase>>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}`);
+  return mapOnboardingCase(response, { caseId });
 }
 
 export async function listOnboardingCases(

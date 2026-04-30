@@ -43,12 +43,12 @@ export default function BankDashboardPage() {
                 Generated {generatedAt ? format(new Date(generatedAt), 'MMM d, yyyy HH:mm') : '-'}
               </div>
 
-              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {/* <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard title="Cards Issued" value={formatNumber(metrics.totalCardsIssued)} icon={CreditCard} subtitle={`${formatNumber(metrics.activeCards)} active`} />
                 <StatCard title="Funding Volume" value={formatNumber(metrics.totalFundingVolume)} icon={TrendingUp} subtitle={`Unload ${formatNumber(metrics.totalUnloadVolume)}`} />
                 <StatCard title="Transactions" value={formatNumber(metrics.totalTransactionVolume)} icon={ScrollText} subtitle={`${formatNumber(metrics.failedCmsRequests)} failed CMS`} />
                 <StatCard title="Pending Approvals" value={formatNumber(metrics.pendingApprovals)} icon={Building2} subtitle={`${formatNumber(metrics.frozenCards)} frozen, ${formatNumber(metrics.terminatedCards)} terminated`} />
-              </div>
+              </div> */}
 
               <div className="mb-6 grid gap-6 lg:grid-cols-2">
                 <div className="kardit-card overflow-hidden">

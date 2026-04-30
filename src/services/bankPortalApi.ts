@@ -3,6 +3,8 @@ import type {
   ApprovePartnershipResponse,
   BlockAffiliateRequest,
   BlockAffiliateResponse,
+  GetAffiliateCardMetricsResponse,
+  GetBankCardMetricsResponse,
   GetBankAffiliatesResponse,
   GetBankDashboardResponse,
   GetPartnershipRequestResponse,
@@ -80,6 +82,14 @@ export function resolveBankId(user?: { bankId?: string; tenantId?: string } | nu
 
 export async function getBankDashboard(bankId: string): Promise<GetBankDashboardResponse> {
   return getJson<GetBankDashboardResponse>(`/banks/${encodeURIComponent(bankId)}/dashboard`);
+}
+
+export async function getBankCardMetrics(bankId: string): Promise<GetBankCardMetricsResponse> {
+  return getJson<GetBankCardMetricsResponse>(`/cards/metrics/bank/${encodeURIComponent(bankId)}`);
+}
+
+export async function getAffiliateCardMetrics(affiliateId: string): Promise<GetAffiliateCardMetricsResponse> {
+  return getJson<GetAffiliateCardMetricsResponse>(`/cards/metrics/affiliate/${encodeURIComponent(affiliateId)}`);
 }
 
 export async function getBankAffiliates(bankId: string): Promise<GetBankAffiliatesResponse> {

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { useIssuingBanks } from '@/hooks/useIssuingBank';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
 
 export default function OnboardingReviewSubmitPage() {
   const { draftId } = useParams<{ draftId: string }>();
@@ -45,67 +45,75 @@ export default function OnboardingReviewSubmitPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-3xl animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <KarditLogo size="md" />
-        </div>
+    <PublicOnboardingLayout
+      currentStep="review"
+      draftId={draftId}
+      draft={draft}
+      title="Review and submit"
+      description="Check your draft before submission. If you need to make changes, you can go back to previous steps. Once you submit, our team will review your information and get in touch if we need anything else."
+    >
+      <div className="animate-fade-in">
 
-        <div className="kardit-card p-8">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold">Review & submit</h1>
-            <p className="text-sm text-muted-foreground">Confirm details before submission.</p>
+        {(localError || error) && (
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{localError || error}</span>
           </div>
+        )}
 
-          {(localError || error) && (
-            <div className="mb-5 flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{localError || error}</span>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <>
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5">
+                <h3 className="text-lg font-semibold text-slate-900">Submission summary</h3>
+                <p className="mt-1 text-sm text-slate-600">Everything below is pulled from the same data you already entered in earlier steps.</p>
+              </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-md border border-border p-4">
-                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Organization</h2>
-                  <p className="text-sm">{draft?.organization?.legalName || '-'}</p>
-                  <p className="text-xs text-muted-foreground">
+                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Organization</h2>
+                  <p className="text-sm font-medium text-slate-900">{draft?.organization?.legalName || '-'}</p>
+                  <p className="text-xs text-slate-500">
                     Reg No: {draft?.organization?.registrationNumber || '-'}
                   </p>
                 </div>
 
-                <div className="rounded-md border border-border p-4">
-                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Contact</h2>
-                  <p className="text-sm">{draft?.organization?.primaryContact?.fullName || '-'}</p>
-                  <p className="text-xs text-muted-foreground">{draft?.organization?.primaryContact?.email || '-'}</p>
+                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Contact</h2>
+                  <p className="text-sm font-medium text-slate-900">{draft?.organization?.primaryContact?.fullName || '-'}</p>
+                  <p className="text-xs text-slate-500">{draft?.organization?.primaryContact?.email || '-'}</p>
                 </div>
 
-                <div className="rounded-md border border-border p-4 md:col-span-2">
-                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documents</h2>
-                  <p className="text-sm text-muted-foreground">{draft?.documents?.length || 0} document(s) uploaded</p>
+                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5 md:col-span-2">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Documents</h2>
+                  <p className="text-sm text-slate-700">{draft?.documents?.length || 0} document(s) uploaded</p>
                 </div>
 
-                <div className="rounded-md border border-border p-4 md:col-span-2">
-                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Issuing Banks</h2>
+                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5 md:col-span-2">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Issuing Banks</h2>
                   {issuingBankNames.length ? (
                     <ul className="space-y-1 text-sm">
                       {issuingBankNames.map((name) => (
-                        <li key={name}>{name}</li>
+                        <li key={name} className="text-slate-700">{name}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-muted-foreground">None selected</p>
+                    <p className="text-sm text-slate-500">None selected</p>
                   )}
                 </div>
               </div>
+            </section>
 
-              <div className="mt-6 space-y-3">
-                <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <section className="mt-6 rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5">
+                <h3 className="text-lg font-semibold text-slate-900">Required declarations</h3>
+                <p className="mt-1 text-sm text-slate-600">Accept both declarations before submitting your onboarding draft.</p>
+              </div>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 rounded-2xl border border-[#e3ece5] bg-white p-4 text-sm text-slate-700">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -115,7 +123,7 @@ export default function OnboardingReviewSubmitPage() {
                   />
                   <span>I confirm the information provided is accurate.</span>
                 </label>
-                <label className="flex items-start gap-2 text-sm text-muted-foreground">
+                <label className="flex items-start gap-3 rounded-2xl border border-[#e3ece5] bg-white p-4 text-sm text-slate-700">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -126,25 +134,25 @@ export default function OnboardingReviewSubmitPage() {
                   <span>I confirm I am an authorized signer for this organization.</span>
                 </label>
               </div>
+            </section>
 
-              <div className="mt-6 flex justify-between gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>
-                  Back
-                </Button>
-                <Button type="button" onClick={onSubmit} disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
-                    </>
-                  ) : (
-                    'Submit'
-                  )}
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+            <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>
+                Back
+              </Button>
+              <Button type="button" className="h-11 rounded-xl px-6" onClick={onSubmit} disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  'Submit onboarding'
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </PublicOnboardingLayout>
   );
 }

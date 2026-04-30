@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, Phone, User, Users } from 'lucide-react';
+import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, OctagonMinus, Phone, Snowflake, User, Users } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { store } from '@/stores/mockStore';
+import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
 import { getAffiliateTransactionVolume, queryTransactions } from '@/services/transactionApi';
+import { useAffiliateCardMetrics } from '@/hooks/useTransactionVolumes';
 import type { AffiliateTransactionVolumeResponse, TransactionListItem } from '@/types/transactionContracts';
+import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
 
 const affiliateStatusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -35,17 +38,42 @@ function toTransactionStatus(status: string): StatusType {
   return 'INFO';
 }
 
+interface LocationState {
+  bank?: BankQueryItem;
+  affiliate?: AffiliateQueryItem;
+}
+
+function findBankById(items: BankQueryItem[], bankId: string) {
+  return items.find((item) => item.bankId === bankId) || null;
+}
+
+function findAffiliateById(items: AffiliateQueryItem[], affiliateId: string) {
+  return items.find((item) => item.affiliateId === affiliateId) || null;
+}
+
 export default function AffiliateDetailPage() {
   const { bankId, affiliateId } = useParams<{ bankId: string; affiliateId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as LocationState | null;
 
-  const bank = bankId ? store.getPlatformBank(bankId) : null;
-  const affiliate = affiliateId ? store.getPlatformAffiliate(affiliateId) : null;
+  const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
+    routeState?.bank?.bankId === bankId ? routeState.bank : null
+  );
+  const [affiliateSummary, setAffiliateSummary] = useState<AffiliateQueryItem | null>(
+    routeState?.affiliate?.affiliateId === affiliateId ? routeState.affiliate : null
+  );
+  const [summaryLoading, setSummaryLoading] = useState(Boolean(bankId && affiliateId));
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  const fallbackBank = bankId ? store.getPlatformBank(bankId) : null;
+  const fallbackAffiliate = affiliateId ? store.getPlatformAffiliate(affiliateId) : null;
   const customers = useMemo(() => (affiliateId ? store.getAffiliateCustomers(affiliateId) : []), [affiliateId]);
 
   const [affiliateVolume, setAffiliateVolume] = useState<AffiliateTransactionVolumeResponse | null>(null);
   const [affiliateTransactions, setAffiliateTransactions] = useState<TransactionListItem[]>([]);
   const [affiliateTxLoading, setAffiliateTxLoading] = useState(true);
+  const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useAffiliateCardMetrics(affiliateId);
 
   const totals = useMemo(() => {
     return {
@@ -54,6 +82,79 @@ export default function AffiliateDetailPage() {
       pendingCustomers: customers.filter((c) => c.status === 'PENDING').length,
     };
   }, [customers]);
+
+  const loadSummaries = useCallback(async () => {
+    if (!bankId || !affiliateId) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError('Bank not found');
+      setSummaryLoading(false);
+      return;
+    }
+
+    setSummaryLoading(true);
+    setSummaryError(null);
+
+    try {
+      const [bankSearchResponse, affiliateSearchResponse] = await Promise.all([
+        queryBanks({
+          filters: {
+            search: bankId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+        queryAffiliates({
+          filters: {
+            bankId,
+            search: affiliateId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+      ]);
+
+      let nextBank = findBankById(bankSearchResponse?.data || [], bankId);
+      let nextAffiliate = findAffiliateById(affiliateSearchResponse?.data || [], affiliateId);
+
+      if (!nextBank) {
+        const fallbackBankResponse = await queryBanks({
+          filters: {},
+          page: 1,
+          pageSize: 100,
+        });
+        nextBank = findBankById(fallbackBankResponse.data, bankId);
+      }
+
+      if (!nextAffiliate) {
+        const fallbackAffiliateResponse = await queryAffiliates({
+          filters: {
+            bankId,
+          },
+          page: 1,
+          pageSize: 100,
+        });
+        nextAffiliate = findAffiliateById(fallbackAffiliateResponse.data, affiliateId);
+      }
+
+      setBankSummary(nextBank);
+      setAffiliateSummary(nextAffiliate);
+
+      if (!nextBank || !nextAffiliate) {
+        setSummaryError(!nextBank ? 'Bank not found' : 'Affiliate not found');
+      }
+    } catch (e) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError(e instanceof Error ? e.message : 'Failed to load affiliate details');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [affiliateId, bankId]);
+
+  useEffect(() => {
+    loadSummaries();
+  }, [loadSummaries]);
 
   useEffect(() => {
     if (!affiliateId) return;
@@ -86,12 +187,35 @@ export default function AffiliateDetailPage() {
     };
   }, [affiliateId, bankId]);
 
-  if (!bank || !affiliate) {
+  const bankName = bankSummary?.bankName || fallbackBank?.name || `Bank ${bankId}`;
+  const affiliateName = affiliateSummary?.legalName || fallbackAffiliate?.name || `Affiliate ${affiliateId}`;
+  const affiliateStatus = affiliateSummary?.status || fallbackAffiliate?.status || 'INACTIVE';
+  const registrationNumber = affiliateSummary?.registrationNumber || fallbackAffiliate?.registrationNumber || '-';
+  const affiliateCountry = affiliateSummary?.country || fallbackAffiliate?.country || '-';
+  const contactName = fallbackAffiliate?.contactName || '-';
+  const contactEmail = fallbackAffiliate?.contactEmail || '-';
+  const contactPhone = fallbackAffiliate?.contactPhone;
+  const provisionedAt = fallbackAffiliate?.provisionedAt;
+  const totalCards = cardMetrics?.metrics.totalCardsIssued ?? fallbackAffiliate?.totalCards ?? 0;
+
+  if (summaryLoading) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
+        <AppLayout navVariant="service-provider">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if ((!bankSummary && !fallbackBank) || (!affiliateSummary && !fallbackAffiliate)) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
           <div className="text-center py-20 text-muted-foreground">
-            {!bank ? 'Bank not found' : 'Affiliate not found'}
+            {summaryError || (!(bankSummary || fallbackBank) ? 'Bank not found' : 'Affiliate not found')}
           </div>
         </AppLayout>
       </ProtectedRoute>
@@ -103,20 +227,20 @@ export default function AffiliateDetailPage() {
       <AppLayout navVariant="service-provider">
         <div className="animate-fade-in">
           <PageHeader
-            title={affiliate.name}
-            subtitle={`Transactions and portfolio summary for ${affiliate.name}`}
+            title={affiliateName}
+            subtitle={`Transactions and portfolio summary for ${affiliateName}`}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <StatusChip status={affiliateStatusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
-                <Button
+                <StatusChip status={affiliateStatusToChip[affiliateStatus] || 'INACTIVE'} label={affiliateStatus} />
+                {/* <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}
                 >
                   <Users className="h-4 w-4 mr-1" /> View Customers
-                </Button>
+                </Button> */}
                 <Button variant="outline" size="sm" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bank.name}
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bankName}
                 </Button>
               </div>
             }
@@ -134,57 +258,57 @@ export default function AffiliateDetailPage() {
               className="hover:text-foreground cursor-pointer transition-colors"
               onClick={() => navigate(`/super-admin/banks/${bankId}`)}
             >
-              {bank.name}
+              {bankName}
             </span>
             <span className="mx-2">/</span>
-            <span className="text-foreground">{affiliate.name}</span>
+            <span className="text-foreground">{affiliateName}</span>
           </div>
 
           <div className="kardit-card p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Registration Number</p>
-                <p className="font-medium">{affiliate.registrationNumber}</p>
+                <p className="font-medium">{registrationNumber}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Country</p>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{affiliate.country}</span>
+                  <span className="font-medium">{affiliateCountry}</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Person</p>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{affiliate.contactName}</span>
+                  <span className="font-medium">{contactName}</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Email</p>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{affiliate.contactEmail}</span>
+                  <span className="font-medium text-sm">{contactEmail}</span>
                 </div>
               </div>
             </div>
-            {(affiliate.contactPhone || affiliate.provisionedAt) && (
+            {(contactPhone || provisionedAt) && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4 pt-4 border-t border-border">
-                {affiliate.contactPhone && (
+                {contactPhone && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Phone</p>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{affiliate.contactPhone}</span>
+                      <span className="font-medium">{contactPhone}</span>
                     </div>
                   </div>
                 )}
-                {affiliate.provisionedAt && (
+                {provisionedAt && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Provisioned On</p>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{format(new Date(affiliate.provisionedAt), 'MMM d, yyyy')}</span>
+                      <span className="font-medium">{format(new Date(provisionedAt), 'MMM d, yyyy')}</span>
                     </div>
                   </div>
                 )}
@@ -192,7 +316,7 @@ export default function AffiliateDetailPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-500/10">
@@ -228,15 +352,20 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <CreditCard className="h-5 w-5 text-purple-500" />
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <CreditCard className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{affiliate.totalCards.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Total Cards</p>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : totalCards.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Cards Issued</p>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-amber-500/10">
@@ -247,6 +376,45 @@ export default function AffiliateDetailPage() {
                     {affiliateTxLoading ? '...' : formatMoney(affiliateVolume?.volumes?.totalFundingVolume)}
                   </p>
                   <p className="text-xs text-muted-foreground">Affiliate Funding</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <Users className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Active Cards</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-500/10">
+                  <Snowflake className="h-5 w-5 text-cyan-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Frozen Cards</p>
+                </div>
+              </div>
+            </div>
+            <div className="kardit-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <OctagonMinus className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Terminated Cards</p>
                 </div>
               </div>
             </div>
