@@ -1,12 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
 import { AlertCircle, FileText, Loader2, Upload } from 'lucide-react';
 import type { OnboardingDocumentType } from '@/types/onboardingContracts';
 import { StatusChip } from '@/components/ui/status-chip';
+import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
 
 const DOC_TYPES: Array<{ value: OnboardingDocumentType; label: string }> = [
   { value: 'CERTIFICATE_OF_INCORPORATION', label: 'Certificate of Incorporation' },
@@ -63,34 +63,41 @@ export default function OnboardingDocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-3xl animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <KarditLogo size="md" />
-        </div>
+    <PublicOnboardingLayout
+      currentStep="documents"
+      draftId={draftId}
+      draft={draft}
+      title="KYB and KYC documents"
+      description="Upload the supporting files needed for verification. The upload flow stays the same, with a clearer workspace for managing document status."
+    >
+      <div className="animate-fade-in">
 
-        <div className="kardit-card p-8">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold">KYB/KYC document upload</h1>
-            <p className="text-sm text-muted-foreground">Upload supporting documents for review.</p>
+        {(localError || error) && (
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{localError || error}</span>
           </div>
+        )}
 
-          {(localError || error) && (
-            <div className="mb-5 flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{localError || error}</span>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Upload center</h3>
+                  <p className="mt-1 text-sm text-slate-600">Select a document type, then add the corresponding file to your submission.</p>
+                </div>
+                <div className="rounded-full border border-primary/15 bg-[#e9f5eb] px-3 py-1 text-xs font-semibold text-primary">
+                  {draft?.documents?.length || 0} uploaded
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Select value={selectedType} onValueChange={(v) => setSelectedType(v as OnboardingDocumentType)}>
-                  <SelectTrigger className="bg-muted border-border flex-1">
+                  <SelectTrigger className="h-12 flex-1 rounded-xl border-[#d6e3d8] bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -99,21 +106,29 @@ export default function OnboardingDocumentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={saving}>
-                  <Upload className="h-4 w-4" /> Browse
+                <Button type="button" variant="outline" className="h-12 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => fileInputRef.current?.click()} disabled={saving}>
+                  <Upload className="h-4 w-4" /> Browse files
                 </Button>
                 <input ref={fileInputRef} type="file" className="hidden" onChange={onPickFile} accept="image/*,.pdf" />
               </div>
+            </section>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+            <section className="mt-6 rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">Uploaded documents</h3>
+                <p className="mt-1 text-sm text-slate-600">Each upload remains visible here together with its current verification state.</p>
+              </div>
+              <div className="space-y-3 max-h-[26rem] overflow-y-auto pr-1">
                 {draft?.documents?.length ? (
                   draft.documents.map((doc) => (
-                    <div key={doc.documentId} className="flex items-center justify-between rounded-md border border-border bg-muted px-3 py-2">
+                    <div key={doc.documentId} className="flex flex-col gap-3 rounded-2xl border border-[#e3ece5] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dce7de] bg-[#f5faf6]">
+                          <FileText className="h-4 w-4 text-slate-600" />
+                        </div>
                         <div>
-                          <p className="text-sm font-medium">{doc.type.replace(/_/g, ' ')}</p>
-                          <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                          <p className="text-sm font-medium text-slate-900">{doc.type.replace(/_/g, ' ')}</p>
+                          <p className="text-xs text-slate-500">{doc.fileName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -122,18 +137,18 @@ export default function OnboardingDocumentsPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-6">No documents uploaded yet.</p>
+                  <p className="rounded-2xl border border-dashed border-[#d6e3d8] bg-white py-10 text-center text-sm text-slate-500">No documents uploaded yet.</p>
                 )}
               </div>
+            </section>
 
-              <div className="flex justify-between gap-2 mt-6">
-                <Button type="button" variant="outline" onClick={() => navigate(`/onboarding/${draftId}/organization`)} disabled={saving}>Back</Button>
-                <Button type="button" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={saving}>Next</Button>
-              </div>
-            </>
-          )}
-        </div>
+            <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate(`/onboarding/${draftId}/organization`)} disabled={saving}>Back</Button>
+              <Button type="button" className="h-11 rounded-xl px-6" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={saving}>Continue to issuing banks</Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </PublicOnboardingLayout>
   );
 }

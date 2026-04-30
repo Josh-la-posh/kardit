@@ -3,6 +3,8 @@ import type {
   ApprovePartnershipResponse,
   BlockAffiliateRequest,
   BlockAffiliateResponse,
+  GetAffiliateCardMetricsResponse,
+  GetBankCardMetricsResponse,
   GetBankAffiliatesResponse,
   GetBankDashboardResponse,
   GetPartnershipRequestResponse,
@@ -82,6 +84,14 @@ export async function getBankDashboard(bankId: string): Promise<GetBankDashboard
   return getJson<GetBankDashboardResponse>(`/banks/${encodeURIComponent(bankId)}/dashboard`);
 }
 
+export async function getBankCardMetrics(bankId: string): Promise<GetBankCardMetricsResponse> {
+  return getJson<GetBankCardMetricsResponse>(`/cards/metrics/bank/${encodeURIComponent(bankId)}`);
+}
+
+export async function getAffiliateCardMetrics(affiliateId: string): Promise<GetAffiliateCardMetricsResponse> {
+  return getJson<GetAffiliateCardMetricsResponse>(`/cards/metrics/affiliate/${encodeURIComponent(affiliateId)}`);
+}
+
 export async function getBankAffiliates(bankId: string): Promise<GetBankAffiliatesResponse> {
   return getJson<GetBankAffiliatesResponse>(`/banks/${encodeURIComponent(bankId)}/affiliates`);
 }
@@ -116,7 +126,7 @@ export async function getPartnershipRequest(
 export async function queryPartnershipRequests(
   request: QueryPartnershipRequestsRequest
 ): Promise<QueryPartnershipRequestsResponse> {
-  return postJson<QueryPartnershipRequestsResponse>('/partnership-requests/query', request);
+  return postJson<QueryPartnershipRequestsResponse>('/affiliates/partnership-requests/query', request);
 }
 
 export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {

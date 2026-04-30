@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Building2, Download, Eye, Loader2, RefreshCw, Search } from 'lucide-react';
+import { Building2, Plus, Eye, Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBankQuery } from '@/hooks/useBanks';
+import { useSuperAdminBanks } from '@/hooks/useSuperAdminBanks';
 import type { BankStatus } from '@/types/bankContracts';
+import type { BankQueryItem } from '@/types/superAdminContracts';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -30,15 +31,9 @@ export default function BanksListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState(25);
   const [downloading, setDownloading] = useState(false);
-  // const { banks, total, isLoading, error, refresh } = useSuperAdminBanks({ search, status: statusFilter });
 
-  const selectedStatuses = useMemo(
-    () => (statusFilter === 'ALL' ? ['ACTIVE', 'INACTIVE'] : [statusFilter]),
-    [statusFilter]
-  );
-
-  const { banks, total, page, pageSize, isLoading, error, refetch } = useBankQuery({
-    status: selectedStatuses,
+  const { banks, total, page, pageSize, isLoading, error, refetch } = useSuperAdminBanks({
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
     country,
     search,
     page: currentPage,
@@ -81,6 +76,16 @@ export default function BanksListPage() {
     setCurrentPage(1);
   };
 
+  const handleAddBank = () => {
+    navigate('/issuing-banks/new');
+  };
+
+  const openBankDetail = (bank: BankQueryItem) => {
+    navigate(`/super-admin/banks/${bank.bankId}`, {
+      state: { bank },
+    });
+  };
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
@@ -95,12 +100,11 @@ export default function BanksListPage() {
                   Refresh
                 </Button>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
-                  size="sm"
-                  onClick={handleDownloadReport}
-                  disabled={downloading}
+                  className='bg-blue-600 hover:bg-blue-700'
+                  size='sm'
+                  onClick={handleAddBank}
                 >
-                  <Download className="h-4 w-4 mr-1" /> {downloading ? 'Downloading...' : 'Download Report'}
+                  <Plus className="h-4 w-4 mr-1" /> Add Issuing Bank
                 </Button>
               </div>
             }
@@ -167,7 +171,7 @@ export default function BanksListPage() {
                 <SelectContent>
                   {statusOptions.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status === 'ALL' ? 'Active & Inactive' : status}
+                      {status === 'ALL' ? 'All Statuses' : status}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -217,7 +221,7 @@ export default function BanksListPage() {
                       <tr
                         key={bank.bankId}
                         className={`transition-colors hover:bg-muted/40 cursor-pointer ${index % 2 === 1 ? 'bg-muted/20' : ''}`}
-                        onClick={() => navigate(`/super-admin/banks/${bank.bankId}`)}
+                        onClick={() => openBankDetail(bank)}
                       >
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
@@ -246,7 +250,7 @@ export default function BanksListPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/super-admin/banks/${bank.bankId}`);
+                              openBankDetail(bank);
                             }}
                           >
                             <Eye className="h-3 w-3 mr-1" /> View

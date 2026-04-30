@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
 import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
 import { useOnboardingDraft } from '@/hooks/useOnboarding';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
 
 export default function OnboardingOrganizationPage() {
   const { draftId } = useParams<{ draftId: string }>();
@@ -78,61 +78,69 @@ export default function OnboardingOrganizationPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-3xl animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <KarditLogo size="md" />
-        </div>
+    <PublicOnboardingLayout
+      currentStep="organization"
+      draftId={draftId}
+      draft={draft}
+      title="Organization & contact details"
+      description="Provide the core business and contact information required to begin your affiliate KYB review."
+    >
+      <div className="animate-fade-in">
 
-        <div className="kardit-card p-8">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold">Organization & contact details</h1>
-            <p className="text-sm text-muted-foreground">Provide your business information.</p>
+        {(localError || error) && (
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{localError || error}</span>
           </div>
+        )}
 
-          {(localError || error) && (
-            <div className="mb-5 flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{localError || error}</span>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <form onSubmit={onNext} className="space-y-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <form onSubmit={onNext} className="space-y-8">
+            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5">
+                <h3 className="text-lg font-semibold text-slate-900">Business information</h3>
+                <p className="mt-1 text-sm text-slate-600">Enter the official details exactly as they appear in your registration records.</p>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField label="Legal Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
-                <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
-                <TextField label="Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
-                <TextField label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} disabled={saving} />
-                <TextField label="State" value={form.state} onChange={(e) => set('state', e.target.value)} disabled={saving} />
-                <TextField label="City" value={form.city} onChange={(e) => set('city', e.target.value)} disabled={saving} />
-                <TextField label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Legal Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="State" value={form.state} onChange={(e) => set('state', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="City" value={form.city} onChange={(e) => set('city', e.target.value)} disabled={saving} />
+                <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
               </div>
+            </section>
 
-              <div className="pt-4 border-t border-border">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Primary Contact</h2>
+            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+              <div className="mb-5">
+                <h3 className="text-lg font-semibold text-slate-900">Primary contact</h3>
+                <p className="mt-1 text-sm text-slate-600">We will use this contact for onboarding communication and verification updates.</p>
+              </div>
+              <div>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Contact details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
-                  <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
-                  <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
+                  <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
+                  <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
+                  <TextField className="h-12 rounded-xl border-[#d6e3d8] bg-white" label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
                 </div>
               </div>
+            </section>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate('/onboarding/start')} disabled={saving}>Cancel</Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Next'}
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
+            <div className="flex flex-col justify-end gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate('/onboarding/start')} disabled={saving}>Cancel</Button>
+              <Button type="submit" className="h-11 rounded-xl px-6" disabled={saving}>
+                {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Save and continue'}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
-    </div>
+    </PublicOnboardingLayout>
   );
 }

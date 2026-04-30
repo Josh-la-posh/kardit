@@ -16,6 +16,25 @@ export interface GetBankDashboardResponse {
   generatedAt: string;
 }
 
+export interface BankCardMetrics {
+  totalCardsIssued: number;
+  activeCards: number;
+  frozenCards: number;
+  terminatedCards: number;
+}
+
+export interface GetBankCardMetricsResponse {
+  bankId: string;
+  metrics: BankCardMetrics;
+  generatedAt: string;
+}
+
+export interface GetAffiliateCardMetricsResponse {
+  affiliateId: string;
+  metrics: BankCardMetrics;
+  generatedAt: string;
+}
+
 export interface BankAffiliateSummary {
   affiliateId: string;
   tenantId: string;

@@ -41,6 +41,7 @@ export interface User {
   role: string;
   stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
   tenantId: string;
+  affiliateId?: string;
   bankId?: string;
   tenantName: string;
   avatarUrl?: string;
@@ -81,6 +82,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       name: 'John Doe',
       role: 'Admin',
       stakeholderType: 'AFFILIATE',
+      affiliateId: '00000000-0000-0000-0000-000000000000',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },
@@ -93,6 +95,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       name: 'Affiliate User',
       role: 'User',
       stakeholderType: 'AFFILIATE',
+      affiliateId: '5c1e9fd2-6d32-4d0c-9bf2-c7b0d8f2b201',
       tenantId: 'tenant_alpha_affiliate',
       tenantName: 'Alpha Bank Affiliate',
     },
@@ -106,7 +109,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       role: 'User',
       stakeholderType: 'BANK',
       tenantId: 'tenant_alpha_bank',
-      bankId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      bankId: '0298dd5a-3c7a-4242-8561-1ca9fc4d2e0f',
       tenantName: 'Alpha Bank',
     },
   },

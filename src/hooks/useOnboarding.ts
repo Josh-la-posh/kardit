@@ -14,6 +14,7 @@ import {
   createOnboardingSession,
   decideOnboardingCase,
   getOnboardingCase,
+  getReviewerOnboardingCase,
   getStoredOnboardingDraft,
   getStoredOnboardingSessionIdForCase,
   listOnboardingCases,
@@ -69,11 +70,11 @@ export function useOnboardingDraft(draftId: string | undefined) {
   );
 
   const updateIssuingBanks = useCallback(
-    async (issuingBankIds: string[], onboardingSessionId: string) => {
+    async (issuingBankCodes: string[], onboardingSessionId: string) => {
       if (!draftId) return null;
       const req = {
         onboardingSessionId,
-        selectedBanks: issuingBankIds.map(bankId => ({ bankId })),
+        selectedBanks: issuingBankCodes.map((bankId) => ({ bankId })),
       };
       const res = await saveIssuingBanks(draftId, req);
       setDraft(getStoredOnboardingDraft(draftId));
@@ -137,6 +138,32 @@ export function useOnboardingCase(caseId: string | undefined) {
         throw new Error('Missing onboarding session. Please restart onboarding from the original device.');
       }
       setCaseItem(await getOnboardingCase(caseId, onboardingSessionId));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load case');
+      setCaseItem(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [caseId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { caseItem, isLoading, error, refresh };
+}
+
+export function useReviewerOnboardingCase(caseId: string | undefined) {
+  const [caseItem, setCaseItem] = useState<OnboardingCase | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!caseId) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      setCaseItem(await getReviewerOnboardingCase(caseId));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load case');
       setCaseItem(null);

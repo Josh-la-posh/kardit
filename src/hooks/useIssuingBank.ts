@@ -1,8 +1,29 @@
 import { useState, useCallback, useEffect } from 'react';
 import { store, type IssuingBankSession, type IssuingBank, type IssuingBankDetails } from '@/stores/mockStore';
 import { useAuth } from '@/hooks/useAuth';
+import { queryBanks } from '@/services/bankApi';
 import { createIssuingBankSession } from '@/services/bankIssuingApi';
 import { CreateIssuingBankRequest } from '@/types/bankIssuingContracts';
+import type { BankQueryItem } from '@/types/bankContracts';
+
+const toIssuingBank = (bank: BankQueryItem): IssuingBank => ({
+  id: bank.bankId,
+  bankId: bank.bankId,
+  sessionId: bank.bankId,
+  tenantId: '',
+  status: bank.status as IssuingBank['status'],
+  bankDetails: {
+    name: bank.bankName,
+    shortName: bank.bankName,
+    code: bank.bankCode,
+    country: '',
+    contactEmail: '',
+    contactPhone: '',
+  },
+  createdAt: bank.createdAt,
+  updatedAt: bank.createdAt,
+  provisionedAt: bank.createdAt,
+});
 
 export function useCreateIssuingBankSession() {
   const { user } = useAuth();
@@ -193,23 +214,36 @@ export function useProvisioningProgress(sessionId: string | undefined) {
 }
 
 export function useIssuingBanks() {
-  const { user } = useAuth();
   const [banks, setBanks] = useState<IssuingBank[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
-    const tenantId = user?.tenantId || 'tenant_default';
-    await new Promise((r) => setTimeout(r, 300));
-    setBanks(store.getAllIssuingBanks(tenantId));
-    setIsLoading(false);
-  }, [user?.tenantId]);
+    setError(null);
+    try {
+      const response = await queryBanks({
+        filters: {},
+        page: 1,
+        pageSize: 100,
+      });
+
+      setBanks(response.data.map(toIssuingBank));
+      return true;
+    } catch (e: any) {
+      setBanks([]);
+      setError(e?.message || 'Failed to load issuing banks');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetch();
   }, [fetch]);
 
-  return { banks, isLoading, refetch: fetch };
+  return { banks, isLoading, error, refetch: fetch };
 }
 
 export function useIssuingBank(bankId: string | undefined) {

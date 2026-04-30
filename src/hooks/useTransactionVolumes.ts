@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getBankTransactionVolume } from '@/services/transactionApi';
+import { getAffiliateCardMetrics, getBankCardMetrics } from '@/services/bankPortalApi';
 import type { BankTransactionVolumeResponse } from '@/types/transactionContracts';
+import type { GetAffiliateCardMetricsResponse, GetBankCardMetricsResponse } from '@/types/bankPortalContracts';
 
 export function useBankTransactionVolume(bankId: string | undefined) {
   const [volume, setVolume] = useState<BankTransactionVolumeResponse | null>(null);
@@ -65,4 +67,68 @@ export function useBankTransactionVolumes(bankIds: string[]) {
   }, [fetch]);
 
   return { volumes, isLoading, refetch: fetch };
+}
+
+export function useBankCardMetrics(bankId: string | undefined) {
+  const [metrics, setMetrics] = useState<GetBankCardMetricsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(bankId));
+  const [error, setError] = useState<string | null>(null);
+
+  const fetch = useCallback(async () => {
+    if (!bankId) {
+      setMetrics(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getBankCardMetrics(bankId);
+      setMetrics(response);
+    } catch (err) {
+      setMetrics(null);
+      setError(err instanceof Error ? err.message : 'Unable to load bank card metrics');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [bankId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { metrics, isLoading, error, refetch: fetch };
+}
+
+export function useAffiliateCardMetrics(affiliateId: string | undefined) {
+  const [metrics, setMetrics] = useState<GetAffiliateCardMetricsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(affiliateId));
+  const [error, setError] = useState<string | null>(null);
+
+  const fetch = useCallback(async () => {
+    if (!affiliateId) {
+      setMetrics(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getAffiliateCardMetrics(affiliateId);
+      setMetrics(response);
+    } catch (err) {
+      setMetrics(null);
+      setError(err instanceof Error ? err.message : 'Unable to load affiliate card metrics');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [affiliateId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { metrics, isLoading, error, refetch: fetch };
 }

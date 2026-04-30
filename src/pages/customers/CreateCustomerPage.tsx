@@ -118,7 +118,7 @@ export default function CreateCustomerPage() {
       });
 
       toast.success(`Customer draft saved: ${response.customerId}`);
-      navigate('/customers');
+      navigate('/cards/create',);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save customer draft');
     }
@@ -283,7 +283,7 @@ export default function CreateCustomerPage() {
                 <Button type="button" variant="outline" onClick={() => navigate('/cards/create')}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isLoading} onClick={() => navigate('/cards/create')} >
+                <Button type="submit" disabled={isLoading} onClick={handleSubmit} >
                   {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save Customer Draft
                 </Button>

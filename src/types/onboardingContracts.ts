@@ -17,6 +17,12 @@ export interface ListOnboardingCasesResponse {
     status: OnboardingCaseStatus;
   }>;
 }
+
+export interface OnboardingKybSummary {
+  registrationNumber?: string;
+  country?: string;
+  status?: string;
+}
 export interface SaveIssuingBanksRequest {
   onboardingSessionId: string;
   selectedBanks: { bankId: string }[];
@@ -107,6 +113,7 @@ export interface UploadOnboardingDocumentResponse {
 export interface OnboardingDocument {
   documentId: string;
   type: OnboardingDocumentType;
+  documentType?: OnboardingDocumentType;
   fileName: string;
   uploadedAt: string;
   verificationStatus?: string;
@@ -147,19 +154,23 @@ export interface OnboardingCaseTimeline {
 }
 
 export interface OnboardingCaseMessage {
-  from: string;
+  from?: string;
   type: string;
   text: string;
+  message?: string;
   at: string;
 }
 
 export interface OnboardingCase {
   caseId: string;
+  affiliateId?: string;
+  affiliateName?: string;
   draftId?: string;
   onboardingSessionId?: string;
   status: OnboardingCaseStatus;
   submittedAt: string;
   updatedAt: string;
+  kybSummary?: OnboardingKybSummary;
   organization?: SaveOrganizationRequest;
   contact?: SaveContactRequest;
   documents: OnboardingDocument[];

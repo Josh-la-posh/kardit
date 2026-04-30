@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusToChip: Record<string, StatusType> = {
+  ACTIVE: 'SUCCESS',
+  INACTIVE: 'INACTIVE',
   PROVISIONED: 'SUCCESS',
   DRAFT: 'PENDING',
   SUBMITTED: 'PROCESSING',
@@ -26,7 +28,7 @@ const statusToChip: Record<string, StatusType> = {
  */
 export default function IssuingBanksListPage() {
   const navigate = useNavigate();
-  const { banks, isLoading, refetch } = useIssuingBanks();
+  const { banks, isLoading, error, refetch } = useIssuingBanks();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -46,8 +48,12 @@ export default function IssuingBanksListPage() {
   const statuses = useMemo(() => [...new Set(banks.map(b => b.status))], [banks]);
 
   const handleRefresh = async () => {
-    await refetch();
-    toast.success('Banks list refreshed');
+    const refreshed = await refetch();
+    if (refreshed) {
+      toast.success('Banks list refreshed');
+    } else {
+      toast.error('Failed to refresh banks list');
+    }
   };
 
   const handleAddBank = () => {
@@ -159,8 +165,14 @@ export default function IssuingBanksListPage() {
             </div>
           )}
 
+          {!isLoading && error && (
+            <div className="kardit-card p-6 text-sm text-muted-foreground">
+              {error}
+            </div>
+          )}
+
           {/* Table */}
-          {!isLoading && (
+          {!isLoading && !error && (
             <div className="kardit-card overflow-hidden">
               {filtered.length === 0 ? (
                 <div className="p-12 text-center">
@@ -183,8 +195,8 @@ export default function IssuingBanksListPage() {
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Bank</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Bank Code</th>
+                        {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th> */}
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Provisioned Date</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
@@ -204,19 +216,18 @@ export default function IssuingBanksListPage() {
                               </div>
                               <div>
                                 <p className="font-medium">{bank.bankDetails.name}</p>
-                                <p className="text-xs text-muted-foreground">{bank.bankDetails.code}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {bank.bankDetails.country}
+                            {bank.bankDetails.code}
                           </td>
-                          <td className="px-4 py-3 text-sm max-w-[200px]">
+                          {/* <td className="px-4 py-3 text-sm max-w-[200px]">
                             <p className="truncate">{bank.bankDetails.contactEmail}</p>
                             {bank.bankDetails.contactPhone && (
                               <p className="text-xs text-muted-foreground truncate">{bank.bankDetails.contactPhone}</p>
                             )}
-                          </td>
+                          </td> */}
                           <td className="px-4 py-3">
                             <StatusChip status={statusToChip[bank.status] || 'PENDING'} label={bank.status} />
                           </td>
@@ -224,6 +235,18 @@ export default function IssuingBanksListPage() {
                             {bank.provisionedAt ? format(new Date(bank.provisionedAt), 'MMM dd, yyyy') : '—'}
                           </td>
                           <td className="px-4 py-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/super-admin/banks/${bank.bankId}`);
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" /> View
+                            </Button>
+                          </td>
+                          {/* <td className="px-4 py-3">
                             {bank.status === 'PROVISIONED' ? (
                               <Button
                                 variant="outline"
@@ -255,7 +278,7 @@ export default function IssuingBanksListPage() {
                                 <Eye className="h-3 w-3 mr-1" /> —
                               </Button>
                             )}
-                          </td>
+                          </td> */}
                         </tr>
                       ))}
                     </tbody>

@@ -16,11 +16,11 @@ const statusChipVariants = cva(
   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
   {
     variants: {
-        status: {
-          ACTIVE: "bg-success/15 text-success border border-success/20",
-          PENDING: "bg-warning/15 text-warning border border-warning/20",
-          PENDING_ACTIVATION: "bg-warning/15 text-warning border border-warning/20",
-          REJECTED: "bg-destructive/15 text-destructive border border-destructive/20",
+      status: {
+        ACTIVE: "bg-success/15 text-success border border-success/20",
+        PENDING: "bg-warning/15 text-warning border border-warning/20",
+        PENDING_ACTIVATION: "bg-warning/15 text-warning border border-warning/20",
+        REJECTED: "bg-destructive/15 text-destructive border border-destructive/20",
         FROZEN: "bg-info/15 text-info border border-info/20",
         BLOCKED: "bg-destructive/15 text-destructive border border-destructive/20",
         FAILED: "bg-destructive/15 text-destructive border border-destructive/20",
@@ -100,7 +100,7 @@ export interface StatusChipProps
 
 const StatusChip = React.forwardRef<HTMLSpanElement, StatusChipProps>(
   ({ className, status, showIcon = true, label, ...props }, ref) => {
-    const Icon = statusIcons[status];
+    const Icon = statusIcons[status] || Clock;
     const displayLabel =
       label ||
       status

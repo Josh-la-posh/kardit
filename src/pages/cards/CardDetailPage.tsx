@@ -94,7 +94,7 @@ export default function CardDetailPage() {
       actorUserId: user?.id || 'user_unknown',
       userType: user?.stakeholderType || 'AFFILIATE',
       tenantId: user?.tenantId || 'tenant_unknown',
-      affiliateId: user?.tenantId || 'affiliate_unknown',
+      affiliateId: user?.affiliateId || 'affiliate_unknown',
       idempotencyKey: randomId('idem'),
     }),
     [user?.id, user?.stakeholderType, user?.tenantId]

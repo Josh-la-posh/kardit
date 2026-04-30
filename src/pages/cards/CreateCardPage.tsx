@@ -8,18 +8,24 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useAffiliateBankPartnerships } from '@/hooks/useAffiliateBanks';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCard } from '@/hooks/useCards';
-import { CARD_PRODUCTS, ISSUING_BANKS, CURRENCIES, DELIVERY_METHODS } from '@/stores/mockStore';
+import { CARD_PRODUCTS, CURRENCIES, DELIVERY_METHODS } from '@/stores/mockStore';
 
 const CARD_TYPES = [
   { value: 'VIRTUAL', label: 'Virtual Card' },
   { value: 'PHYSICAL', label: 'Physical Card' },
 ];
 
+const banks = [
+    { bankId: '0298dd5a-3c7a-4242-8561-1ca9fc4d2e0f', bankName: 'Alpha Bank', bankCode: 'ib1', partnershipStatus: 'ACTIVE' },
+    { bankId: '000045f9-d01b-479c-a84d-0fe82454d55a', bankName: 'UBA', bankCode: 'BNK-UBA-001', partnershipStatus: 'ACTIVE' },
+];
 export default function CreateCardPage() {
   const navigate = useNavigate();
   const { createCard, isLoading } = useCreateCard();
+  const { banks: partneredBanks, isLoading: banksLoading, error: banksError } = useAffiliateBankPartnerships();
   const [refreshKey, setRefreshKey] = useState(0);
   const [form, setForm] = useState({
     tenantId: '',
@@ -44,6 +50,7 @@ export default function CreateCardPage() {
       customer.email.toLowerCase().includes(customerSearch.toLowerCase()) ||
       customer.phone.toLowerCase().includes(customerSearch.toLowerCase())
   );
+  const availableBanks = partneredBanks.filter((bank) => bank.partnershipStatus === 'ACTIVE');
 
   const selectedCustomer = customers.find((customer) => customer.id === form.customerId);
 
@@ -79,23 +86,27 @@ export default function CreateCardPage() {
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
-
   const selectedProduct = CARD_PRODUCTS.find((product) => product.id === form.cardProduct);
-  const selectedBank = ISSUING_BANKS.find((bank) => bank.id === form.issuingBank);
+  const selectedBank = availableBanks.find((bank) => bank.bankId === form.issuingBank);
+  // const selectedBank = banks.find((bank) => bank.bankId === form.issuingBank);
   const selectedDelivery = DELIVERY_METHODS.find((method) => method.id === form.deliveryMethod);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!selectedBank || !selectedProduct) {
+      toast.error('Select a valid issuing bank and card product.');
+      return;
+    }
 
       await createCard({
         customerId: form.customerId,
-        bankId: selectedBank!.id,
-        productId: selectedProduct!.id,
+        bankId: selectedBank.bankId,
+        productId: selectedProduct.id,
         productType: form.cardType,
-        productName: selectedProduct!.name,
-        productCode: selectedProduct!.code,
-        issuingBankName: selectedBank!.name,
+        productName: selectedProduct.name,
+        productCode: selectedProduct.code,
+        issuingBankName: selectedBank.bankName,
         currency: form.currency,
         embossName: form.embossName.trim(),
         deliveryMethod: form.cardType === 'PHYSICAL' ? selectedDelivery?.code : undefined,
@@ -270,20 +281,50 @@ export default function CreateCardPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
-                    <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
+                    <Select
+                      value={form.issuingBank}
+                      onValueChange={(value) => set('issuingBank', value)}
+                      disabled={!form.customerId || banksLoading || !availableBanks.length}
+                    >
                       <SelectTrigger className="border-border bg-muted">
-                        <SelectValue placeholder="Select bank" />
+                        <SelectValue
+                          placeholder={
+                            banksLoading
+                              ? 'Loading banks...'
+                              : availableBanks.length
+                                ? 'Select bank'
+                                : 'No active bank partnerships'
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {ISSUING_BANKS.map((bank) => (
-                          <SelectItem key={bank.id} value={bank.id}>
-                            {bank.name}
+                        {availableBanks.map((bank) => (
+                          <SelectItem key={bank.bankId} value={bank.bankId}>
+                            {bank.bankName}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {errors.issuingBank && <p className="text-xs text-destructive">{errors.issuingBank}</p>}
+                    {banksError && <p className="text-xs text-destructive">{banksError}</p>}
                   </div>
+
+                  {/* <div className='space-y-1.5'>
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Issuing Bank', true)}</label>
+                    <Select value={form.issuingBank} onValueChange={(value) => set('issuingBank', value)} disabled={!form.customerId}>
+                      <SelectTrigger className="border-border bg-muted">
+                        <SelectValue placeholder='select bank' />
+                      </SelectTrigger>
+                      <SelectContent>
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.bankId} value={bank.bankId}>
+                          {bank.bankName} 
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                    </Select>
+                    
+                  </div> */}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">{fieldLabel('Card Product', true)}</label>
                     <Select value={form.cardProduct} onValueChange={(value) => set('cardProduct', value)} disabled={!form.customerId}>
@@ -356,7 +397,7 @@ export default function CreateCardPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Bank</dt>
-                    <dd>{selectedBank?.name || '-'}</dd>
+                    <dd>{selectedBank?.bankName || '-'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Card Type</dt>

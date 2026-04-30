@@ -4,8 +4,10 @@ import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContra
 
 interface BankQueryFiltersInput {
   search?: string;
-  status?: string;
+  status?: string | string[];
   country?: string | null;
+  page?: number;
+  pageSize?: number;
 }
 
 interface AffiliateQueryFiltersInput {
@@ -19,6 +21,8 @@ interface AffiliateQueryFiltersInput {
 export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
   const [banks, setBanks] = useState<BankQueryItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [responsePage, setResponsePage] = useState(filters.page || 1);
+  const [responsePageSize, setResponsePageSize] = useState(filters.pageSize || 25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,17 +30,27 @@ export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
     setIsLoading(true);
     setError(null);
     try {
+      const selectedStatuses = Array.isArray(filters.status)
+        ? filters.status
+        : filters.status && filters.status !== 'ALL'
+          ? [filters.status]
+          : undefined;
+      const trimmedCountry = filters.country?.trim();
+      const trimmedSearch = filters.search?.trim();
+
       const response = await queryBanks({
         filters: {
-          status: filters.status && filters.status !== 'ALL' ? [filters.status] : ['ACTIVE', 'INACTIVE'],
-          country: filters.country || null,
-          search: filters.search?.trim() || null,
+          ...(selectedStatuses?.length ? { status: selectedStatuses } : {}),
+          ...(trimmedCountry ? { country: trimmedCountry } : {}),
+          ...(trimmedSearch ? { search: trimmedSearch } : {}),
         },
-        page: 1,
-        pageSize: 25,
+        page: filters.page || 1,
+        pageSize: filters.pageSize || 25,
       });
       setBanks(response.data);
       setTotal(response.total);
+      setResponsePage(response.page);
+      setResponsePageSize(response.pageSize);
     } catch (e: any) {
       setError(e?.message || 'Failed to load banks');
       setBanks([]);
@@ -44,13 +58,22 @@ export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
     } finally {
       setIsLoading(false);
     }
-  }, [filters.country, filters.search, filters.status]);
+  }, [filters.country, filters.page, filters.pageSize, filters.search, filters.status]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { banks, total, isLoading, error, refresh };
+  return {
+    banks,
+    total,
+    page: responsePage,
+    pageSize: responsePageSize,
+    isLoading,
+    error,
+    refresh,
+    refetch: refresh,
+  };
 }
 
 export function useSuperAdminBankAffiliates(bankId: string | undefined, filters: AffiliateQueryFiltersInput) {
@@ -73,11 +96,11 @@ export function useSuperAdminBankAffiliates(bankId: string | undefined, filters:
       const response = await queryAffiliates({
         filters: {
           bankId,
-          status: filters.status && filters.status !== 'ALL' ? [filters.status] : ['APPROVED', 'ACTIVE', 'SUSPENDED'],
-          country: filters.country || null,
-          fromDate: filters.fromDate || null,
-          toDate: filters.toDate || null,
-          search: filters.search?.trim() || null,
+          ...(filters.status && filters.status !== 'ALL' ? { status: [filters.status] } : {}),
+          ...(filters.country ? { country: filters.country } : {}),
+          ...(filters.fromDate ? { fromDate: filters.fromDate } : {}),
+          ...(filters.toDate ? { toDate: filters.toDate } : {}),
+          ...(filters.search?.trim() ? { search: filters.search.trim() } : {}),
         },
         page: 1,
         pageSize: 25,
