@@ -4,7 +4,6 @@ import {
   approvePartnershipRequest,
   blockAffiliate,
   getBankAffiliates,
-  getBankDashboard,
   getPartnershipRequest,
   listBankAuditLogs,
   listBankReports,
@@ -23,9 +22,13 @@ import type {
   BankReportItem,
   BlockAffiliateResponse,
   GetPartnershipRequestResponse,
+  ListBankAuditLogsResponse,
+  ListBankReportsResponse,
   RejectPartnershipResponse,
   SuspendAffiliateResponse,
 } from '@/types/bankPortalContracts';
+
+const DASHBOARD_PAGE_SIZE = 5;
 
 function extractAffiliates(payload: unknown): BankAffiliateSummary[] {
   if (Array.isArray((payload as { affiliates?: unknown })?.affiliates)) {
@@ -38,20 +41,6 @@ function extractAffiliates(payload: unknown): BankAffiliateSummary[] {
     return (payload as { data: BankAffiliateSummary[] }).data;
   }
   return [];
-}
-
-function extractDashboard(payload: unknown): { metrics: BankDashboardMetrics | null; generatedAt: string | null } {
-  const direct = payload as { metrics?: BankDashboardMetrics; generatedAt?: string };
-  if (direct?.metrics) {
-    return { metrics: direct.metrics, generatedAt: direct.generatedAt ?? null };
-  }
-
-  const wrapped = payload as { data?: { metrics?: BankDashboardMetrics; generatedAt?: string } };
-  if (wrapped?.data?.metrics) {
-    return { metrics: wrapped.data.metrics, generatedAt: wrapped.data.generatedAt ?? null };
-  }
-
-  return { metrics: null, generatedAt: null };
 }
 
 function toBankCardItem(card: {
@@ -104,6 +93,24 @@ function extractReports(payload: unknown): BankReportItem[] {
   return [];
 }
 
+function extractPaginatedMeta(payload: unknown): { page: number; pageSize: number; total: number } {
+  const direct = payload as { page?: number; pageSize?: number; total?: number };
+  if (typeof direct?.page === 'number' || typeof direct?.pageSize === 'number' || typeof direct?.total === 'number') {
+    return {
+      page: direct.page ?? 1,
+      pageSize: direct.pageSize ?? DASHBOARD_PAGE_SIZE,
+      total: direct.total ?? 0,
+    };
+  }
+
+  const wrapped = payload as { data?: { page?: number; pageSize?: number; total?: number } };
+  return {
+    page: wrapped?.data?.page ?? 1,
+    pageSize: wrapped?.data?.pageSize ?? DASHBOARD_PAGE_SIZE,
+    total: wrapped?.data?.total ?? 0,
+  };
+}
+
 export function useBankDashboardData() {
   const { user } = useAuth();
   const [bankId, setBankId] = useState<string | null>(null);
@@ -111,42 +118,59 @@ export function useBankDashboardData() {
   const [affiliates, setAffiliates] = useState<BankAffiliateSummary[]>([]);
   const [auditLogs, setAuditLogs] = useState<BankAuditLogItem[]>([]);
   const [reports, setReports] = useState<BankReportItem[]>([]);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(DASHBOARD_PAGE_SIZE);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [reportPage, setReportPage] = useState(1);
+  const [reportPageSize, setReportPageSize] = useState(DASHBOARD_PAGE_SIZE);
+  const [reportTotal, setReportTotal] = useState(0);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { auditPage?: number; reportPage?: number }) => {
     setIsLoading(true);
     setError(null);
     try {
       const resolvedBankId = resolveBankId(user);
       setBankId(resolvedBankId);
+      const nextAuditPage = options?.auditPage ?? auditPage;
+      const nextReportPage = options?.reportPage ?? reportPage;
 
-      const [dashboard, affiliateRes, auditRes, reportRes] = await Promise.all([
-        getBankDashboard(resolvedBankId),
+      const [affiliateRes, auditRes, reportRes] = await Promise.all([
         getBankAffiliates(resolvedBankId),
         listBankAuditLogs(resolvedBankId, {
           filters: { fromDate: null, toDate: null, actorUserId: null, eventType: null },
-          pagination: { page: 1, pageSize: 5 },
+          pagination: { page: nextAuditPage, pageSize: DASHBOARD_PAGE_SIZE },
         }),
         listBankReports(resolvedBankId, {
           filters: { reportType: null, fromDate: null, toDate: null },
-          pagination: { page: 1, pageSize: 5 },
+          pagination: { page: nextReportPage, pageSize: DASHBOARD_PAGE_SIZE },
         }),
-      ]);
+      ]) as [unknown, ListBankAuditLogsResponse, ListBankReportsResponse];
 
-      const normalizedDashboard = extractDashboard(dashboard);
-      setMetrics(normalizedDashboard.metrics);
-      setGeneratedAt(normalizedDashboard.generatedAt);
+      setMetrics(null);
+      setGeneratedAt(null);
       setAffiliates(extractAffiliates(affiliateRes));
       setAuditLogs(extractAuditLogs(auditRes));
       setReports(extractReports(reportRes));
+
+      const auditMeta = extractPaginatedMeta(auditRes);
+      const reportMeta = extractPaginatedMeta(reportRes);
+      setAuditPage(auditMeta.page);
+      setAuditPageSize(auditMeta.pageSize);
+      setAuditTotal(auditMeta.total);
+      setReportPage(reportMeta.page);
+      setReportPageSize(reportMeta.pageSize);
+      setReportTotal(reportMeta.total);
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank dashboard');
       setMetrics(null);
       setAffiliates([]);
       setAuditLogs([]);
       setReports([]);
+      setAuditTotal(0);
+      setReportTotal(0);
       setGeneratedAt(null);
     } finally {
       setIsLoading(false);
@@ -154,10 +178,47 @@ export function useBankDashboardData() {
   }, [user]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    refresh({ auditPage, reportPage });
+  }, [auditPage, reportPage, refresh]);
 
-  return { bankId, metrics, affiliates, auditLogs, reports, generatedAt, isLoading, error, refresh };
+  const totalAuditPages = Math.max(1, Math.ceil(auditTotal / Math.max(1, auditPageSize)));
+  const totalReportPages = Math.max(1, Math.ceil(reportTotal / Math.max(1, reportPageSize)));
+
+  const goToAuditPage = useCallback(
+    async (page: number) => {
+      const nextPage = Math.min(Math.max(1, page), totalAuditPages);
+      setAuditPage(nextPage);
+    },
+    [totalAuditPages]
+  );
+
+  const goToReportPage = useCallback(
+    async (page: number) => {
+      const nextPage = Math.min(Math.max(1, page), totalReportPages);
+      setReportPage(nextPage);
+    },
+    [totalReportPages]
+  );
+
+  return {
+    bankId,
+    metrics,
+    affiliates,
+    auditLogs,
+    reports,
+    auditPage,
+    auditPageSize,
+    auditTotal,
+    reportPage,
+    reportPageSize,
+    reportTotal,
+    generatedAt,
+    isLoading,
+    error,
+    refresh,
+    goToAuditPage,
+    goToReportPage,
+  };
 }
 
 export function useBankAffiliates() {
