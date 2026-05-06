@@ -4,18 +4,39 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useBankDashboardData } from '@/hooks/useBankPortal';
-import { Building2, CreditCard, FileText, Loader2, RefreshCw, ScrollText, TrendingUp } from 'lucide-react';
+import { FileText, Loader2, RefreshCw } from 'lucide-react';
+
+function getTotalPages(total: number, pageSize: number) {
+  return Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+}
 
 export default function BankDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { bankId, metrics, affiliates, auditLogs, reports, generatedAt, isLoading, error, refresh } = useBankDashboardData();
+  const {
+    affiliates,
+    auditLogs,
+    reports,
+    auditPage,
+    auditPageSize,
+    auditTotal,
+    reportPage,
+    reportPageSize,
+    reportTotal,
+    generatedAt,
+    isLoading,
+    error,
+    refresh,
+    goToAuditPage,
+    goToReportPage,
+  } = useBankDashboardData();
 
   const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
+  const auditTotalPages = getTotalPages(auditTotal, auditPageSize);
+  const reportTotalPages = getTotalPages(reportTotal, reportPageSize);
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
@@ -25,7 +46,7 @@ export default function BankDashboardPage() {
             title={`${user?.tenantName || 'Bank'} Portal`}
             subtitle={''}
             actions={
-              <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+              <Button variant="outline" size="sm" onClick={() => refresh({ auditPage, reportPage })} disabled={isLoading}>
                 <RefreshCw className="mr-1 h-4 w-4" /> Refresh
               </Button>
             }
@@ -35,7 +56,7 @@ export default function BankDashboardPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : error || !metrics ? (
+          ) : error ? (
             <div className="kardit-card p-6 text-sm text-muted-foreground">{error || 'Dashboard data unavailable'}</div>
           ) : (
             <>
@@ -50,7 +71,60 @@ export default function BankDashboardPage() {
                 <StatCard title="Pending Approvals" value={formatNumber(metrics.pendingApprovals)} icon={Building2} subtitle={`${formatNumber(metrics.frozenCards)} frozen, ${formatNumber(metrics.terminatedCards)} terminated`} />
               </div> */}
 
-              <div className="mb-6 grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-6">
+                <div className="kardit-card overflow-hidden">
+                  <div className="border-b border-border px-6 py-4">
+                    <h2 className="font-semibold">Recent Audit Logs</h2>
+                  </div>
+                  {auditLogs.length === 0 ? (
+                    <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/50">
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Event</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Resource Type</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actor</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Occurred</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {auditLogs.map((log) => (
+                            <tr key={log.auditLogId} className="hover:bg-muted/30">
+                              <td className="px-4 py-3 text-sm font-medium">{log.eventType}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{log.resourceType || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{log.actorUserId || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm')}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-border px-6 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      Page {auditPage} of {auditTotalPages} • {auditTotal} total log{auditTotal === 1 ? '' : 's'}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" disabled={isLoading || auditPage <= 1} onClick={() => goToAuditPage(auditPage - 1)}>
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isLoading || auditPage >= auditTotalPages}
+                        onClick={() => goToAuditPage(auditPage + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mb-6 grid gap-6 lg:grid-cols-2 mt-10">
                 <div className="kardit-card overflow-hidden">
                   <div className="flex items-center justify-between border-b border-border px-6 py-4">
                     <div>
@@ -58,7 +132,7 @@ export default function BankDashboardPage() {
                       <p className="text-sm text-muted-foreground">Portfolio affiliates attached to this bank.</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliates')}>
-                      View all
+                      View more
                     </Button>
                   </div>
                   {affiliates.length === 0 ? (
@@ -97,47 +171,58 @@ export default function BankDashboardPage() {
                   )}
                 </div>
 
-                <div className="grid gap-6">
-                  <div className="kardit-card overflow-hidden">
-                    <div className="border-b border-border px-6 py-4">
-                      <h2 className="font-semibold">Recent Audit Logs</h2>
-                    </div>
-                    {auditLogs.length === 0 ? (
-                      <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
-                    ) : (
-                      <div className="space-y-3 px-6 py-4">
-                        {auditLogs.map((log) => (
-                          <div key={log.auditLogId} className="rounded-md border border-border p-3">
-                            <p className="text-sm font-medium">{log.eventType}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm')}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                <div className="kardit-card overflow-hidden">
+                  <div className="border-b border-border px-6 py-4">
+                    <h2 className="font-semibold">Recent Reports</h2>
                   </div>
-
-                  <div className="kardit-card overflow-hidden">
-                    <div className="border-b border-border px-6 py-4">
-                      <h2 className="font-semibold">Recent Reports</h2>
+                  {reports.length === 0 ? (
+                    <div className="px-6 py-8 text-sm text-muted-foreground">No reports returned.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/50">
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Report Type</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Generated</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {reports.map((report) => (
+                            <tr key={report.reportId} className="hover:bg-muted/30">
+                              <td className="px-4 py-3 text-sm font-medium">{report.reportType}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {format(new Date(report.generatedAt), 'MMM d, yyyy HH:mm')}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                <span className="inline-flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  {report.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    {reports.length === 0 ? (
-                      <div className="px-6 py-8 text-sm text-muted-foreground">No reports returned.</div>
-                    ) : (
-                      <div className="space-y-3 px-6 py-4">
-                        {reports.map((report) => (
-                          <div key={report.reportId} className="flex items-center justify-between rounded-md border border-border p-3">
-                            <div>
-                              <p className="text-sm font-medium">{report.reportType}</p>
-                              <p className="text-xs text-muted-foreground">{format(new Date(report.generatedAt), 'MMM d, yyyy HH:mm')}</p>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <FileText className="h-4 w-4" />
-                              {report.status}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  )}
+                  <div className="flex items-center justify-between border-t border-border px-6 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      Page {reportPage} of {reportTotalPages} • {reportTotal} total report{reportTotal === 1 ? '' : 's'}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" disabled={isLoading || reportPage <= 1} onClick={() => goToReportPage(reportPage - 1)}>
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isLoading || reportPage >= reportTotalPages}
+                        onClick={() => goToReportPage(reportPage + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

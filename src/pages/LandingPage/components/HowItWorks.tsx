@@ -1,51 +1,64 @@
-export default function HowItWorks() {
-  const steps = [
-    {
-      number: 1,
-      title: 'Onboard as an Affiliate',
-      description: 'Initialize your Kardit instance as an affiliate.'
-    },
-    {
-      number: 2,
-      title: 'Get Approved',
-      description: 'Get approval from banks and service providers to start issuing cards.'
-    },
-    {
-      number: 3,
-      title: 'Start Managing',
-      description: 'Manage all card operations, users, and transactions from a single dashboard.'
-    }
-  ]
+import { Building2, CreditCard, Layers3 } from 'lucide-react'
 
+const steps = [
+  {
+    icon: Building2,
+    title: 'Onboard as an Affiliate',
+    description: 'Initialize your Kardit instance and configure your tenant profile.',
+  },
+  {
+    icon: CreditCard,
+    title: 'Get Approved',
+    description: 'Connect with banks and service providers to unlock secure issuance.',
+  },
+  {
+    icon: Layers3,
+    title: 'Start Managing',
+    description: 'Run cards, users, and transactions from one streamlined workspace.',
+  },
+]
+
+export default function HowItWorks() {
   return (
-    <section className="py-20 md:py-32 px-5 bg-gradient-to-b from-orange-50/50 to-transparent dark:from-orange-950/10 dark:to-transparent border-t border-b border-gray-200 dark:border-gray-800" id="how-it-works">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3">
-            How Kardit Works
+    <section
+      className="relative -mt-2 overflow-hidden bg-[#f6f8f7] px-5 pb-20 pt-6 md:px-8 md:pb-24 md:pt-20"
+      id="how-it-works"
+    >
+
+      <div className="relative mx-auto max-w-6xl">
+        <div className="mb-10 flex flex-col gap-3  md:mb-12 text-center">
+          <h2 className="text-3xl font-black uppercase tracking-[-0.04em] text-emerald-800 md:text-4xl">
+            How KardIT Works
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            Three simple steps to streamline your card management
+          <p className="text-sm leading-7 text-slate-600 md:text-base text-center">
+            Three simple steps to streamline your card management.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map((step, index) => (
-            <div key={step.number} className="relative">
-              <div className="p-6 md:p-8 h-[100%]  bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-orange-600 dark:hover:border-orange-500 hover:shadow-xl dark:hover:shadow-orange-900/20 transition-all text-center">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-lg md:text-xl mx-auto mb-4">
-                  {step.number}
+        <div className="grid gap-4 md:grid-cols-3 md:gap-5">
+          {steps.map((step, index) => {
+            const Icon = step.icon
+
+            return (
+              <div key={step.title} className="relative">
+                <div className="h-full rounded-md border border-white/70 bg-white/80 p-6 shadow-[0_18px_55px_rgba(15,23,42,0.06)] backdrop-blur md:p-7">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,#132238_0%,#0db14b_100%)] text-white shadow-[0_16px_32px_rgba(7,148,73,0.18)]">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-bold tracking-[-0.03em] text-slate-900">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600 md:text-[15px]">
+                    {step.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{step.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm md:text-base">{step.description}</p>
+
               </div>
-              {index < steps.length - 1 && (
-                <div className="hidden lg:flex absolute -right-4 top-1/2 transform -translate-y-1/2 text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  →
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>

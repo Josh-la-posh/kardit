@@ -109,7 +109,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       role: 'User',
       stakeholderType: 'BANK',
       tenantId: 'tenant_alpha_bank',
-      bankId: '0298dd5a-3c7a-4242-8561-1ca9fc4d2e0f',
+      bankId: '724a1100-b10a-4e21-b106-1feac4a75616',
       tenantName: 'Alpha Bank',
     },
   },
