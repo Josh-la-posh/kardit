@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Check, FileText, Landmark, ShieldCheck } from 'lucide-react';
+import { Building2, Check, FileText, Landmark, PlayCircle, ShieldCheck } from 'lucide-react';
 import { KarditLogo } from '@/components/KarditLogo';
 import { cn } from '@/lib/utils';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
 
-type OnboardingStepId = 'organization' | 'documents' | 'issuing-banks' | 'review';
+type OnboardingStepId = 'start' | 'organization' | 'documents' | 'issuing-banks' | 'review';
 
 interface OnboardingStepDefinition {
   id: OnboardingStepId;
@@ -26,31 +26,38 @@ interface PublicOnboardingLayoutProps {
 
 const steps: OnboardingStepDefinition[] = [
   {
+    id: 'start',
+    label: 'Start',
+    summary: 'Confirm consent and begin',
+    eyebrow: 'Step 1',
+    icon: PlayCircle,
+  },
+  {
     id: 'organization',
     label: 'Organization',
     summary: 'Business and contact details',
-    eyebrow: 'Step 1',
+    eyebrow: 'Step 2',
     icon: Building2,
   },
   {
     id: 'documents',
     label: 'Documents',
     summary: 'Upload KYB and KYC files',
-    eyebrow: 'Step 2',
+    eyebrow: 'Step 3',
     icon: FileText,
   },
   {
     id: 'issuing-banks',
     label: 'Issuing Banks',
     summary: 'Choose your preferred partners',
-    eyebrow: 'Step 3',
+    eyebrow: 'Step 4',
     icon: Landmark,
   },
   {
     id: 'review',
     label: 'Review',
     summary: 'Confirm and submit',
-    eyebrow: 'Step 4',
+    eyebrow: 'Step 5',
     icon: ShieldCheck,
   },
 ];
@@ -60,6 +67,7 @@ function getStepIndex(stepId: OnboardingStepId) {
 }
 
 function getStepHref(draftId: string | undefined, stepId: OnboardingStepId) {
+  if (stepId === 'start') return '/onboarding/start';
   if (!draftId) return '#';
   if (stepId === 'organization') return `/onboarding/${draftId}/organization`;
   if (stepId === 'documents') return `/onboarding/${draftId}/documents`;
@@ -92,6 +100,7 @@ function isIssuingBanksComplete(draft?: OnboardingDraft | null) {
 }
 
 function getStepCompletion(stepId: OnboardingStepId, draft?: OnboardingDraft | null) {
+  if (stepId === 'start') return Boolean(draft?.consentAccepted);
   if (stepId === 'organization') return isOrganizationComplete(draft);
   if (stepId === 'documents') return isDocumentsComplete(draft);
   if (stepId === 'issuing-banks') return isIssuingBanksComplete(draft);
@@ -100,7 +109,8 @@ function getStepCompletion(stepId: OnboardingStepId, draft?: OnboardingDraft | n
 
 function isStepEnabled(stepId: OnboardingStepId, currentStep: OnboardingStepId, draft?: OnboardingDraft | null) {
   if (stepId === currentStep) return true;
-  if (stepId === 'organization') return true;
+  if (stepId === 'start') return true;
+  if (stepId === 'organization') return currentStep !== 'start' && Boolean(draft?.consentAccepted);
   if (stepId === 'documents') return isOrganizationComplete(draft);
   if (stepId === 'issuing-banks') return isOrganizationComplete(draft) && isDocumentsComplete(draft);
   return isOrganizationComplete(draft) && isDocumentsComplete(draft) && isIssuingBanksComplete(draft);
@@ -139,7 +149,7 @@ export default function PublicOnboardingLayout({
 
   return (
     <div className="min-h-screen bg-white px-4 py-4 md:px-6 md:py-6">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col overflow-hidden  border border-[#dbe7dd] bg-white shadow-[0_24px_80px_rgba(14,72,38,0.08)] md:flex-row">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col border border-[#dbe7dd] bg-white shadow-[0_24px_80px_rgba(14,72,38,0.08)] md:flex-row">
         <aside className="hidden border-r border-[#e3ece5] bg-[#f8fbf8] p-6 md:block md:w-[320px]">
           <div className="flex h-full flex-col">
             <div className="mb-2">

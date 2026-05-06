@@ -15,26 +15,35 @@ export interface TextFieldProps
   label?: React.ReactNode;
   error?: string;
   hint?: string;
+  size?: "sm" | "md" | "lg";
+  border?: string;
 }
 
 const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
-  ({ className, type, label, error, hint, ...props }, ref) => {
+  ({ className, type, label, error, hint, size, border, ...props }, ref) => {
     const [showPassword, setShowPassword] = React.useState(false);
     const isPassword = type === "password";
     const inputType = isPassword && showPassword ? "text" : type;
-
+    const sizeClasses = {
+      sm: "h-9 text-sm",
+      md: "h-11 text-sm",
+      lg: "h-12 text-base rounded-lg",
+    };
+    const borderClasses =  "border-[#d6e3d8] bg-white";
     return (
       <div className="space-y-1.5">
         {label && (
-          <label className="text-sm font-medium text-foreground">
-            {label}
+          <label className="text-sm font-medium text-foreground" >
+            {label} 
           </label>
         )}
         <div className="relative">
           <input
             type={inputType}
             className={cn(
-              "flex h-11 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground",
+              "flex w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground",
+              sizeClasses[size || "lg"],
+              borderClasses,
               "placeholder:text-muted-foreground",
               "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
               "disabled:cursor-not-allowed disabled:opacity-50",

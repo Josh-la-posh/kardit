@@ -38,22 +38,14 @@ export default function Hero() {
             Kardit
           </a>
 
-          <div className="hidden items-center gap-5 md:flex">
+          <div className=" items-center gap-5 md:flex">
             <a
               href={authUrl}
-              className="text-sm font-medium text-slate-900 transition-colors hover:text-[#059449] md:text-base"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Sign In
-            </a>
-            <a
-              href={onboardingUrl}
               className="rounded-2xl bg-[linear-gradient(135deg,#0f172a_0%,#0ba54b_55%,#06c755_100%)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(5,148,73,0.22)] transition-transform duration-300 hover:-translate-y-0.5 md:px-9 md:text-base"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Create Account
+              Sign In
             </a>
           </div>
         </header>
@@ -85,7 +77,7 @@ export default function Hero() {
               seamlessly.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row ">
               <a
                 href={onboardingUrl}
                 className="inline-flex min-w-[12.5rem] items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#02140b_0%,#0a993f_45%,#08bf4d_100%)] px-7 py-4 text-base font-semibold text-white shadow-[0_20px_50px_rgba(6,129,59,0.24)] transition-transform duration-300 hover:-translate-y-0.5"
@@ -101,25 +93,6 @@ export default function Hero() {
                 rel="noopener noreferrer"
               >
                 Learn More
-              </a>
-            </div>
-
-            <div className="mt-6 flex items-center gap-4 md:hidden">
-              <a
-                href={authUrl}
-                className="text-sm font-semibold text-slate-700"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Sign In
-              </a>
-              <a
-                href={onboardingUrl}
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Create Account
               </a>
             </div>
           </div>
