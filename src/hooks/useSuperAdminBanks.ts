@@ -22,7 +22,7 @@ export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
   const [banks, setBanks] = useState<BankQueryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [responsePage, setResponsePage] = useState(filters.page || 1);
-  const [responsePageSize, setResponsePageSize] = useState(filters.pageSize || 25);
+  const [responsePageSize, setResponsePageSize] = useState(filters.pageSize || 20);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

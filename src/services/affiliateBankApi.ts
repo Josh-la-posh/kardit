@@ -62,7 +62,7 @@ export function resolveAffiliateId(user?: { tenantId?: string; email?: string } 
   };
 
   const byEmail: Record<string, string> = {
-    'affiliate@kardit.app': '5c1e9fd2-6d32-4d0c-9bf2-c7b0d8f2b201',
+    'affiliate@kardit.app': 'AFF-F5BE3E1610314B9582F3CFF4F7F34B88',
     'demo@kardit.app': '00000000-0000-0000-0000-000000000000',
   };
 

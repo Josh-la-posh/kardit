@@ -21,7 +21,7 @@ const statusToChip: Record<string, StatusType> = {
 };
 
 const statusOptions: Array<BankStatus | 'ALL'> = ['ALL', 'ACTIVE', 'INACTIVE'];
-const pageSizeOptions = ['10', '25', '50', '100'];
+const pageSizeOptions = ['10', '20', '50', '100'];
 
 export default function BanksListPage() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function BanksListPage() {
   const [country, setCountry] = useState('');
   const [statusFilter, setStatusFilter] = useState<BankStatus | 'ALL'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedPageSize, setSelectedPageSize] = useState(25);
+  const [selectedPageSize, setSelectedPageSize] = useState(20);
   const [downloading, setDownloading] = useState(false);
 
   const { banks, total, page, pageSize, isLoading, error, refetch } = useSuperAdminBanks({

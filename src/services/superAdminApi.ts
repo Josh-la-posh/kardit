@@ -52,6 +52,22 @@ async function getJson<TResponse>(path: string, init?: RequestInit): Promise<TRe
   return (await res.json()) as TResponse;
 }
 
+function buildQueryBanksPath(request: QueryBanksRequest) {
+  const query = new URLSearchParams();
+
+  if (request.filters.country) query.set('country', request.filters.country);
+  if (request.filters.search) query.set('search', request.filters.search);
+
+  request.filters.status?.forEach((status) => {
+    if (status) query.append('status', status);
+  });
+
+  query.set('page', String(request.page));
+  query.set('pageSize', String(request.pageSize));
+
+  return `/banks/query?${query.toString()}`;
+}
+
 async function sendJson<TResponse>(method: 'POST' | 'PATCH', path: string, body: unknown, init?: RequestInit): Promise<TResponse> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
@@ -118,7 +134,7 @@ export function getReportStatus(reportExecutionId: string) {
 }
 
 export function queryBanks(request: QueryBanksRequest) {
-  return sendJson<QueryBanksResponse | ApiEnvelope<QueryBanksResponse>>('POST', '/banks/query', request)
+  return getJson<QueryBanksResponse | ApiEnvelope<QueryBanksResponse>>(buildQueryBanksPath(request))
     .then(unwrapApiValue);
 }
 
