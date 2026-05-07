@@ -238,7 +238,7 @@ export default function OnboardingCaseDetailPage() {
 
                 <div className="rounded-md border border-border p-4 space-y-3">
                   <p className="text-sm font-semibold">Reviewer action</p>
-                  <label className="block text-xs text-muted-foreground">Reason (optional)</label>
+                  <label className="block text-xs text-muted-foreground">Reason<span className="text-destructive">*</span></label>
                   <input
                     className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
                     value={reason}
@@ -246,7 +246,7 @@ export default function OnboardingCaseDetailPage() {
                     disabled={working}
                     placeholder="Reason for decision"
                   />
-                  <label className="block text-xs text-muted-foreground">Note (optional)</label>
+                  <label className="block text-xs text-muted-foreground">Note<span className="text-destructive">*</span></label>
                   <input
                     className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
                     value={note}
@@ -258,12 +258,16 @@ export default function OnboardingCaseDetailPage() {
                     <Button variant="outline" onClick={() => doDecision('REQUEST_CLARIFICATION')} disabled={working}>
                       Request clarification
                     </Button>
-                    <Button variant="outline" onClick={() => doDecision('REJECT')} disabled={working}>
-                      Reject
-                    </Button>
-                    <Button onClick={() => doDecision('APPROVE')} disabled={working}>
-                      Approve
-                    </Button>
+                    {caseItem.status !== 'REJECTED' && (
+                      <Button variant="outline" onClick={() => doDecision('REJECT')} disabled={working}>
+                        Reject
+                      </Button>
+                    )}
+                    {caseItem.status !== 'APPROVED' && (
+                      <Button onClick={() => doDecision('APPROVE')} disabled={working}>
+                        Approve
+                      </Button>
+                    )}
                     {/* <Button
                       variant="secondary"
                       onClick={doCreateAffiliate}

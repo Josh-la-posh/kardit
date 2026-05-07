@@ -410,7 +410,7 @@ export default function CardDetailPage() {
                     <RefreshCw className="h-4 w-4 mr-1" /> Unfreeze
                   </Button>
                 )}
-                {isAffiliate && card.status !== 'BLOCKED' && (
+                {isAffiliate && card.status !== 'TERMINATED' && (
                   <Button variant="danger" size="sm" onClick={() => { setActionType('terminate'); setActionReason('CUSTOMER_ACCOUNT_CLOSED'); }}>
                     <Ban className="h-4 w-4 mr-1" /> Terminate
                   </Button>

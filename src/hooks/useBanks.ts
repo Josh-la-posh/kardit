@@ -15,7 +15,7 @@ export function useBankQuery({
   country,
   search = '',
   page = 1,
-  pageSize = 25,
+  pageSize = 20,
 }: UseBankQueryOptions = {}) {
   const [banks, setBanks] = useState<BankQueryItem[]>([]);
   const [total, setTotal] = useState(0);

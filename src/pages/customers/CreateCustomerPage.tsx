@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CitySelect, CountrySelect, GetCountries, StateSelect } from 'react-country-state-city';
+import type { City, Country, State } from 'react-country-state-city/dist/esm/types';
 import { KycUploadModal } from '@/components/KycUploadModal';
 import { useCreateCustomer } from '@/hooks/useCustomers';
 import { ID_TYPES } from '@/stores/mockStore';
@@ -13,6 +15,12 @@ import { ArrowLeft, ChevronRight, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const EMPTY_VALUE = '--';
+
+function getSelectInputClassName(error?: string) {
+  return `flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+    error ? 'border-destructive' : 'border-input'
+  }`;
+}
 
 export default function CreateCustomerPage() {
   const navigate = useNavigate();
@@ -38,6 +46,36 @@ export default function CreateCustomerPage() {
   const [kycDocs, setKycDocs] = useState<{ type: string; fileName: string }[]>([]);
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedState, setSelectedState] = useState<State | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+
+    const hydrateDefaultCountry = async () => {
+      if (!form.country) return;
+      const countries = (await GetCountries()) as Country[];
+      if (!active) return;
+
+      const countryMatch = countries.find(
+        (country) =>
+          country.iso2.toLowerCase() === form.country.toLowerCase() ||
+          country.iso3.toLowerCase() === form.country.toLowerCase() ||
+          country.name.toLowerCase() === form.country.toLowerCase()
+      );
+
+      if (!countryMatch) return;
+      setSelectedCountry(countryMatch);
+      setForm((prev) => ({ ...prev, country: countryMatch.iso2 }));
+    };
+
+    void hydrateDefaultCountry();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const set = (key: string, val: string) => {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -253,24 +291,68 @@ export default function CreateCustomerPage() {
                 />
                 <TextField label="Address Line 2" value={form.line2} onChange={(e) => set('line2', e.target.value)} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                  <TextField
-                    label={fieldLabel('City', true)}
-                    value={form.city}
-                    onChange={(e) => set('city', e.target.value)}
-                    error={errors.city}
-                  />
-                  <TextField
-                    label={fieldLabel('State', true)}
-                    value={form.state}
-                    onChange={(e) => set('state', e.target.value)}
-                    error={errors.state}
-                  />
-                  <TextField
-                    label={fieldLabel('Country', true)}
-                    value={form.country}
-                    onChange={(e) => set('country', e.target.value)}
-                    error={errors.country}
-                  />
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('Country', true)}</label>
+                    <CountrySelect
+                      containerClassName="w-full"
+                      inputClassName={getSelectInputClassName(errors.country)}
+                      defaultValue={(selectedCountry ?? undefined) as any}
+                      onChange={(country) => {
+                        setSelectedCountry(country);
+                        setSelectedState(null);
+                        setSelectedCity(null);
+                        setForm((prev) => ({
+                          ...prev,
+                          country: country.iso2,
+                          state: '',
+                          city: '',
+                        }));
+                        setErrors((prev) => ({ ...prev, country: '', state: '', city: '' }));
+                      }}
+                      placeHolder="Select country"
+                    />
+                    {errors.country && <p className="text-xs text-destructive">{errors.country}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('State', true)}</label>
+                    <StateSelect
+                      countryid={selectedCountry?.id ?? 0}
+                      containerClassName="w-full"
+                      inputClassName={getSelectInputClassName(errors.state)}
+                      defaultValue={(selectedState ?? undefined) as any}
+                      onChange={(state) => {
+                        setSelectedState(state);
+                        setSelectedCity(null);
+                        setForm((prev) => ({
+                          ...prev,
+                          state: state.state_code || state.name,
+                          city: '',
+                        }));
+                        setErrors((prev) => ({ ...prev, state: '', city: '' }));
+                      }}
+                      placeHolder={selectedCountry ? 'Select state' : 'Select country first'}
+                      disabled={!selectedCountry}
+                    />
+                    {errors.state && <p className="text-xs text-destructive">{errors.state}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">{fieldLabel('City', true)}</label>
+                    <CitySelect
+                      countryid={selectedCountry?.id ?? 0}
+                      stateid={selectedState?.id ?? 0}
+                      containerClassName="w-full"
+                      inputClassName={getSelectInputClassName(errors.city)}
+                      defaultValue={(selectedCity ?? undefined) as any}
+                      onChange={(city) => {
+                        setSelectedCity(city);
+                        set('city', city.name);
+                      }}
+                      placeHolder={selectedState ? 'Select city' : 'Select state first'}
+                      disabled={!selectedCountry || !selectedState}
+                    />
+                    {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
+                  </div>
                   <TextField
                     label="Postal Code"
                     value={form.postalCode}
@@ -301,6 +383,7 @@ export default function CreateCustomerPage() {
                   <SummaryRow label="Email" value={form.email || EMPTY_VALUE} />
                   <SummaryRow label="Mobile" value={form.phone || EMPTY_VALUE} />
                   <SummaryRow label="ID Type" value={selectedIdType?.label || EMPTY_VALUE} />
+                  <SummaryRow label="City" value={form.city || EMPTY_VALUE} />
                   <SummaryRow label="State" value={form.state || EMPTY_VALUE} />
                   <SummaryRow label="Country" value={form.country || EMPTY_VALUE} />
                   <SummaryRow label="KYC Level" value="LEVEL_2" />
