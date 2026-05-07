@@ -71,31 +71,31 @@ export default function ActiveAffiliatesPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : error ? (
-                <div className="text-center py-8 text-gray-500">{error}</div>
+                <div className="text-center py-8 text-muted-foreground">{error}</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tenant ID</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Active Cards</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total Cards</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Funding Volume</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                      <tr className="border-b border-border">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Tenant ID</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Active Cards</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Total Cards</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Funding Volume</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredAffiliates.map((affiliate) => (
-                        <tr key={affiliate.affiliateId} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                        <tr key={affiliate.affiliateId} className="border-b border-border hover:bg-muted">
+                          <td className="px-4 py-3 text-sm text-foreground">
                             <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
-                            <p className="text-xs text-gray-500">{affiliate.affiliateId}</p>
+                            <p className="text-xs text-muted-foreground">{affiliate.affiliateId}</p>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tenantId}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.activeCards}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.totalCards}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.totalFundingVolume.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.activeCards}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.totalCards}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.totalFundingVolume.toLocaleString()}</td>
                           <td className="px-4 py-3 text-sm">
                             <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(`/bank/active-affiliates/${affiliate.affiliateId}`)}>
                               <Eye className="w-4 h-4" />
@@ -110,7 +110,7 @@ export default function ActiveAffiliatesPage() {
               )}
 
               {!isLoading && !error && filteredAffiliates.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <p>No active affiliates found matching your filters.</p>
                 </div>
               )}
@@ -121,3 +121,4 @@ export default function ActiveAffiliatesPage() {
     </ProtectedRoute>
   );
 }
+

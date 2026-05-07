@@ -75,6 +75,20 @@
     --text-primary: 0 0% 96%;
     --text-secondary: 220 10% 60%;
     --text-muted: 220 10% 45%;
+
+    /* Landing page palette - Dark mode */
+    --landing-bg: 220 15% 7%;
+    --landing-fg: 0 0% 96%;
+    --landing-subtle: 220 10% 60%;
+    --landing-brand: 147 93% 31%;
+    --landing-brand-2: 141 90% 42%;
+    --landing-brand-3: 160 84% 39%;
+    --landing-panel: 220 12% 12%;
+    --landing-panel-2: 218 54% 18%;
+    --landing-panel-border: 220 10% 24%;
+    --landing-soft: 220 10% 16%;
+    --landing-soft-2: 220 10% 20%;
+    --landing-highlight: 190 95% 78%;
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(147.38 100% 31.37%), hsl(147.38 100% 24%));
@@ -133,6 +147,20 @@
     --text-primary: 220 15% 10%;
     --text-secondary: 220 10% 40%;
     --text-muted: 220 10% 55%;
+
+    /* Landing page palette - Light mode */
+    --landing-bg: 150 20% 97%;
+    --landing-fg: 222 47% 11%;
+    --landing-subtle: 215 16% 47%;
+    --landing-brand: 147 93% 31%;
+    --landing-brand-2: 141 90% 42%;
+    --landing-brand-3: 160 84% 39%;
+    --landing-panel: 0 0% 100%;
+    --landing-panel-2: 217 45% 20%;
+    --landing-panel-border: 220 24% 90%;
+    --landing-soft: 220 33% 96%;
+    --landing-soft-2: 220 20% 91%;
+    --landing-highlight: 190 95% 78%;
 
     /* Shadows for Light Mode */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);

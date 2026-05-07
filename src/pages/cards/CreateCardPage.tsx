@@ -172,7 +172,7 @@ export default function CreateCardPage() {
                     </button>
 
                     {customerDropdownOpen && (
-                      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-md border border-border bg-white shadow-lg">
+                      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-md border border-border bg-card shadow-lg">
                         <div className="border-b border-border p-3">
                           <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-2 py-1.5 focus-within:ring-1 focus-within:ring-primary">
                             <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
@@ -428,3 +428,4 @@ export default function CreateCardPage() {
     </ProtectedRoute>
   );
 }
+

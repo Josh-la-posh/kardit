@@ -319,8 +319,8 @@ export default function AffiliateDetailPage() {
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <Users className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totals.totalCustomers}</p>
@@ -341,8 +341,8 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10">
-                  <Users className="h-5 w-5 text-yellow-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                  <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totals.pendingCustomers}</p>
@@ -352,8 +352,8 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <CreditCard className="h-5 w-5 text-blue-500" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <CreditCard className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -368,8 +368,8 @@ export default function AffiliateDetailPage() {
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Activity className="h-5 w-5 text-amber-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                  <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -381,8 +381,8 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Users className="h-5 w-5 text-emerald-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -394,8 +394,8 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/10">
-                  <Snowflake className="h-5 w-5 text-cyan-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
+                  <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -407,8 +407,8 @@ export default function AffiliateDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-500/10">
-                  <OctagonMinus className="h-5 w-5 text-red-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
+                  <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -482,3 +482,5 @@ export default function AffiliateDetailPage() {
     </ProtectedRoute>
   );
 }
+
+

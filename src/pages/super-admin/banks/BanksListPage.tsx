@@ -100,7 +100,7 @@ export default function BanksListPage() {
                   Refresh
                 </Button>
                 <Button
-                  className='bg-blue-600 hover:bg-blue-700'
+                  className='bg-primary hover:bg-primary/90'
                   size='sm'
                   onClick={handleAddBank}
                 >
@@ -124,8 +124,8 @@ export default function BanksListPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <Building2 className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                  <Building2 className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{activeOnPage}</p>
@@ -291,3 +291,4 @@ export default function BanksListPage() {
     </ProtectedRoute>
   );
 }
+

@@ -31,8 +31,8 @@ export default function IssuingBankSuccessPage() {
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
           <div className="py-20 text-center">
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
-            <p className="mb-6 text-red-600">Bank details not found</p>
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-[hsl(var(--destructive))]" />
+            <p className="mb-6 text-[hsl(var(--destructive))]">Bank details not found</p>
             <Button variant="outline" onClick={() => navigate('/super-admin/banks')}>
               Back to Banks
             </Button>
@@ -50,9 +50,9 @@ export default function IssuingBankSuccessPage() {
             <div className="w-full max-w-xl space-y-6 text-center">
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="absolute inset-0 animate-pulse rounded-full bg-green-100 blur-xl" />
-                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-                    <Check className="h-12 w-12 text-green-600" />
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-[hsl(var(--success)/0.15)] blur-xl" />
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(var(--success)/0.15)]">
+                    <Check className="h-12 w-12 text-[hsl(var(--success))]" />
                   </div>
                 </div>
               </div>
@@ -64,8 +64,8 @@ export default function IssuingBankSuccessPage() {
 
               <div className="kardit-card space-y-4 p-6">
                 <div className="flex items-start gap-4 border-b border-border pb-4">
-                  <div className="flex-shrink-0 rounded-lg bg-blue-100 p-3">
-                    <Building2 className="h-6 w-6 text-blue-600" />
+                  <div className="flex-shrink-0 rounded-lg bg-primary/10 p-3">
+                    <Building2 className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1 text-left">
                     <p className="text-lg font-semibold text-foreground">{session.bankDetails.name}</p>
@@ -86,7 +86,7 @@ export default function IssuingBankSuccessPage() {
                   </div>
                   <div>
                     <p className="mb-1 text-xs text-muted-foreground">Status</p>
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                    <span className="inline-flex items-center rounded-full bg-[hsl(var(--success)/0.15)] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--success))]">
                       Active
                     </span>
                   </div>
@@ -131,9 +131,9 @@ export default function IssuingBankSuccessPage() {
                 </div>
               )}
 
-              <div className="kardit-card border border-blue-200 bg-blue-50/50 p-6 text-left">
-                <p className="mb-3 font-semibold text-blue-900">What's next?</p>
-                <ul className="space-y-2 text-sm text-blue-800">
+              <div className="kardit-card border border-primary/25 bg-primary/10 p-6 text-left">
+                <p className="mb-3 font-semibold text-primary">What's next?</p>
+                <ul className="space-y-2 text-sm text-primary">
                   <li>Your bank is now ready to onboard external affiliates.</li>
                   <li>The internal bank-owned affiliate is created automatically during provisioning.</li>
                   <li>View your bank profile to see integration details and manage settings.</li>
@@ -141,7 +141,7 @@ export default function IssuingBankSuccessPage() {
               </div>
 
               <div className="flex flex-col space-y-3">
-                <Button onClick={() => navigate('/issuing-banks')} className="w-full bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => navigate('/issuing-banks')} className="w-full bg-primary hover:bg-primary/90">
                   View Bank Profile
                 </Button>
                 <Button onClick={() => navigate('/issuing-banks/new')} variant="outline" className="w-full">
@@ -158,3 +158,4 @@ export default function IssuingBankSuccessPage() {
     </ProtectedRoute>
   );
 }
+

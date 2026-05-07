@@ -207,7 +207,7 @@ export default function IssuingBankCreatePage() {
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Bank Name <span className="text-red-500">*</span>
+                        Bank Name <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="name"
@@ -216,15 +216,15 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('name', e.target.value)}
                         placeholder="e.g., Example Bank Plc"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.name ? 'border-red-500' : 'border-border'
+                          errors.name ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.name && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.name}</p>}
+                      {errors.name && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.name}</p>}
                     </div>
 
                     <div>
                       <label htmlFor="shortName" className="block text-sm font-medium mb-1">
-                        Bank Short Name <span className="text-red-500">*</span>
+                        Bank Short Name <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="shortName"
@@ -233,15 +233,15 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('shortName', e.target.value)}
                         placeholder="e.g., Example Bank"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.shortName ? 'border-red-500' : 'border-border'
+                          errors.shortName ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.shortName && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.shortName}</p>}
+                      {errors.shortName && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.shortName}</p>}
                     </div>
 
                     <div>
                       <label htmlFor="code" className="block text-sm font-medium mb-1">
-                        Bank Code <span className="text-red-500">*</span>
+                        Bank Code <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="code"
@@ -250,18 +250,18 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('code', e.target.value.toUpperCase())}
                         placeholder="e.g., EXB001"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.code ? 'border-red-500' : 'border-border'
+                          errors.code ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.code && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.code}</p>}
+                      {errors.code && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.code}</p>}
                     </div>
 
                     <div>
                       <label htmlFor="country" className="block text-sm font-medium mb-1">
-                        Country <span className="text-red-500">*</span>
+                        Country <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <Select value={form.country} onValueChange={(value) => set('country', value)}>
-                        <SelectTrigger className={`bg-muted ${errors.country ? 'border-red-500' : 'border-border'}`}>
+                        <SelectTrigger className={`bg-muted ${errors.country ? 'border-[hsl(var(--destructive))]' : 'border-border'}`}>
                           <SelectValue placeholder="Select country..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -272,7 +272,7 @@ export default function IssuingBankCreatePage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {errors.country && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
+                      {errors.country && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
                     </div>
                   </div>
                 </div>
@@ -283,7 +283,7 @@ export default function IssuingBankCreatePage() {
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="fullName" className="block text-sm font-medium mb-1">
-                        Contact Full Name <span className="text-red-500">*</span>
+                        Contact Full Name <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="fullName"
@@ -292,15 +292,15 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('contactFullName', e.target.value)}
                         placeholder="e.g., Bank Admin"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.contactFullName ? 'border-red-500' : 'border-border'
+                          errors.contactFullName ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.contactFullName && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactFullName}</p>}
+                      {errors.contactFullName && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactFullName}</p>}
                     </div>
 
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Contact Email <span className="text-red-500">*</span>
+                        Contact Email <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="email"
@@ -309,15 +309,15 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('contactEmail', e.target.value)}
                         placeholder="admin@examplebank.com"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.contactEmail ? 'border-red-500' : 'border-border'
+                          errors.contactEmail ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.contactEmail && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactEmail}</p>}
+                      {errors.contactEmail && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactEmail}</p>}
                     </div>
 
                     <div>
                       <label htmlFor="phone" className="block text-sm font-medium mb-1">
-                        Contact Phone <span className="text-red-500">*</span>
+                        Contact Phone <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <input
                         id="phone"
@@ -326,10 +326,10 @@ export default function IssuingBankCreatePage() {
                         onChange={(e) => set('contactPhone', e.target.value)}
                         placeholder="+2348012345678"
                         className={`flex h-10 w-full rounded-md border ${
-                          errors.contactPhone ? 'border-red-500' : 'border-border'
+                          errors.contactPhone ? 'border-[hsl(var(--destructive))]' : 'border-border'
                         } bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50`}
                       />
-                      {errors.contactPhone && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactPhone}</p>}
+                      {errors.contactPhone && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.contactPhone}</p>}
                     </div>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export default function IssuingBankCreatePage() {
                   <Button type="button" variant="outline" onClick={handleCancel}>
                     Cancel
                   </Button>
-                  <Button type="button" onClick={handleContinueToReview} className="bg-blue-600 hover:bg-blue-700">
+                  <Button type="button" onClick={handleContinueToReview} className="bg-primary hover:bg-primary/90">
                     Continue to Review
                   </Button>
                 </div>
@@ -431,13 +431,13 @@ export default function IssuingBankCreatePage() {
                   </div>
                 </div>
 
-                <div className="kardit-card p-6 border-l-4 border-l-blue-500">
+                <div className="kardit-card p-6 border-l-4 border-l-primary">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={confirmed}
                       onChange={(e) => setConfirmed(e.target.checked)}
-                      className="mt-1 h-5 w-5 rounded border border-border text-blue-600 focus:ring-blue-500"
+                      className="mt-1 h-5 w-5 rounded border border-border text-primary focus:ring-primary"
                     />
                     <div>
                       <p className="font-semibold text-foreground">I confirm the details are accurate</p>
@@ -456,7 +456,7 @@ export default function IssuingBankCreatePage() {
                     type="button"
                     onClick={handleFinalSubmit}
                     disabled={!confirmed || isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit for Provisioning'}
                   </Button>
@@ -469,3 +469,5 @@ export default function IssuingBankCreatePage() {
     </ProtectedRoute>
   );
 }
+
+

@@ -153,7 +153,7 @@ export default function AffiliateDetailPages() {
                   <Button variant="outline" onClick={() => navigate(`${basePath}/customers`)}>
                     <Users className="h-4 w-4" /> View Customers
                   </Button>
-                  <Button variant="outline" className="text-orange-600" onClick={() => openActionDialog('suspend')}>
+                  <Button variant="outline" className="text-[hsl(var(--warning))]" onClick={() => openActionDialog('suspend')}>
                     <StopCircle className="h-4 w-4" /> Suspend Affiliate
                   </Button>
                   <Button variant="destructive" onClick={() => openActionDialog('block')}>

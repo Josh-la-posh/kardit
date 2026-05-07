@@ -197,20 +197,20 @@ export default function SuperAdminAffiliateDetailPage() {
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case 'APPROVED':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Approved</Badge>;
       case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Active</Badge>;
       case 'VERIFIED':
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Verified</Badge>;
       case 'REJECTED':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]">Rejected</Badge>;
       case 'SUSPENDED':
-        return <Badge className="bg-orange-100 text-orange-800">Suspended</Badge>;
+        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Suspended</Badge>;
       case 'FAILED':
-        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+        return <Badge className="bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]">Failed</Badge>;
       case 'PENDING':
       default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Pending</Badge>;
     }
   };
 
@@ -358,17 +358,17 @@ export default function SuperAdminAffiliateDetailPage() {
                         <div className="overflow-x-auto">
                           <table className="w-full">
                             <thead>
-                              <tr className="border-b border-gray-200">
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Document ID</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Document Type</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Verification Status</th>
+                              <tr className="border-b border-border">
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Document ID</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Document Type</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Verification Status</th>
                               </tr>
                             </thead>
                             <tbody>
                               {kybSnapshot.onboardingSnapshot.documents.map((document) => (
-                                <tr key={document.documentId} className="border-b border-gray-100 hover:bg-gray-50">
-                                  <td className="px-4 py-3 text-sm text-gray-900">{document.documentId}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-600">{document.documentType}</td>
+                                <tr key={document.documentId} className="border-b border-border hover:bg-muted">
+                                  <td className="px-4 py-3 text-sm text-foreground">{document.documentId}</td>
+                                  <td className="px-4 py-3 text-sm text-muted-foreground">{document.documentType}</td>
                                   <td className="px-4 py-3 text-sm">{getStatusBadge(document.verificationStatus)}</td>
                                 </tr>
                               ))}
@@ -406,7 +406,7 @@ export default function SuperAdminAffiliateDetailPage() {
                               id="customer-status"
                               value={filterStatus}
                               onChange={(e) => setFilterStatus(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                               <option value="all">All Statuses</option>
                               <option value="active">Active</option>
@@ -422,26 +422,26 @@ export default function SuperAdminAffiliateDetailPage() {
                           <div className="overflow-x-auto">
                             <table className="w-full">
                               <thead>
-                                <tr className="border-b border-gray-200">
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Full Name</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Created Date</th>
+                                <tr className="border-b border-border">
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Full Name</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Email</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Phone</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Status</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Created Date</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {filteredCustomers.map((customer) => (
-                                  <tr key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm text-gray-900">{customer.fullName}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.email}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.phone || 'N/A'}</td>
+                                  <tr key={customer.id} className="border-b border-border hover:bg-muted">
+                                    <td className="px-4 py-3 text-sm text-foreground">{customer.fullName}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{customer.email}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{customer.phone || 'N/A'}</td>
                                     <td className="px-4 py-3 text-sm">
-                                      <Badge className={customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                                      <Badge className={customer.status === 'active' ? 'bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]' : 'bg-muted text-foreground'}>
                                         {customer.status === 'active' ? 'Active' : 'Inactive'}
                                       </Badge>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{customer.createdDate}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{customer.createdDate}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -449,7 +449,7 @@ export default function SuperAdminAffiliateDetailPage() {
                           </div>
 
                           {filteredCustomers.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-muted-foreground">
                               <p>No customers returned for this affiliate.</p>
                             </div>
                           )}
@@ -458,7 +458,7 @@ export default function SuperAdminAffiliateDetailPage() {
                     </>
                   ) : (
                     <Card className="p-6">
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-muted-foreground">
                         <p>Customers are only available for approved affiliates</p>
                       </div>
                     </Card>
@@ -487,7 +487,7 @@ export default function SuperAdminAffiliateDetailPage() {
                               id="card-status"
                               value={filterStatus}
                               onChange={(e) => setFilterStatus(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                               <option value="all">All Statuses</option>
                               <option value="active">Active</option>
@@ -504,32 +504,32 @@ export default function SuperAdminAffiliateDetailPage() {
                           <div className="overflow-x-auto">
                             <table className="w-full">
                               <thead>
-                                <tr className="border-b border-gray-200">
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Card Number</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Card Holder</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Balance</th>
-                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Issued Date</th>
+                                <tr className="border-b border-border">
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Card Number</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Card Holder</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Type</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Status</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Balance</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Issued Date</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {filteredCards.map((card) => (
-                                  <tr key={card.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{card.cardNumber}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{card.cardHolder}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{card.cardType}</td>
+                                  <tr key={card.id} className="border-b border-border hover:bg-muted">
+                                    <td className="px-4 py-3 text-sm font-medium text-foreground">{card.cardNumber}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{card.cardHolder}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{card.cardType}</td>
                                     <td className="px-4 py-3 text-sm">
                                       <Badge className={
-                                        card.status === 'active' ? 'bg-green-100 text-green-800' :
-                                        card.status === 'blocked' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
+                                        card.status === 'active' ? 'bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]' :
+                                        card.status === 'blocked' ? 'bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]' :
+                                        'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]'
                                       }>
                                         {card.status === 'active' ? 'Active' : card.status === 'blocked' ? 'Blocked' : 'Expired'}
                                       </Badge>
                                     </td>
-                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">NGN {card.balance.toLocaleString()}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{card.issuedDate}</td>
+                                    <td className="px-4 py-3 text-sm font-semibold text-foreground">NGN {card.balance.toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuedDate}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -537,7 +537,7 @@ export default function SuperAdminAffiliateDetailPage() {
                           </div>
 
                           {filteredCards.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-muted-foreground">
                               <p>No cards returned for this affiliate.</p>
                             </div>
                           )}
@@ -546,7 +546,7 @@ export default function SuperAdminAffiliateDetailPage() {
                     </>
                   ) : (
                     <Card className="p-6">
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-muted-foreground">
                         <p>Cards are only available for approved affiliates</p>
                       </div>
                     </Card>
@@ -578,14 +578,14 @@ export default function SuperAdminAffiliateDetailPage() {
                         <div className="flex gap-2 justify-end">
                           <Button
                             variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            className="text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.3)] hover:bg-[hsl(var(--destructive)/0.08)]"
                             onClick={() => handleUnavailableAction('Reject affiliate')}
                             disabled={isUpdating}
                           >
                             Reject
                           </Button>
                           <Button
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.9)]"
                             onClick={() => handleUnavailableAction('Approve affiliate')}
                             disabled={isUpdating}
                           >
@@ -604,7 +604,7 @@ export default function SuperAdminAffiliateDetailPage() {
                     <div className="rounded-md border border-border p-4">
                       <p className="text-sm font-medium mb-3">Current Status</p>
                       <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${approved ? 'bg-green-600' : 'bg-gray-400'}`} />
+                        <div className={`w-3 h-3 rounded-full ${approved ? 'bg-[hsl(var(--success))]' : 'bg-muted-foreground'}`} />
                         <span className="text-sm font-medium">
                           {approved ? 'Active' : 'Inactive'}
                         </span>
@@ -620,3 +620,5 @@ export default function SuperAdminAffiliateDetailPage() {
     </ProtectedRoute>
   );
 }
+
+

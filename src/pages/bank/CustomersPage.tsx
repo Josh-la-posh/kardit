@@ -77,11 +77,11 @@ export default function CustomersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Active</Badge>;
       case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
+        return <Badge className="bg-muted text-foreground">Inactive</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-muted text-foreground">{status}</Badge>;
     }
   };
 
@@ -126,7 +126,7 @@ export default function CustomersPage() {
                   id="status"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>
@@ -154,28 +154,28 @@ export default function CustomersPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Full Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Transactions</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cards</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Registered Date</th>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Full Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Email</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Phone</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Status</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Transactions</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Cards</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Registered Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredCustomers.map((customer) => (
-                      <tr key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{customer.fullName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{customer.email}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{customer.phoneNumber}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{customer.affiliateName}</td>
+                      <tr key={customer.id} className="border-b border-border hover:bg-muted">
+                        <td className="px-4 py-3 text-sm text-foreground">{customer.fullName}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.email}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.phoneNumber}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.affiliateName}</td>
                         <td className="px-4 py-3 text-sm">{getStatusBadge(customer.status)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{customer.totalTransactions}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{customer.totalCards}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{customer.registrationDate}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-foreground">{customer.totalTransactions}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-foreground">{customer.totalCards}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.registrationDate}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -183,7 +183,7 @@ export default function CustomersPage() {
               </div>
 
               {filteredCustomers.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <p>No customers found matching your filters.</p>
                 </div>
               )}
@@ -194,3 +194,4 @@ export default function CustomersPage() {
     </ProtectedRoute>
   );
 }
+

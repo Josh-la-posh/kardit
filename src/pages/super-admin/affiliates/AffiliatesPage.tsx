@@ -123,16 +123,16 @@ export default function AffiliatesPage() {
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case 'APPROVED':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Approved</Badge>;
       case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Active</Badge>;
       case 'REJECTED':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]">Rejected</Badge>;
       case 'SUSPENDED':
-        return <Badge className="bg-orange-100 text-orange-800">Suspended</Badge>;
+        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Suspended</Badge>;
       case 'PENDING':
       default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Pending</Badge>;
     }
   };
 
@@ -160,7 +160,7 @@ export default function AffiliatesPage() {
             {/* <Button
               onClick={handleDownloadReport}
               disabled={downloading}
-              className="gap-2 bg-blue-600 hover:bg-blue-700"
+              className="gap-2 bg-primary hover:bg-primary/90"
             >
               <Download className="w-4 h-4" />
               {downloading ? 'Downloading...' : 'Download Report'}
@@ -187,7 +187,7 @@ export default function AffiliatesPage() {
                   id="status"
                   value={filterStatus}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">All Statuses</option>
                   {statusOptions.map(status => (
@@ -240,13 +240,13 @@ export default function AffiliatesPage() {
                 aria-label="Page size"
                 value={String(selectedPageSize)}
                 onChange={(e) => handlePageSizeChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {pageSizeOptions.map(size => (
                   <option key={size} value={size}>{size} / page</option>
                 ))}
               </select>
-              <span className="text-sm text-gray-600 self-center ml-auto">
+              <span className="text-sm text-muted-foreground self-center ml-auto">
                 Showing {filteredAffiliates.length} of {total} affiliates
               </span>
             </div>
@@ -261,33 +261,33 @@ export default function AffiliatesPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : error ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <p>{error}</p>
                   </div>
                 ) : (
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate Name</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Trading Name</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tenant ID</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Registration</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Country</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Submitted Date</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                      <tr className="border-b border-border">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Trading Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Tenant ID</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Registration</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Country</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Submitted Date</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredAffiliates.map((affiliate) => (
-                        <tr key={affiliate.affiliateId} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{affiliate.legalName}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tradingName || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.tenantId}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.registrationNumber}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.country}</td>
+                        <tr key={affiliate.affiliateId} className="border-b border-border hover:bg-muted">
+                          <td className="px-4 py-3 text-sm text-foreground">{affiliate.legalName}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tradingName || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
                           <td className="px-4 py-3 text-sm">{getStatusBadge(affiliate.status)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{formatDate(affiliate.createdAt)}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(affiliate.createdAt)}</td>
                           <td className="px-4 py-3 text-sm">
                             <Button
                               variant="outline"
@@ -309,13 +309,13 @@ export default function AffiliatesPage() {
               </div>
 
               {!isLoading && !error && filteredAffiliates.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <p>No affiliates found matching your filters.</p>
                 </div>
               )}
 
-              <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-gray-600">
+              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
                   Page {responsePage} of {totalPages} - {total} total affiliate{total === 1 ? '' : 's'}
                 </p>
                 <div className="flex gap-2">
@@ -344,3 +344,5 @@ export default function AffiliatesPage() {
     </ProtectedRoute>
   );
 }
+
+
