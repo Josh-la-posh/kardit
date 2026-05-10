@@ -147,15 +147,15 @@ export default function BankAffiliateDetailPage() {
   const getActionColor = () => {
     switch (confirmAction) {
       case 'activate':
-        return 'bg-green-600';
+        return 'bg-[hsl(var(--success))]';
       case 'deactivate':
-        return 'bg-amber-600';
+        return 'bg-[hsl(var(--warning))]';
       case 'suspend':
-        return 'bg-orange-600';
+        return 'bg-[hsl(var(--warning))]';
       case 'terminate':
-        return 'bg-red-600';
+        return 'text-[hsl(var(--destructive))]';
       default:
-        return 'bg-gray-600';
+        return 'bg-muted-foreground';
     }
   };
 
@@ -164,28 +164,28 @@ export default function BankAffiliateDetailPage() {
       case 'active':
         return {
           label: 'Active',
-          color: 'bg-green-600',
+          color: 'bg-[hsl(var(--success))]',
           icon: <Power className="h-4 w-4" />,
           textColor: 'text-white'
         };
       case 'inactive':
         return {
           label: 'Inactive',
-          color: 'bg-gray-400',
+          color: 'bg-muted-foreground',
           icon: <PowerOff className="h-4 w-4" />,
           textColor: 'text-white'
         };
       case 'suspended':
         return {
           label: 'Suspended',
-          color: 'bg-orange-600',
+          color: 'bg-[hsl(var(--warning))]',
           icon: <AlertTriangle className="h-4 w-4" />,
           textColor: 'text-white'
         };
       case 'terminated':
         return {
           label: 'Terminated',
-          color: 'bg-red-600',
+          color: 'text-[hsl(var(--destructive))]',
           icon: <Trash2 className="h-4 w-4" />,
           textColor: 'text-white'
         };
@@ -392,7 +392,7 @@ export default function BankAffiliateDetailPage() {
                 <div className="kardit-card p-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Affiliate Operations</h3>
                   <div className="space-y-3">
-                    <div className="rounded-md border border-border p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+                    <div className="rounded-md border border-border p-4 bg-gradient-to-br from-muted to-[hsl(var(--muted)/0.8)]">
                       <p className="text-sm font-medium mb-3 text-muted-foreground">Current Status</p>
                       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${getStatusInfo().color} mb-4 w-full`}>
                         <div className={getStatusInfo().textColor}>
@@ -412,7 +412,7 @@ export default function BankAffiliateDetailPage() {
                             {affiliateStatus === 'inactive' && (
                               <>
                                 <Button
-                                  className="w-full bg-green-600 hover:bg-green-700"
+                                  className="w-full bg-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.9)]"
                                   onClick={() => openConfirmDialog('activate')}
                                   disabled={working}
                                 >
@@ -420,7 +420,7 @@ export default function BankAffiliateDetailPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                                  className="w-full text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.35)] hover:bg-[hsl(var(--warning)/0.08)]"
                                   onClick={() => openConfirmDialog('suspend')}
                                   disabled={working}
                                 >
@@ -428,7 +428,7 @@ export default function BankAffiliateDetailPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  className="w-full text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.3)] hover:bg-[hsl(var(--destructive)/0.08)]"
                                   onClick={() => openConfirmDialog('terminate')}
                                   disabled={working}
                                 >
@@ -442,7 +442,7 @@ export default function BankAffiliateDetailPage() {
                               <>
                                 <Button
                                   variant="outline"
-                                  className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                                  className="w-full text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.35)] hover:bg-[hsl(var(--warning)/0.08)]"
                                   onClick={() => openConfirmDialog('suspend')}
                                   disabled={working}
                                 >
@@ -450,7 +450,7 @@ export default function BankAffiliateDetailPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  className="w-full text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.3)] hover:bg-[hsl(var(--destructive)/0.08)]"
                                   onClick={() => openConfirmDialog('terminate')}
                                   disabled={working}
                                 >
@@ -463,7 +463,7 @@ export default function BankAffiliateDetailPage() {
                             {affiliateStatus === 'suspended' && (
                               <>
                                 <Button
-                                  className="w-full bg-green-600 hover:bg-green-700"
+                                  className="w-full bg-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.9)]"
                                   onClick={() => openConfirmDialog('activate')}
                                   disabled={working}
                                 >
@@ -471,7 +471,7 @@ export default function BankAffiliateDetailPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                                  className="w-full text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.3)] hover:bg-[hsl(var(--destructive)/0.08)]"
                                   onClick={() => openConfirmDialog('terminate')}
                                   disabled={working}
                                 >
@@ -502,8 +502,8 @@ export default function BankAffiliateDetailPage() {
 
           {/* Confirmation Dialog */}
           {showConfirmDialog && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="fixed inset-0 bg-[hsl(var(--foreground)/0.5)] z-50 flex items-center justify-center p-4">
+              <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
                 <div className="flex items-start gap-4">
                   <div className={`flex-shrink-0 w-12 h-12 rounded-lg ${getActionColor()} flex items-center justify-center`}>
                     {confirmAction === 'activate' && <Power className="h-6 w-6 text-white" />}
@@ -512,22 +512,22 @@ export default function BankAffiliateDetailPage() {
                     {confirmAction === 'terminate' && <Trash2 className="h-6 w-6 text-white" />}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                    <h3 className="text-lg font-semibold text-foreground capitalize">
                       {confirmAction} Affiliate
                     </h3>
-                    <p className="text-sm text-gray-600 mt-2">{getActionMessage()}</p>
+                    <p className="text-sm text-muted-foreground mt-2">{getActionMessage()}</p>
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                <div className="border border-border rounded-lg p-4 bg-muted space-y-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={notifyAffiliate}
                       onChange={(e) => setNotifyAffiliate(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300"
+                      className="w-4 h-4 rounded border-border"
                     />
-                    <span className="text-sm text-gray-700">Notify affiliate about this action</span>
+                    <span className="text-sm text-[hsl(var(--text-secondary))]">Notify affiliate about this action</span>
                   </label>
                 </div>
 
@@ -560,3 +560,4 @@ export default function BankAffiliateDetailPage() {
     </ProtectedRoute>
   );
 }
+

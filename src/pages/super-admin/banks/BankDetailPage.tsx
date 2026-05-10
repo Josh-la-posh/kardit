@@ -144,8 +144,8 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <CreditCard className="h-5 w-5 text-blue-500" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <CreditCard className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -157,8 +157,8 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/10">
-                  <Snowflake className="h-5 w-5 text-cyan-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
+                  <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -170,8 +170,8 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-500/10">
-                  <OctagonMinus className="h-5 w-5 text-red-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
+                  <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -183,8 +183,8 @@ export default function BankDetailPage() {
             </div>
             {/*<div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10">
-                  <Users className="h-5 w-5 text-yellow-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                  <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totals.suspendedAffiliates}</p>
@@ -197,8 +197,8 @@ export default function BankDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Activity className="h-5 w-5 text-amber-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                  <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
                 </div>
                 <div>
                   <p className="text-lg font-bold">
@@ -210,8 +210,8 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                  <TrendingUp className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
                   <p className="text-lg font-bold">
@@ -223,8 +223,8 @@ export default function BankDetailPage() {
             </div>
             <div className="kardit-card p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Users className="h-5 w-5 text-emerald-500" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
                   <p className="text-lg font-bold">
@@ -300,8 +300,8 @@ export default function BankDetailPage() {
                       >
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-500/10">
-                              <Building2 className="h-4 w-4 text-blue-500" />
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Building2 className="h-4 w-4 text-primary" />
                             </div>
                             <div>
                               <p className="font-medium">{affiliate.legalName}</p>
@@ -343,3 +343,5 @@ export default function BankDetailPage() {
     </ProtectedRoute>
   );
 }
+
+

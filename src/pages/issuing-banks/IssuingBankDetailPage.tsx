@@ -36,8 +36,8 @@ export default function IssuingBankDetailPage() {
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
           <div className="text-center py-20">
-            <AlertCircle className="h-10 w-10 mx-auto text-red-500 mb-4" />
-            <p className="text-red-600 mb-6">{error || 'Bank not found'}</p>
+            <AlertCircle className="h-10 w-10 mx-auto text-[hsl(var(--destructive))] mb-4" />
+            <p className="text-[hsl(var(--destructive))] mb-6">{error || 'Bank not found'}</p>
             <Button variant="outline" onClick={() => navigate('/super-admin/banks')}>
               <ChevronLeft className="h-4 w-4 mr-2" /> Back to Banks
             </Button>
@@ -122,8 +122,8 @@ export default function IssuingBankDetailPage() {
             {/* Header Card */}
             <div className="kardit-card p-6 flex items-start justify-between">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
-                  <Building2 className="h-8 w-8 text-blue-600" />
+                <div className="flex-shrink-0 p-3 bg-primary/10 rounded-lg">
+                  <Building2 className="h-8 w-8 text-primary" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">{bank.bankDetails.name}</h1>
@@ -134,7 +134,7 @@ export default function IssuingBankDetailPage() {
                 </div>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))] text-sm font-medium">
                   ✓ Active
                 </span>
               </div>
@@ -182,7 +182,7 @@ export default function IssuingBankDetailPage() {
                           size="sm"
                           onClick={() => handleSaveEdit('email')}
                           disabled={isSaving}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-primary hover:bg-primary/90"
                         >
                           Save
                         </Button>
@@ -230,7 +230,7 @@ export default function IssuingBankDetailPage() {
                           size="sm"
                           onClick={() => handleSaveEdit('phone')}
                           disabled={isSaving}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-primary hover:bg-primary/90"
                         >
                           Save
                         </Button>
@@ -286,7 +286,7 @@ export default function IssuingBankDetailPage() {
                             size="sm"
                             onClick={() => handleSaveEdit('address')}
                             disabled={isSaving}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             Save
                           </Button>
@@ -335,7 +335,7 @@ export default function IssuingBankDetailPage() {
                             size="sm"
                             onClick={() => handleSaveEdit('info')}
                             disabled={isSaving}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             Save
                           </Button>
@@ -369,7 +369,7 @@ export default function IssuingBankDetailPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Status</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">
                     ✓ Active
                   </span>
                 </div>
@@ -433,3 +433,4 @@ export default function IssuingBankDetailPage() {
     </ProtectedRoute>
   );
 }
+

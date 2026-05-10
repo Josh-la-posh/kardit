@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/authApi';
+import { ApiError, getApiErrorMessage } from '@/services/authApi';
 import type {
   CreateOnboardingSessionRequest,
   CreateOnboardingSessionResponse,
@@ -48,7 +48,7 @@ async function getJson<TResponse>(path: string, init?: RequestInit): Promise<TRe
   const res = await fetch(`${baseUrl}${path}`, { method: 'GET', ...init });
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError('Request failed', res.status, body);
+    throw new ApiError(getApiErrorMessage(body, `Request failed (${res.status})`), res.status, body);
   }
   return (await res.json()) as TResponse;
 }
@@ -64,10 +64,7 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
-        ? String((errorBody as Record<string, unknown>).message)
-        : undefined) || `Request failed (${res.status})`;
+    const message = getApiErrorMessage(errorBody, `Request failed (${res.status})`);
     throw new ApiError(message, res.status, errorBody);
   }
   return (await res.json()) as TResponse;
@@ -84,10 +81,7 @@ async function putJson<TResponse>(path: string, body: unknown, init?: RequestIni
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
-        ? String((errorBody as Record<string, unknown>).message)
-        : undefined) || `Request failed (${res.status})`;
+    const message = getApiErrorMessage(errorBody, `Request failed (${res.status})`);
     throw new ApiError(message, res.status, errorBody);
   }
   return (await res.json()) as TResponse;

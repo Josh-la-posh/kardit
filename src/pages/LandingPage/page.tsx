@@ -4,7 +4,7 @@ import Hero from './components/Hero'
 
 const Page = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-card dark:bg-[hsl(var(--foreground))]">
       <main className="flex-1">
         <Hero />
         <HowItWorks />
@@ -15,3 +15,4 @@ const Page = () => {
 }
 
 export default Page
+

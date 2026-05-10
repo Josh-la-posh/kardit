@@ -32,8 +32,8 @@ export default function IssuingBankFailurePage() {
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
           <div className="text-center py-20">
-            <AlertTriangle className="h-10 w-10 mx-auto text-red-500 mb-4" />
-            <p className="text-red-600 mb-6">Session not found</p>
+            <AlertTriangle className="h-10 w-10 mx-auto text-[hsl(var(--destructive))] mb-4" />
+            <p className="text-[hsl(var(--destructive))] mb-6">Session not found</p>
             <Button variant="outline" onClick={() => navigate('/super-admin/banks')}>
               <ChevronLeft className="h-4 w-4 mr-2" /> Back to Banks
             </Button>
@@ -69,9 +69,9 @@ export default function IssuingBankFailurePage() {
               {/* Error Icon */}
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-red-100 rounded-full blur-xl animate-pulse" />
-                  <div className="relative w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-12 h-12 text-red-600" />
+                  <div className="absolute inset-0 bg-[hsl(var(--destructive)/0.12)] rounded-full blur-xl animate-pulse" />
+                  <div className="relative w-20 h-20 bg-[hsl(var(--destructive)/0.12)] rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-12 h-12 text-[hsl(var(--destructive))]" />
                   </div>
                 </div>
               </div>
@@ -86,10 +86,10 @@ export default function IssuingBankFailurePage() {
 
               {/* Error Details Card */}
               {session.errorMessage && (
-                <div className="kardit-card p-6 bg-red-50/50 border border-red-200 text-left">
-                  <p className="text-xs text-red-600 font-semibold mb-2">ERROR DETAILS</p>
-                  <p className="text-sm text-red-900 font-medium">{session.errorMessage}</p>
-                  <p className="text-xs text-red-700 mt-3">
+                <div className="kardit-card p-6 bg-[hsl(var(--destructive)/0.1)] border border-[hsl(var(--destructive)/0.3)] text-left">
+                  <p className="text-xs text-[hsl(var(--destructive))] font-semibold mb-2">ERROR DETAILS</p>
+                  <p className="text-sm text-[hsl(var(--destructive))] font-medium">{session.errorMessage}</p>
+                  <p className="text-xs text-[hsl(var(--destructive))] mt-3">
                     This is a temporary error. You can retry the provisioning process with the same bank details,
                     or edit the details if you believe there was incorrect information.
                   </p>
@@ -115,23 +115,23 @@ export default function IssuingBankFailurePage() {
               </div>
 
               {/* Troubleshooting Tips */}
-              <div className="kardit-card p-6 bg-blue-50/50 border border-blue-200 text-left">
-                <p className="font-semibold text-blue-900 mb-3">Troubleshooting Tips</p>
-                <ul className="text-sm text-blue-800 space-y-2">
+              <div className="kardit-card p-6 bg-primary/10 border border-primary/25 text-left">
+                <p className="font-semibold text-primary mb-3">Troubleshooting Tips</p>
+                <ul className="text-sm text-primary space-y-2">
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span className="text-primary font-bold mt-0.5">•</span>
                     <span>Verify all bank details are correct and complete</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span className="text-primary font-bold mt-0.5">•</span>
                     <span>Ensure contact email and phone number are valid</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span className="text-primary font-bold mt-0.5">•</span>
                     <span>Check your internet connection and try again</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span className="text-primary font-bold mt-0.5">•</span>
                     <span>If the problem persists, contact support</span>
                   </li>
                 </ul>
@@ -141,7 +141,7 @@ export default function IssuingBankFailurePage() {
               <div className="space-y-3 flex flex-col">
                 <Button
                   onClick={handleTryAgain}
-                  className="bg-blue-600 hover:bg-blue-700 w-full"
+                  className="bg-primary hover:bg-primary/90 w-full"
                 >
                   Try Again
                 </Button>
@@ -172,3 +172,4 @@ export default function IssuingBankFailurePage() {
     </ProtectedRoute>
   );
 }
+

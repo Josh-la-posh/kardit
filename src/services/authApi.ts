@@ -19,6 +19,33 @@ export class ApiError extends Error {
   }
 }
 
+export function getApiErrorMessage(errorBody: unknown, fallback: string): string {
+  if (!errorBody) return fallback;
+
+  if (typeof errorBody === 'string') return errorBody;
+
+  if (typeof errorBody === 'object') {
+    const body = errorBody as Record<string, unknown>;
+
+    const validationErrors = body.errors;
+    if (validationErrors && typeof validationErrors === 'object') {
+      for (const value of Object.values(validationErrors as Record<string, unknown>)) {
+        if (Array.isArray(value) && value.length > 0) {
+          const first = value[0];
+          if (typeof first === 'string' && first.trim()) return first;
+        }
+        if (typeof value === 'string' && value.trim()) return value;
+      }
+    }
+
+    if (typeof body.message === 'string' && body.message.trim()) return body.message;
+    if (typeof body.title === 'string' && body.title.trim()) return body.title;
+    if (typeof body.detail === 'string' && body.detail.trim()) return body.detail;
+  }
+
+  return fallback;
+}
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -55,10 +82,7 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
 
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as any)
-        ? String((errorBody as any).message)
-        : undefined) || `Request failed (${res.status})`;
+    const message = getApiErrorMessage(errorBody, `Request failed (${res.status})`);
 
     throw new ApiError(message, res.status, errorBody);
   }

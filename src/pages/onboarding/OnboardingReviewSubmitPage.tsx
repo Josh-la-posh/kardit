@@ -62,58 +62,58 @@ export default function OnboardingReviewSubmitPage() {
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <>
-            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+            <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-slate-900">Submission summary</h3>
-                <p className="mt-1 text-sm text-slate-600">Everything below is pulled from the same data you already entered in earlier steps.</p>
+                <h3 className="text-lg font-semibold text-foreground">Submission summary</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Everything below is pulled from the same data you already entered in earlier steps.</p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5">
-                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Organization</h2>
-                  <p className="text-sm font-medium text-slate-900">{draft?.organization?.legalName || '-'}</p>
-                  <p className="text-xs text-slate-500">
+                <div className="rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-5">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Organization</h2>
+                  <p className="text-sm font-medium text-foreground">{draft?.organization?.legalName || '-'}</p>
+                  <p className="text-xs text-muted-foreground">
                     Reg No: {draft?.organization?.registrationNumber || '-'}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5">
-                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Contact</h2>
-                  <p className="text-sm font-medium text-slate-900">{draft?.organization?.primaryContact?.fullName || '-'}</p>
-                  <p className="text-xs text-slate-500">{draft?.organization?.primaryContact?.email || '-'}</p>
+                <div className="rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-5">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Contact</h2>
+                  <p className="text-sm font-medium text-foreground">{draft?.organization?.primaryContact?.fullName || '-'}</p>
+                  <p className="text-xs text-muted-foreground">{draft?.organization?.primaryContact?.email || '-'}</p>
                 </div>
 
-                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5 md:col-span-2">
-                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Documents</h2>
-                  <p className="text-sm text-slate-700">{draft?.documents?.length || 0} document(s) uploaded</p>
+                <div className="rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-5 md:col-span-2">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Documents</h2>
+                  <p className="text-sm text-[hsl(var(--text-secondary))]">{draft?.documents?.length || 0} document(s) uploaded</p>
                 </div>
 
-                <div className="rounded-2xl border border-[#e3ece5] bg-white p-5 md:col-span-2">
-                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Issuing Banks</h2>
+                <div className="rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-5 md:col-span-2">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Issuing Banks</h2>
                   {issuingBankNames.length ? (
                     <ul className="space-y-1 text-sm">
                       {issuingBankNames.map((name) => (
-                        <li key={name} className="text-slate-700">{name}</li>
+                        <li key={name} className="text-[hsl(var(--text-secondary))]">{name}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-slate-500">None selected</p>
+                    <p className="text-sm text-muted-foreground">None selected</p>
                   )}
                 </div>
               </div>
             </section>
 
-            <section className="mt-6 rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+            <section className="mt-6 rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-slate-900">Required declarations</h3>
-                <p className="mt-1 text-sm text-slate-600">Accept both declarations before submitting your onboarding draft.</p>
+                <h3 className="text-lg font-semibold text-foreground">Required declarations</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Accept both declarations before submitting your onboarding draft.</p>
               </div>
               <div className="space-y-3">
-                <label className="flex items-start gap-3 rounded-2xl border border-[#e3ece5] bg-white p-4 text-sm text-slate-700">
+                <label className="flex items-start gap-3 rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-4 text-sm text-[hsl(var(--text-secondary))]">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -123,7 +123,7 @@ export default function OnboardingReviewSubmitPage() {
                   />
                   <span>I confirm the information provided is accurate.</span>
                 </label>
-                <label className="flex items-start gap-3 rounded-2xl border border-[#e3ece5] bg-white p-4 text-sm text-slate-700">
+                <label className="flex items-start gap-3 rounded-2xl border border-[hsl(var(--landing-panel-border))] bg-card p-4 text-sm text-[hsl(var(--text-secondary))]">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -136,8 +136,8 @@ export default function OnboardingReviewSubmitPage() {
               </div>
             </section>
 
-            <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
-              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>
+            <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[hsl(var(--landing-panel-border))] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[hsl(var(--landing-panel-border))] bg-card px-5" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={submitting}>
                 Back
               </Button>
               <Button type="button" className="h-11 rounded-xl px-6" onClick={onSubmit} disabled={submitting}>
@@ -156,3 +156,5 @@ export default function OnboardingReviewSubmitPage() {
     </PublicOnboardingLayout>
   );
 }
+
+

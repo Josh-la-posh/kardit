@@ -177,15 +177,15 @@ export default function OnboardingOrganizationPage() {
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] py-16">
+          <div className="flex items-center justify-center rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <form onSubmit={onNext} className="space-y-8">
-            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+            <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-slate-900">Business information</h3>
-                <p className="mt-1 text-sm text-slate-600">Enter the official details exactly as they appear in your registration records.</p>
+                <h3 className="text-lg font-semibold text-foreground">Business information</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Enter the official details exactly as they appear in your registration records.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -193,7 +193,7 @@ export default function OnboardingOrganizationPage() {
                 <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
                 <TextField label="Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">Country</label>
+                  <label className="text-sm font-medium text-foreground">Country</label>
                   <CountrySelect
                     containerClassName="border-none "
                     inputClassName={getSelectInputClassName()}
@@ -214,7 +214,7 @@ export default function OnboardingOrganizationPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">State</label>
+                  <label className="text-sm font-medium text-foreground">State</label>
                   <StateSelect
                     countryid={selectedCountry?.id ?? 0}
                     containerClassName="w-full"
@@ -234,7 +234,7 @@ export default function OnboardingOrganizationPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">City</label>
+                  <label className="text-sm font-medium text-foreground">City</label>
                   <CitySelect
                     countryid={selectedCountry?.id ?? 0}
                     stateid={selectedState?.id ?? 0}
@@ -253,13 +253,13 @@ export default function OnboardingOrganizationPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.5rem] border border-[#e3ece5] bg-[#fbfdfb] p-6">
+            <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-slate-900">Primary contact</h3>
-                <p className="mt-1 text-sm text-slate-600">We will use this contact for onboarding communication and verification updates.</p>
+                <h3 className="text-lg font-semibold text-foreground">Primary contact</h3>
+                <p className="mt-1 text-sm text-muted-foreground">We will use this contact for onboarding communication and verification updates.</p>
               </div>
               <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Contact details</h2>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Contact details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
                   <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
@@ -268,8 +268,8 @@ export default function OnboardingOrganizationPage() {
               </div>
             </section>
 
-            <div className="flex flex-col justify-end gap-3 border-t border-[#e6eee7] pt-2 sm:flex-row">
-              <Button type="button" variant="outline" className="h-11 rounded-xl border-[#d6e3d8] bg-white px-5" onClick={() => navigate('/onboarding/start')} disabled={saving}>Cancel</Button>
+            <div className="flex flex-col justify-end gap-3 border-t border-[hsl(var(--landing-panel-border))] pt-2 sm:flex-row">
+              <Button type="button" variant="outline" className="h-11 rounded-xl border-[hsl(var(--landing-panel-border))] bg-card px-5" onClick={() => navigate('/onboarding/start')} disabled={saving}>Cancel</Button>
               <Button type="submit" className="h-11 rounded-xl px-6" disabled={saving}>
                 {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Save and continue'}
               </Button>
@@ -280,3 +280,5 @@ export default function OnboardingOrganizationPage() {
     </PublicOnboardingLayout>
   );
 }
+
+

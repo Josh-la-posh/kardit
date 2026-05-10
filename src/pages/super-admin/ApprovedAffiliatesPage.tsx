@@ -117,7 +117,7 @@ export default function ApprovedAffiliatesPage() {
                   id="bank"
                   value={filterBank}
                   onChange={(e) => setFilterBank(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">All Banks</option>
                   {banks.map(bank => (
@@ -150,7 +150,7 @@ export default function ApprovedAffiliatesPage() {
               >
                 Clear Filters
               </Button>
-              <span className="text-sm text-gray-600 self-center ml-auto">
+              <span className="text-sm text-muted-foreground self-center ml-auto">
                 Showing {filteredAffiliates.length} of {mockApprovedAffiliates.length} approved affiliates
               </span>
             </div>
@@ -162,35 +162,35 @@ export default function ApprovedAffiliatesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Contact Person</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Bank</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Score</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Approved Date</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Contact Person</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Email</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Bank</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Score</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Approved Date</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAffiliates.map((affiliate) => (
-                      <tr key={affiliate.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{affiliate.affiliateName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.contactPerson}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.email}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{getBankLabel(affiliate.issuingBank)}</td>
+                      <tr key={affiliate.id} className="border-b border-border hover:bg-muted">
+                        <td className="px-4 py-3 text-sm text-foreground">{affiliate.affiliateName}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.contactPerson}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.email}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{getBankLabel(affiliate.issuingBank)}</td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-2">
-                            <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="w-12 h-2 bg-muted rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-green-500"
+                                className="h-full bg-[hsl(var(--success))]"
                                 style={{ width: `${affiliate.complianceScore}%` }}
                               />
                             </div>
                             <span className="text-xs font-medium w-10">{affiliate.complianceScore}%</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{affiliate.approvedDate}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.approvedDate}</td>
                         <td className="px-4 py-3 text-sm">
                           <Button
                             variant="outline"
@@ -209,7 +209,7 @@ export default function ApprovedAffiliatesPage() {
               </div>
 
               {filteredAffiliates.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <p>No approved affiliates found matching your filters.</p>
                 </div>
               )}
@@ -220,3 +220,5 @@ export default function ApprovedAffiliatesPage() {
     </ProtectedRoute>
   );
 }
+
+

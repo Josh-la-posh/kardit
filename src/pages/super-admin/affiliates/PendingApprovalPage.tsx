@@ -118,7 +118,7 @@ export default function PendingApprovalPage() {
                   id="bank"
                   value={filterBank}
                   onChange={(e) => setFilterBank(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">All Banks</option>
                   {banks.map(bank => (
@@ -160,24 +160,24 @@ export default function PendingApprovalPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Affiliate Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Contact Person</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Bank</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Submitted Date</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Contact Person</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Email</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Bank</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Submitted Date</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAffiliates.length > 0 ? (
                       filteredAffiliates.map((affiliate) => (
-                        <tr key={affiliate.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{affiliate.affiliateName}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.contactPerson}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.email}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{getBankLabel(affiliate.issuingBank)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{affiliate.submittedDate}</td>
+                        <tr key={affiliate.id} className="border-b border-border hover:bg-muted">
+                          <td className="px-4 py-3 text-sm text-foreground">{affiliate.affiliateName}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.contactPerson}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.email}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{getBankLabel(affiliate.issuingBank)}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.submittedDate}</td>
                           <td className="px-4 py-3 text-sm">
                             <Button
                               variant="outline"
@@ -193,7 +193,7 @@ export default function PendingApprovalPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                           <p>{affiliates.length === 0 ? 'All submissions approved or rejected!' : 'No pending submissions found matching your filters.'}</p>
                         </td>
                       </tr>
@@ -210,3 +210,4 @@ export default function PendingApprovalPage() {
     </ProtectedRoute>
   );
 }
+
