@@ -140,7 +140,7 @@ export function useBankDashboardData() {
       const [affiliateRes, auditRes, reportRes] = await Promise.all([
         getBankAffiliates(resolvedBankId),
         listBankAuditLogs(resolvedBankId, {
-          filters: { fromDate: null, toDate: null, actorUserId: null, eventType: null },
+          filters: { fromDate: null, toDate: null, actorUserId: null, eventType: 'PARTNERSHIP_APPROVED' },
           pagination: { page: nextAuditPage, pageSize: DASHBOARD_PAGE_SIZE },
         }),
         listBankReports(resolvedBankId, {
