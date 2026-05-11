@@ -111,7 +111,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="dark" storageKey="kardit-ui-theme">
+    <ThemeProvider defaultTheme="system" storageKey="kardit-ui-theme">
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
