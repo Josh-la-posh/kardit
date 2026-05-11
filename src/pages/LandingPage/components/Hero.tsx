@@ -43,7 +43,7 @@ export default function Hero() {
             Kardit
           </a>
 
-          <div className=" items-center gap-5 md:flex">
+          <div className="items-center gap-4 md:flex">
             <a
               href={authUrl}
               className="rounded-2xl bg-[linear-gradient(135deg,hsl(var(--landing-panel-2))_0%,hsl(var(--landing-brand))_55%,hsl(var(--landing-brand-2))_100%)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_16px_40px_hsl(var(--landing-brand)/0.3)] transition-transform duration-300 hover:-translate-y-0.5 md:px-9 md:text-base"
