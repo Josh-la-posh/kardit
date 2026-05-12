@@ -62,7 +62,7 @@ export interface CreateCustomerDraftInput {
     country: string;
   };
   kyc: {
-    idType: string;
+    idType: number;
     idNumber: string;
     kycLevel?: string;
   };

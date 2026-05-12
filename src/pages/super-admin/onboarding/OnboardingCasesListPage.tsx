@@ -35,7 +35,7 @@ const statusOptions: Array<OnboardingCaseStatus | 'ALL'> = [
   'PROVISIONED',
 ];
 
-const pageSizeOptions = ['10', '25', '50', '100'];
+const pageSizeOptions = ['25', '50', '100'];
 
 export default function OnboardingCasesListPage() {
   const navigate = useNavigate();

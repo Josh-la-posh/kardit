@@ -72,6 +72,7 @@ const bankNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/bank/dashboard' },
   { label: 'Affiliates', icon: Building2, path: '/bank/affiliates' },
   { label: 'Transactions', icon: Receipt, path: '/transactions' },
+  { label: 'Audit Logs', icon: History, path: '/bank/audit-logs' },
   { label: 'Reports', icon: FileText, path: '/reports' },
   { label: 'Notifications', icon: Bell, path: '/notifications' },
 ];

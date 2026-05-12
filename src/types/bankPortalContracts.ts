@@ -211,14 +211,18 @@ export interface RejectPartnershipResponse {
 export interface AffiliateActionRequestContext {
   requestId: string;
   actorUserId: string;
-  userType: string;
   bankId?: string;
   role?: string;
+  userType: string;
+  tenantId?: string;
+  affiliateId?: string;
+  idempotencyKey?: string;
 }
 
 export interface SuspendAffiliateRequest {
   requestContext: AffiliateActionRequestContext;
   reason: string;
+  idempotencyKey: string;
 }
 
 export interface SuspendAffiliateResponse {
@@ -231,6 +235,7 @@ export interface SuspendAffiliateResponse {
 export interface BlockAffiliateRequest {
   requestContext: AffiliateActionRequestContext;
   reason: string;
+  idempotencyKey: string;
 }
 
 export interface BlockAffiliateResponse {

@@ -21,7 +21,7 @@ const statusToChip: Record<string, StatusType> = {
 };
 
 const statusOptions: Array<BankStatus | 'ALL'> = ['ALL', 'ACTIVE', 'INACTIVE'];
-const pageSizeOptions = ['10', '20', '50', '100'];
+const pageSizeOptions = ['20', '50', '100'];
 
 export default function BanksListPage() {
   const navigate = useNavigate();

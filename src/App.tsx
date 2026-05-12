@@ -25,6 +25,8 @@ import BankAffiliateCustomerDetailPage from "./pages/bank/AffiliateCustomerDetai
 import CustomersPage from "./pages/bank/CustomersPage";
 import BankAffiliatesListPage from "./pages/bank/BankAffiliatesListPage";
 import BankPartnershipRequestsPage from "./pages/bank/BankPartnershipRequestsPage";
+import BankPartnershipRequestDetailPage from "./pages/bank/BankPartnershipRequestDetailPage";
+import BankAuditLogsPage from "./pages/bank/BankAuditLogsPage";
 import SuperAdminDashboardPage from "./pages/super-admin/SuperAdminDashboardPage";
 import AffiliatesPage from "./pages/super-admin/affiliates/AffiliatesPage";
 import SuperAdminAffiliateDetailPage from "./pages/super-admin/affiliates/SuperAdminAffiliateDetailPage";
@@ -141,6 +143,8 @@ const App = () => (
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliate-partnership-requests" element={<BankPartnershipRequestsPage />} />
+            <Route path="/bank/affiliate-partnership-requests/:partnershipRequestId" element={<BankPartnershipRequestDetailPage />} />
+            <Route path="/bank/audit-logs" element={<BankAuditLogsPage />} />
             <Route path="/bank/affiliates/:affiliateId" element={<AffiliateDetailPages />} />
             <Route path="/bank/affiliates/:affiliateId/customers" element={<BankAffiliateCustomersPage />} />
             <Route path="/bank/affiliates/:affiliateId/customers/:customerId" element={<BankAffiliateCustomerDetailPage />} />

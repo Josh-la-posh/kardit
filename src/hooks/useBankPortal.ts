@@ -24,6 +24,7 @@ import type {
   GetPartnershipRequestResponse,
   ListBankAuditLogsResponse,
   ListBankReportsResponse,
+  PartnershipRequestQueryItem,
   RejectPartnershipResponse,
   SuspendAffiliateResponse,
 } from '@/types/bankPortalContracts';
@@ -67,15 +68,34 @@ function toBankCardItem(card: {
   };
 }
 
+function toBankAuditLogItem(log: {
+  auditLogId?: string;
+  actorUserId?: string;
+  eventType?: string;
+  resourceType?: string;
+  resourceId?: string;
+  occurredAt?: string;
+  timestamp?: string;
+}): BankAuditLogItem {
+  return {
+    auditLogId: log.auditLogId || '',
+    actorUserId: log.actorUserId || '',
+    eventType: log.eventType || '',
+    resourceType: log.resourceType || '',
+    resourceId: log.resourceId || '',
+    occurredAt: log.occurredAt || log.timestamp || '',
+  };
+}
+
 function extractAuditLogs(payload: unknown): BankAuditLogItem[] {
   if (Array.isArray((payload as { logs?: unknown })?.logs)) {
-    return (payload as { logs: BankAuditLogItem[] }).logs;
+    return (payload as { logs: Array<Parameters<typeof toBankAuditLogItem>[0]> }).logs.map(toBankAuditLogItem);
   }
   if (Array.isArray((payload as { data?: { logs?: unknown } })?.data?.logs)) {
-    return (payload as { data: { logs: BankAuditLogItem[] } }).data.logs;
+    return (payload as { data: { logs: Array<Parameters<typeof toBankAuditLogItem>[0]> } }).data.logs.map(toBankAuditLogItem);
   }
   if (Array.isArray((payload as { data?: unknown })?.data)) {
-    return (payload as { data: BankAuditLogItem[] }).data;
+    return (payload as { data: Array<Parameters<typeof toBankAuditLogItem>[0]> }).data.map(toBankAuditLogItem);
   }
   return [];
 }
@@ -140,7 +160,7 @@ export function useBankDashboardData() {
       const [affiliateRes, auditRes, reportRes] = await Promise.all([
         getBankAffiliates(resolvedBankId),
         listBankAuditLogs(resolvedBankId, {
-          filters: { fromDate: null, toDate: null, actorUserId: null, eventType: 'PARTNERSHIP_APPROVED' },
+          filters: { fromDate: null, toDate: null, actorUserId: null, eventType: null },
           pagination: { page: nextAuditPage, pageSize: DASHBOARD_PAGE_SIZE },
         }),
         listBankReports(resolvedBankId, {
@@ -218,6 +238,111 @@ export function useBankDashboardData() {
     refresh,
     goToAuditPage,
     goToReportPage,
+  };
+}
+
+export function useBankAuditLogs() {
+  const { user } = useAuth();
+  const [logs, setLogs] = useState<BankAuditLogItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState<{
+    actorUserId: string;
+    eventType: string;
+    fromDate: string;
+    toDate: string;
+  }>({
+    actorUserId: '',
+    eventType: '',
+    fromDate: '',
+    toDate: '',
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAuditLogs = useCallback(async (
+    nextPage: number,
+    nextPageSize: number,
+    nextFilters: typeof filters
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const resolvedBankId = resolveBankId(user);
+
+      const response = await listBankAuditLogs(resolvedBankId, {
+        filters: {
+          fromDate: nextFilters.fromDate || null,
+          toDate: nextFilters.toDate || null,
+          actorUserId: nextFilters.actorUserId || null,
+          eventType: nextFilters.eventType || null,
+        },
+        pagination: {
+          page: nextPage,
+          pageSize: nextPageSize,
+        },
+      });
+
+      const auditMeta = extractPaginatedMeta(response);
+      setLogs(extractAuditLogs(response));
+      setPage(auditMeta.page);
+      setPageSize(auditMeta.pageSize);
+      setTotal(auditMeta.total);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load audit logs');
+      setLogs([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchAuditLogs(page, pageSize, filters);
+  }, [fetchAuditLogs, filters, page, pageSize]);
+
+  const refresh = useCallback(async (options?: {
+    page?: number;
+    pageSize?: number;
+    filters?: Partial<typeof filters>;
+  }) => {
+    const nextPage = options?.page ?? page;
+    const nextPageSize = options?.pageSize ?? pageSize;
+    const nextFilters = {
+      ...filters,
+      ...(options?.filters || {}),
+    };
+
+    if (
+      nextPage !== page ||
+      nextPageSize !== pageSize ||
+      nextFilters.actorUserId !== filters.actorUserId ||
+      nextFilters.eventType !== filters.eventType ||
+      nextFilters.fromDate !== filters.fromDate ||
+      nextFilters.toDate !== filters.toDate
+    ) {
+      setPage(nextPage);
+      setPageSize(nextPageSize);
+      setFilters(nextFilters);
+      return;
+    }
+
+    await fetchAuditLogs(nextPage, nextPageSize, nextFilters);
+  }, [fetchAuditLogs, filters, page, pageSize]);
+
+  return {
+    logs,
+    page,
+    pageSize,
+    total,
+    filters,
+    isLoading,
+    error,
+    refresh,
+    setPage,
+    setPageSize,
+    setFilters,
   };
 }
 
@@ -299,14 +424,19 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
     async (reason: string): Promise<SuspendAffiliateResponse> => {
       if (!affiliateId) throw new Error('Missing affiliateId');
       const resolvedBankId = bankId || resolveBankId(user);
-      return suspendAffiliate(affiliateId, {
+      return suspendAffiliate(resolvedBankId, affiliateId, {
         requestContext: {
           requestId: `REQ-SUS-${Date.now()}`,
           actorUserId: user?.id || 'USR-BNK-UNKNOWN',
           userType: user?.role || 'BANK_USER',
           bankId: resolvedBankId,
+          role: user?.role || 'BANK_USER',
+          tenantId: user?.tenantId,
+          affiliateId: affiliateId,
+          idempotencyKey: `IDEMP-${Date.now()}`,
         },
         reason,
+        idempotencyKey: `IDEMP-${Date.now()}`,
       });
     },
     [affiliateId, bankId, user]
@@ -315,14 +445,19 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
   const block = useCallback(
     async (reason: string): Promise<BlockAffiliateResponse> => {
       if (!affiliateId) throw new Error('Missing affiliateId');
-      return blockAffiliate(affiliateId, {
+      const resolvedBankId = bankId || resolveBankId(user);
+      return blockAffiliate(resolvedBankId, affiliateId, {
         requestContext: {
           requestId: `REQ-BLK-${Date.now()}`,
           actorUserId: user?.id || 'USR-BNK-UNKNOWN',
           userType: user?.stakeholderType || 'BANK',
           role: user?.role || 'BANK_USER',
+          tenantId: user?.tenantId,
+          affiliateId: affiliateId,
+          idempotencyKey: `IDEMP-${Date.now()}`,
         },
         reason,
+        idempotencyKey: `IDEMP-${Date.now()}`,
       });
     },
     [affiliateId, user]
@@ -362,7 +497,7 @@ export function usePartnershipRequest(partnershipRequestId: string | undefined) 
 export function usePendingPartnershipRequests() {
   const { user } = useAuth();
   const [bankId, setBankId] = useState<string | null>(null);
-  const [requests, setRequests] = useState<GetPartnershipRequestResponse[]>([]);
+  const [requests, setRequests] = useState<Array<PartnershipRequestQueryItem>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -393,10 +528,7 @@ export function usePendingPartnershipRequests() {
         return;
       }
 
-      const responses = await Promise.all(
-        requestIds.map((requestId) => getPartnershipRequest(resolvedBankId, requestId))
-      );
-      setRequests(responses.filter((request) => request.status === 'PENDING_BANK_APPROVAL'));
+      setRequests(queryResponse.data.filter((request) => request.status === 'PENDING_BANK_APPROVAL'));
     } catch (e: any) {
       setError(e?.message || 'Failed to load pending partnership requests');
       setRequests([]);

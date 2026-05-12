@@ -11,7 +11,7 @@ import { Search, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { CardQueryStatus, CardQueryType } from '@/types/cardContracts';
 
-const pageSizeOptions = ['10', '25', '50', '100'];
+const pageSizeOptions = ['25', '50', '100'];
 
 export default function CardsListPage() {
   const navigate = useNavigate();

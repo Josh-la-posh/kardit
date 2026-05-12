@@ -50,6 +50,39 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
   return (await res.json()) as TResponse;
 }
 
+function normalizeCreateIssuingBankResponse(response: unknown): CreateIssuingBankResponse {
+  const payload = (response && typeof response === 'object' ? response : {}) as Record<string, any>;
+  const internalAffiliate = (payload.internalAffiliate ?? payload.InternalAffiliate ?? {}) as Record<string, any>;
+  const internalPartnership = (payload.internalPartnership ?? payload.InternalPartnership ?? {}) as Record<string, any>;
+
+  return {
+    bankId: payload.bankId ?? payload.BankId ?? '',
+    legalName: payload.legalName ?? payload.LegalName ?? '',
+    shortName: payload.shortName ?? payload.ShortName,
+    status: payload.status ?? payload.Status ?? '',
+    internalAffiliate: {
+      affiliateId: internalAffiliate.affiliateId ?? internalAffiliate.AffiliateId ?? '',
+      affiliateType: internalAffiliate.affiliateType ?? internalAffiliate.AffiliateType ?? '',
+      ownerBankId: internalAffiliate.ownerBankId ?? internalAffiliate.OwnerBankId ?? '',
+      status: internalAffiliate.status ?? internalAffiliate.Status ?? '',
+      isSystemManaged: internalAffiliate.isSystemManaged ?? internalAffiliate.IsSystemManaged ?? false,
+      legalName: internalAffiliate.legalName ?? internalAffiliate.LegalName,
+      shortName: internalAffiliate.shortName ?? internalAffiliate.ShortName,
+    },
+    internalPartnership: {
+      partnershipRequestId:
+        internalPartnership.partnershipRequestId ?? internalPartnership.PartnershipRequestId ?? '',
+      status: internalPartnership.status ?? internalPartnership.Status ?? '',
+    },
+    provisionedAt:
+      payload.provisionedAt ??
+      payload.ProvisionedAt ??
+      internalPartnership.provisionedAt ??
+      internalPartnership.ProvisionedAt ??
+      '',
+  };
+}
+
 // API Endpoints for Bank Issuing
 
 export async function createIssuingBankSession(payload: CreateIssuingBankRequest): Promise<CreateIssuingBankResponse> {
@@ -68,5 +101,6 @@ export async function createIssuingBankSession(payload: CreateIssuingBankRequest
         throw new ApiError('Missing required contact fields: fullName, email, phone', 400, undefined);
     }
 
-    return postJson<CreateIssuingBankResponse>('/admin/banks', payload);
+    const response = await postJson<CreateIssuingBankResponse>('/admin/banks', payload);
+    return normalizeCreateIssuingBankResponse(response);
 }

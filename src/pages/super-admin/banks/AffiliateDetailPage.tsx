@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, OctagonMinus, Phone, Snowflake, User, Users } from 'lucide-react';
@@ -8,7 +8,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
-import { store } from '@/stores/mockStore';
 import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
 import { getAffiliateTransactionVolume, queryTransactions } from '@/services/transactionApi';
 import { useAffiliateCardMetrics } from '@/hooks/useTransactionVolumes';
@@ -66,22 +65,10 @@ export default function AffiliateDetailPage() {
   const [summaryLoading, setSummaryLoading] = useState(Boolean(bankId && affiliateId));
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  const fallbackBank = bankId ? store.getPlatformBank(bankId) : null;
-  const fallbackAffiliate = affiliateId ? store.getPlatformAffiliate(affiliateId) : null;
-  const customers = useMemo(() => (affiliateId ? store.getAffiliateCustomers(affiliateId) : []), [affiliateId]);
-
   const [affiliateVolume, setAffiliateVolume] = useState<AffiliateTransactionVolumeResponse | null>(null);
   const [affiliateTransactions, setAffiliateTransactions] = useState<TransactionListItem[]>([]);
   const [affiliateTxLoading, setAffiliateTxLoading] = useState(true);
   const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useAffiliateCardMetrics(affiliateId);
-
-  const totals = useMemo(() => {
-    return {
-      totalCustomers: customers.length,
-      activeCustomers: customers.filter((c) => c.status === 'ACTIVE').length,
-      pendingCustomers: customers.filter((c) => c.status === 'PENDING').length,
-    };
-  }, [customers]);
 
   const loadSummaries = useCallback(async () => {
     if (!bankId || !affiliateId) {
@@ -187,16 +174,16 @@ export default function AffiliateDetailPage() {
     };
   }, [affiliateId, bankId]);
 
-  const bankName = bankSummary?.bankName || fallbackBank?.name || `Bank ${bankId}`;
-  const affiliateName = affiliateSummary?.legalName || fallbackAffiliate?.name || `Affiliate ${affiliateId}`;
-  const affiliateStatus = affiliateSummary?.status || fallbackAffiliate?.status || 'INACTIVE';
-  const registrationNumber = affiliateSummary?.registrationNumber || fallbackAffiliate?.registrationNumber || '-';
-  const affiliateCountry = affiliateSummary?.country || fallbackAffiliate?.country || '-';
-  const contactName = fallbackAffiliate?.contactName || '-';
-  const contactEmail = fallbackAffiliate?.contactEmail || '-';
-  const contactPhone = fallbackAffiliate?.contactPhone;
-  const provisionedAt = fallbackAffiliate?.provisionedAt;
-  const totalCards = cardMetrics?.metrics.totalCardsIssued ?? fallbackAffiliate?.totalCards ?? 0;
+  const bankName = bankSummary?.bankName || `Bank ${bankId}`;
+  const affiliateName = affiliateSummary?.legalName || `Affiliate ${affiliateId}`;
+  const affiliateStatus = affiliateSummary?.status || 'INACTIVE';
+  const registrationNumber = affiliateSummary?.registrationNumber || '-';
+  const affiliateCountry = affiliateSummary?.country || '-';
+  const contactName = '-';
+  const contactEmail = '-';
+  const contactPhone = undefined;
+  const provisionedAt = undefined;
+  const totalCards = cardMetrics?.metrics.totalCardsIssued ?? 0;
 
   if (summaryLoading) {
     return (
@@ -210,12 +197,12 @@ export default function AffiliateDetailPage() {
     );
   }
 
-  if ((!bankSummary && !fallbackBank) || (!affiliateSummary && !fallbackAffiliate)) {
+  if (!bankSummary || !affiliateSummary) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
           <div className="text-center py-20 text-muted-foreground">
-            {summaryError || (!(bankSummary || fallbackBank) ? 'Bank not found' : 'Affiliate not found')}
+            {summaryError || (!bankSummary ? 'Bank not found' : 'Affiliate not found')}
           </div>
         </AppLayout>
       </ProtectedRoute>
@@ -323,7 +310,7 @@ export default function AffiliateDetailPage() {
                   <Users className="h-5 w-5 text-[hsl(var(--success))]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.totalCustomers}</p>
+                  <p className="text-2xl font-bold">-</p>
                   <p className="text-xs text-muted-foreground">Total Customers</p>
                 </div>
               </div>
@@ -334,7 +321,7 @@ export default function AffiliateDetailPage() {
                   <Users className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.activeCustomers}</p>
+                  <p className="text-2xl font-bold">-</p>
                   <p className="text-xs text-muted-foreground">Active Customers</p>
                 </div>
               </div>
@@ -345,7 +332,7 @@ export default function AffiliateDetailPage() {
                   <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{totals.pendingCustomers}</p>
+                  <p className="text-2xl font-bold">-</p>
                   <p className="text-xs text-muted-foreground">Pending Customers</p>
                 </div>
               </div>

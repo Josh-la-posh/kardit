@@ -153,24 +153,24 @@ export function useOnboardingCase(caseId: string | undefined) {
   return { caseItem, isLoading, error, refresh };
 }
 
-export function useReviewerOnboardingCase(caseId: string | undefined) {
+export function useReviewerOnboardingCase(CaseId: string | undefined) {
   const [caseItem, setCaseItem] = useState<OnboardingCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!caseId) return;
+    if (!CaseId) return;
     setIsLoading(true);
     setError(null);
     try {
-      setCaseItem(await getReviewerOnboardingCase(caseId));
+      setCaseItem(await getReviewerOnboardingCase(CaseId));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load case');
       setCaseItem(null);
     } finally {
       setIsLoading(false);
     }
-  }, [caseId]);
+  }, [CaseId]);
 
   useEffect(() => {
     refresh();
