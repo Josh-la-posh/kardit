@@ -16,7 +16,7 @@ import { queryAffiliates } from "@/services/superAdminApi";
 import type { AffiliateQueryItem } from "@/types/superAdminContracts";
 
 const statusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'SUSPENDED'];
-const pageSizeOptions = ['10', '25', '50', '100'];
+const pageSizeOptions = ['25', '50', '100'];
 
 const formatDate = (value: string) => {
   const date = new Date(value);

@@ -23,6 +23,13 @@ type ApiEnvelope<T> = {
   };
 };
 
+type ApiStatusEnvelope<T> = {
+  status?: string;
+  message?: string;
+  error?: unknown;
+  data?: T;
+};
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -90,15 +97,28 @@ async function sendJson<TResponse>(method: 'POST' | 'PATCH', path: string, body:
   return (await res.json()) as TResponse;
 }
 
-function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
-  if (response && typeof response === 'object' && 'data' in response) {
-    const envelope = response as ApiEnvelope<TResponse>;
-    if (envelope.data?.isSuccess === false) {
-      throw new ApiError('Request failed', 200, envelope.data.error);
+function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> | ApiStatusEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object') {
+    if ('status' in response && 'data' in response) {
+      const envelope = response as ApiStatusEnvelope<TResponse>;
+      if (envelope.status && envelope.status.toLowerCase() !== 'success') {
+        throw new ApiError(envelope.message || 'Request failed', 200, envelope.error);
+      }
+
+      if (envelope.data !== undefined) {
+        return envelope.data;
+      }
     }
 
-    if (envelope.data?.value !== undefined) {
-      return envelope.data.value;
+    if ('data' in response) {
+      const envelope = response as ApiEnvelope<TResponse>;
+      if (envelope.data?.isSuccess === false) {
+        throw new ApiError('Request failed', 200, envelope.data.error);
+      }
+
+      if (envelope.data?.value !== undefined) {
+        return envelope.data.value;
+      }
     }
   }
 

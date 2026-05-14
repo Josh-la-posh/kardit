@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { store } from '@/stores/mockStore';
 import { Search, Building2, Eye, Users, CreditCard, ArrowLeft, Globe, Activity, Snowflake, OctagonMinus, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBankCardMetrics, useBankTransactionVolume } from '@/hooks/useTransactionVolumes';
 import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
+import { queryBanks } from '@/services/superAdminApi';
 import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
 
 const statusToChip: Record<string, StatusType> = {
@@ -42,13 +42,11 @@ export default function BankDetailPage() {
   const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useBankCardMetrics(bankId);
   
   const routeState = location.state as { bank?: BankQueryItem } | null;
-  const selectedBank = routeState?.bank;
-  const fallbackBank = bankId ? store.getPlatformBank(bankId) : null;
-  const bankName = selectedBank?.bankName || fallbackBank?.name || `Bank ${bankId}`;
-  const bankCode = selectedBank?.bankCode || fallbackBank?.code || '-';
-  const bankStatus = selectedBank?.status || fallbackBank?.status;
-  const supportedCurrencies = selectedBank?.supportedCurrencies || [];
-  const createdAt = selectedBank?.createdAt || fallbackBank?.createdAt;
+  const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
+    routeState?.bank?.bankId === bankId ? routeState.bank : null
+  );
+  const [bankLoading, setBankLoading] = useState(Boolean(bankId));
+  const [bankError, setBankError] = useState<string | null>(null);
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -57,10 +55,57 @@ export default function BankDetailPage() {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
   });
 
+  const loadBankSummary = useCallback(async () => {
+    if (!bankId) {
+      setBankSummary(null);
+      setBankError('Bank not found');
+      setBankLoading(false);
+      return;
+    }
+
+    setBankLoading(true);
+    setBankError(null);
+
+    try {
+      const searchResponse = await queryBanks({
+        filters: {
+          search: bankId,
+        },
+        page: 1,
+        pageSize: 25,
+      }).catch(() => null);
+
+      let nextBank = searchResponse?.data.find((item) => item.bankId === bankId) || null;
+
+      if (!nextBank) {
+        const fallbackResponse = await queryBanks({
+          filters: {},
+          page: 1,
+          pageSize: 100,
+        });
+        nextBank = fallbackResponse.data.find((item) => item.bankId === bankId) || null;
+      }
+
+      setBankSummary(nextBank);
+      if (!nextBank) {
+        setBankError('Bank not found');
+      }
+    } catch (e) {
+      setBankSummary(null);
+      setBankError(e instanceof Error ? e.message : 'Failed to load bank details');
+    } finally {
+      setBankLoading(false);
+    }
+  }, [bankId]);
+
+  useEffect(() => {
+    loadBankSummary();
+  }, [loadBankSummary]);
+
   const openAffiliateDetail = (affiliate: AffiliateQueryItem) => {
     navigate(`/super-admin/banks/${bankId}/affiliates/${affiliate.affiliateId}`, {
       state: {
-        bank: selectedBank,
+        bank: bankSummary,
         affiliate,
       },
     });
@@ -84,6 +129,34 @@ export default function BankDetailPage() {
       </ProtectedRoute>
     );
   }
+
+  if (bankLoading) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
+        <AppLayout navVariant="service-provider">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!bankSummary) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
+        <AppLayout navVariant="service-provider">
+          <div className="text-center py-20 text-muted-foreground">{bankError || 'Bank not found'}</div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  const bankName = bankSummary.bankName || `Bank ${bankId}`;
+  const bankCode = bankSummary.bankCode || '-';
+  const bankStatus = bankSummary.status;
+  const supportedCurrencies = bankSummary.supportedCurrencies || [];
+  const createdAt = bankSummary.createdAt;
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>

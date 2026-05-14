@@ -28,14 +28,14 @@ export default function OnboardingCaseDetailPage() {
   const navigate = useNavigate();
   const { caseItem, isLoading, error, refresh } = useReviewerOnboardingCase(caseId);
   const { decide, provision } = useReviewerOnboardingCases();
-  const { createAffiliate, isLoading: isCreatingAffiliate } = useCreateAffiliate();
+  // const { createAffiliate, isLoading: isCreatingAffiliate } = useCreateAffiliate();
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
-  const [affiliateCreated, setAffiliateCreated] = useState(false);
+  // const [affiliateCreated, setAffiliateCreated] = useState(false);
 
   const canProvision = caseItem?.status === 'APPROVED';
-  const canCreateAffiliate = caseItem?.status === 'APPROVED' && !affiliateCreated;
+  // const canCreateAffiliate = caseItem?.status === 'APPROVED' && !affiliateCreated;
 
   const title = useMemo(
     () => caseItem?.affiliateName || caseItem?.organization?.legalName || 'Onboarding case',
@@ -135,7 +135,7 @@ export default function OnboardingCaseDetailPage() {
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Affiliate</p>
                     <p className="text-sm font-medium">{caseItem.affiliateName || caseItem.organization?.legalName || 'Unnamed affiliate'}</p>
-                    <p className="text-xs text-muted-foreground">{caseItem.affiliateId || caseItem.caseId}</p>
+                    <p className="text-xs text-muted-foreground">{caseItem.affiliateId }</p>
                   </div>
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Submitted</p>
@@ -255,10 +255,12 @@ export default function OnboardingCaseDetailPage() {
                     placeholder="Internal reviewer note"
                   />
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <Button variant="outline" onClick={() => doDecision('REQUEST_CLARIFICATION')} disabled={working}>
+                    {caseItem.status !== 'APPROVED' && (
+                      <Button variant="outline" onClick={() => doDecision('REQUEST_CLARIFICATION')} disabled={working}>
                       Request clarification
                     </Button>
-                    {caseItem.status !== 'REJECTED' && (
+                    )}                 
+                    {caseItem.status !== "APPROVED" && (
                       <Button variant="outline" onClick={() => doDecision('REJECT')} disabled={working}>
                         Reject
                       </Button>

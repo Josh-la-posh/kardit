@@ -21,8 +21,6 @@ export default function BankDashboardPage() {
     auditLogs,
     reports,
     auditPage,
-    auditPageSize,
-    auditTotal,
     reportPage,
     reportPageSize,
     reportTotal,
@@ -30,12 +28,10 @@ export default function BankDashboardPage() {
     isLoading,
     error,
     refresh,
-    goToAuditPage,
     goToReportPage,
   } = useBankDashboardData();
 
   const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
-  const auditTotalPages = getTotalPages(auditTotal, auditPageSize);
   const reportTotalPages = getTotalPages(reportTotal, reportPageSize);
 
   return (
@@ -73,8 +69,11 @@ export default function BankDashboardPage() {
 
               <div className="grid gap-6">
                 <div className="kardit-card overflow-hidden">
-                  <div className="border-b border-border px-6 py-4">
+                  <div className="flex items-center justify-between border-b border-border px-6 py-4">
                     <h2 className="font-semibold">Recent Audit Logs</h2>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/bank/audit-logs')}>
+                      View more
+                    </Button>
                   </div>
                   {auditLogs.length === 0 ? (
                     <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
@@ -104,24 +103,6 @@ export default function BankDashboardPage() {
                       </table>
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t border-border px-6 py-4">
-                    <p className="text-sm text-muted-foreground">
-                      Page {auditPage} of {auditTotalPages} • {auditTotal} total log{auditTotal === 1 ? '' : 's'}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" disabled={isLoading || auditPage <= 1} onClick={() => goToAuditPage(auditPage - 1)}>
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isLoading || auditPage >= auditTotalPages}
-                        onClick={() => goToAuditPage(auditPage + 1)}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
               <div className="mb-6 grid gap-6 lg:grid-cols-2 mt-10">

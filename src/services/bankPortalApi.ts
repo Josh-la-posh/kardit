@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/authApi';
+import { ApiError, getApiErrorMessage } from '@/services/authApi';
 import type {
   ApprovePartnershipResponse,
   BlockAffiliateRequest,
@@ -45,7 +45,7 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
   const res = await fetch(`${baseUrl}${path}`, { method: 'GET' });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    throw new ApiError('Request failed', res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed(${res.status})`), res.status, errorBody);
   }
   return (await res.json()) as TResponse;
 }
@@ -64,7 +64,8 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
       (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
         ? String((errorBody as Record<string, unknown>).message)
         : undefined) || `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, errorBody);
+    // throw new ApiError(message, res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed (${res.status})`), res.status, errorBody);
   }
   return (await res.json()) as TResponse;
 }
@@ -130,26 +131,28 @@ export async function queryPartnershipRequests(
 }
 
 export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {
-  return postJson<ApprovePartnershipResponse>(`/partnerships/${encodeURIComponent(requestId)}/approve`, { requestId });
+  return postJson<ApprovePartnershipResponse>(`/banks/partnerships/${encodeURIComponent(requestId)}/approve`, { requestId });
 }
 
 export async function rejectPartnershipRequest(
   requestId: string,
   request: RejectPartnershipRequest
 ): Promise<RejectPartnershipResponse> {
-  return postJson<RejectPartnershipResponse>(`/partnerships/${encodeURIComponent(requestId)}/reject`, request);
+  return postJson<RejectPartnershipResponse>(`/banks/partnerships/${encodeURIComponent(requestId)}/reject`, request);
 }
 
 export async function suspendAffiliate(
+  bankId: string,
   affiliateId: string,
   request: SuspendAffiliateRequest
 ): Promise<SuspendAffiliateResponse> {
-  return postJson<SuspendAffiliateResponse>(`/affiliates/${encodeURIComponent(affiliateId)}/suspend`, request);
+  return postJson<SuspendAffiliateResponse>(`/banks/${encodeURIComponent(bankId)}/affiliates/${encodeURIComponent(affiliateId)}/suspend`, request);
 }
 
 export async function blockAffiliate(
+  bankId:string,
   affiliateId: string,
   request: BlockAffiliateRequest
 ): Promise<BlockAffiliateResponse> {
-  return postJson<BlockAffiliateResponse>(`/affiliates/${encodeURIComponent(affiliateId)}/block`, request);
+  return postJson<BlockAffiliateResponse>(`/banks/${encodeURIComponent(bankId)}/affiliates/${encodeURIComponent(affiliateId)}/block`, request);
 }

@@ -28,7 +28,7 @@ export interface CreateCustomerDraftRequest {
       };
     };
     kyc: {
-      idType: string;
+      idType: number;
       idNumber: string;
       kycLevel: string;
     };

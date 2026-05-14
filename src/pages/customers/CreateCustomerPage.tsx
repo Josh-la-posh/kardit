@@ -15,6 +15,13 @@ import { ArrowLeft, ChevronRight, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const EMPTY_VALUE = '--';
+const ID_TYPE_TO_NUMBER: Record<string, number> = {
+  nin: 0,
+  passport: 1,
+  national_id: 2,
+  driver_license: 3,
+  residence_permit: 4,
+};
 
 function getSelectInputClassName(error?: string) {
   return `flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -104,6 +111,7 @@ export default function CreateCustomerPage() {
   };
 
   const selectedIdType = ID_TYPES.find((type) => type.id === form.idType);
+  const selectedIdTypeValue = ID_TYPE_TO_NUMBER[form.idType];
 
   const draftPayload = useMemo(
     () => ({
@@ -122,13 +130,13 @@ export default function CreateCustomerPage() {
           },
         },
         kyc: {
-          idType: selectedIdType?.code || form.idType.toUpperCase(),
+          idType: selectedIdTypeValue,
           idNumber: form.idNumber.trim(),
           kycLevel: 'LEVEL_2',
         },
       },
     }),
-    [form, selectedIdType]
+    [form, selectedIdTypeValue]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,7 +157,7 @@ export default function CreateCustomerPage() {
           country: form.country.trim(),
         },
         kyc: {
-          idType: selectedIdType?.code || form.idType.toUpperCase(),
+          idType: selectedIdTypeValue,
           idNumber: form.idNumber.trim(),
           kycLevel: 'LEVEL_2',
         },

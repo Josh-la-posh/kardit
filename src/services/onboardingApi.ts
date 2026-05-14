@@ -135,96 +135,156 @@ function saveCaseSession(caseId: string, onboardingSessionId: string) {
 
 function deriveSubmittedAt(caseItem: {
   submittedAt?: string;
+  SubmittedAt?: string;
   timeline?: Array<{ status: string; at: string }>;
+  Timeline?: Array<{ Status?: string; At?: string }>;
 }) {
   return (
     caseItem.submittedAt ||
+    caseItem.SubmittedAt ||
     caseItem.timeline?.find((entry) => entry.status === 'SUBMITTED')?.at ||
+    caseItem.Timeline?.find((entry) => entry.Status === 'SUBMITTED')?.At ||
     caseItem.timeline?.[0]?.at ||
+    caseItem.Timeline?.[0]?.At ||
     new Date().toISOString()
   );
 }
 
 function deriveUpdatedAt(caseItem: {
   updatedAt?: string;
+  UpdatedAt?: string;
   submittedAt?: string;
+  SubmittedAt?: string;
   timeline?: Array<{ status: string; at: string }>;
+  Timeline?: Array<{ Status?: string; At?: string }>;
 }) {
   return (
     caseItem.updatedAt ||
+    caseItem.UpdatedAt ||
     caseItem.timeline?.[caseItem.timeline.length - 1]?.at ||
+    caseItem.Timeline?.[caseItem.Timeline.length - 1]?.At ||
     caseItem.submittedAt ||
+    caseItem.SubmittedAt ||
     new Date().toISOString()
   );
 }
 
-function mapOrganization(response: Partial<OnboardingCase>) {
-  return response.organization
+function mapOrganization(response: any) {
+  const organization = response.organization || response.Organization;
+  const address = organization?.address || organization?.Address;
+  const primaryContact = organization?.primaryContact || organization?.PrimaryContact;
+  return organization
     ? {
-        ...response.organization,
-        addressLine1: response.organization.address?.line1,
-        city: response.organization.address?.city,
-        country: response.organization.address?.country,
+        ...organization,
+        legalName: organization.legalName ?? organization.LegalName,
+        tradingName: organization.tradingName ?? organization.TradingName,
+        registrationNumber: organization.registrationNumber ?? organization.RegistrationNumber,
+        address: address
+          ? {
+              ...address,
+              line1: address.line1 ?? address.Line1,
+              city: address.city ?? address.City,
+              state: address.state ?? address.State,
+              country: address.country ?? address.Country,
+            }
+          : undefined,
+        primaryContact: primaryContact
+          ? {
+              ...primaryContact,
+              fullName: primaryContact.fullName ?? primaryContact.FullName,
+              email: primaryContact.email ?? primaryContact.Email,
+              phone: primaryContact.phone ?? primaryContact.Phone,
+            }
+          : undefined,
+        addressLine1: address?.line1 ?? address?.Line1,
+        city: address?.city ?? address?.City,
+        country: address?.country ?? address?.Country,
       }
-    : response.organization;
+    : organization;
 }
 
-function mapContact(response: Partial<OnboardingCase>, organization: ReturnType<typeof mapOrganization>) {
+function mapContact(response: any, organization: ReturnType<typeof mapOrganization>) {
   return (
     response.contact ||
+    response.Contact ||
     (organization?.primaryContact
       ? {
-          contactName: organization.primaryContact.fullName,
-          contactEmail: organization.primaryContact.email,
-          contactPhone: organization.primaryContact.phone,
+        contactName: organization.primaryContact.fullName,
+        contactEmail: organization.primaryContact.email,
+        contactPhone: organization.primaryContact.phone,
         }
       : undefined)
   );
 }
 
-function mapDocuments(response: Partial<OnboardingCase>) {
-  return (response.documents || []).map((document) => ({
+function mapDocuments(response: any) {
+  const documents = response.documents || response.Documents || [];
+  return documents.map((document: any) => ({
     ...document,
-    type: (document.type || document.documentType || 'OTHER') as OnboardingDocumentType,
-    documentType: (document.documentType || document.type || 'OTHER') as OnboardingDocumentType,
-    fileName: document.fileName || document.documentType || document.type || document.documentId,
-    uploadedAt: document.uploadedAt || response.submittedAt || new Date().toISOString(),
+    documentId: document.documentId ?? document.DocumentId,
+    type: (document.type || document.documentType || document.docType || document.Type || document.DocumentType || document.DocType || 'OTHER') as OnboardingDocumentType,
+    documentType: (document.documentType || document.type || document.docType || document.DocumentType || document.Type || document.DocType || 'OTHER') as OnboardingDocumentType,
+    fileName: document.fileName || document.FileName || document.documentType || document.type || document.DocumentType || document.Type || document.documentId || document.DocumentId,
+    uploadedAt: document.uploadedAt || document.UploadedAt || response.submittedAt || response.SubmittedAt || new Date().toISOString(),
+    verificationStatus: document.verificationStatus ?? document.VerificationStatus,
   }));
 }
 
-function mapMessages(response: Partial<OnboardingCase>) {
-  return (response.messages || []).map((entry) => ({
+function mapMessages(response: any) {
+  const messages = response.messages || response.Messages || [];
+  return messages.map((entry: any) => ({
     ...entry,
-    text: entry.text || entry.message || '',
-    message: entry.message || entry.text || '',
+    type: entry.type ?? entry.Type ?? '',
+    at: entry.at ?? entry.At ?? new Date().toISOString(),
+    text: entry.text || entry.message || entry.Text || entry.Message || '',
+    message: entry.message || entry.text || entry.Message || entry.Text || '',
   }));
 }
 
-function mapOnboardingCase(response: Partial<OnboardingCase>, fallback: { caseId: string; onboardingSessionId?: string }) {
+function mapTimeline(response: any) {
+  const timeline = response.timeline || response.Timeline || [];
+  return timeline.map((entry: any) => ({
+    status: entry.status ?? entry.Status ?? 'SUBMITTED',
+    at: entry.at ?? entry.At ?? new Date().toISOString(),
+  }));
+}
+
+function mapKybSummary(response: any) {
+  const kybSummary = response.kybSummary || response.KybSummary;
+  return kybSummary
+    ? {
+        registrationNumber: kybSummary.registrationNumber ?? kybSummary.RegistrationNumber,
+        country: kybSummary.country ?? kybSummary.Country,
+        status: kybSummary.status ?? kybSummary.Status,
+      }
+    : undefined;
+}
+
+function mapOnboardingCase(response: any, fallback: { caseId: string; onboardingSessionId?: string }) {
   const organization = mapOrganization(response);
   const contact = mapContact(response, organization);
 
   return {
-    caseId: response.caseId || fallback.caseId,
-    affiliateId: response.affiliateId,
-    affiliateName: response.affiliateName,
-    status: response.status || 'SUBMITTED',
-    timeline: response.timeline || [],
+    caseId: response.caseId || response.CaseId || fallback.caseId,
+    affiliateId: response.affiliateId || response.AffiliateId,
+    affiliateName: response.affiliateName || response.AffiliateName || organization?.legalName,
+    status: response.status || response.Status || 'SUBMITTED',
+    timeline: mapTimeline(response),
     messages: mapMessages(response),
     submittedAt: deriveSubmittedAt(response),
     updatedAt: deriveUpdatedAt(response),
-    draftId: response.draftId,
+    draftId: response.draftId || response.DraftId,
     onboardingSessionId: fallback.onboardingSessionId,
-    kybSummary: response.kybSummary,
+    kybSummary: mapKybSummary(response),
     organization,
     contact,
     documents: mapDocuments(response),
-    issuingBankIds: response.issuingBankIds || [],
-    reviewerNote: response.reviewerNote,
-    decisionReason: response.decisionReason,
-    provisionedTenantId: response.provisionedTenantId,
-    provisionedAdminEmail: response.provisionedAdminEmail,
-    provisionedTemporaryPassword: response.provisionedTemporaryPassword,
+    issuingBankIds: response.issuingBankIds || response.IssuingBankIds || [],
+    reviewerNote: response.reviewerNote || response.ReviewerNote,
+    decisionReason: response.decisionReason || response.DecisionReason,
+    provisionedTenantId: response.provisionedTenantId || response.ProvisionedTenantId,
+    provisionedAdminEmail: response.provisionedAdminEmail || response.ProvisionedAdminEmail,
+    provisionedTemporaryPassword: response.provisionedTemporaryPassword || response.ProvisionedTemporaryPassword,
   } satisfies OnboardingCase;
 }
 
@@ -372,7 +432,25 @@ export async function listOnboardingCases(
   if (typeof request.page === 'number') search.set('page', String(request.page));
   if (typeof request.pageSize === 'number') search.set('pageSize', String(request.pageSize));
   const suffix = search.toString() ? `?${search.toString()}` : '';
-  return getJson<ListOnboardingCasesResponse>(`/admin/onboarding/cases${suffix}`);
+  const response = await getJson<any>(`/admin/onboarding/cases${suffix}`);
+
+  const rawCases = Array.isArray(response?.cases)
+    ? response.cases
+    : Array.isArray(response?.Cases)
+      ? response.Cases
+      : [];
+
+  return {
+    page: Number(response?.page ?? response?.Page ?? request.page ?? 1),
+    pageSize: Number(response?.pageSize ?? response?.PageSize ?? request.pageSize ?? 25),
+    total: Number(response?.total ?? response?.Total ?? rawCases.length),
+    cases: rawCases.map((item: any) => ({
+      caseId: item?.caseId ?? item?.CaseId ?? '',
+      affiliateName: item?.affiliateName ?? item?.AffiliateName ?? '',
+      submittedAt: item?.submittedAt ?? item?.SubmittedAt ?? new Date().toISOString(),
+      status: item?.status ?? item?.Status ?? 'SUBMITTED',
+    })),
+  };
 }
 
 export async function decideOnboardingCase(
