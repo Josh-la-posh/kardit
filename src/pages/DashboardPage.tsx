@@ -1,84 +1,98 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  Bell,
+  CreditCard,
+  FileText,
+  Layers,
+  Receipt,
+  UserCog,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
 import { useAuth } from '@/hooks/useAuth';
 import { store } from '@/stores/mockStore';
-import { 
-  Users, 
-  CreditCard, 
-  Wallet, 
-  Receipt,
-  Layers, 
-  FileText,
-  Bell, 
-  UserCog,
-  ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  UserCheck,
-  UserX,
-} from 'lucide-react';
 
 /**
  * DashboardPage - SCR-DBL-001
- * 
+ *
  * Route: /dashboard
  * Affiliate dashboard with metrics and module navigation
  */
 
-const modules: Array<{ label: string; icon: LucideIcon; path: string; description: string; roles?: string[] }> = [
-  { 
-    label: 'Customers', 
-    icon: Users, 
+type DashboardModule = {
+  label: string;
+  icon: LucideIcon;
+  path: string;
+  description: string;
+  actionLabel: string;
+  highlight?: boolean;
+  roles?: string[];
+};
+
+const modules: DashboardModule[] = [
+  {
+    label: 'New customer',
+    icon: Users,
     path: '/customers',
-    description: 'Manage customer accounts'
+    description: 'Capture customer records, review KYC progress, and continue onboarding journeys.',
+    actionLabel: 'Start',
   },
-  { 
-    label: 'Cards', 
-    icon: CreditCard, 
-    path: '/cards',
-    description: 'Card issuance and management'
+  {
+    label: 'Batch issuance',
+    icon: Layers,
+    path: '/batch-operations',
+    description: 'Upload and manage bulk processing runs for customer and card operations.',
+    actionLabel: 'Start',
   },
-  { 
-    label: 'Loads', 
-    icon: Wallet, 
-    path: '/loads',
-    description: 'Load transactions'
-  },
-  { 
-    label: 'Transactions',
+  {
+    label: 'Find a customer',
     icon: Receipt,
     path: '/transactions',
-    description: 'Search and review card activity'
+    description: 'Search activity, inspect records, and review linked card and transaction details.',
+    actionLabel: 'Search',
   },
-  { 
-    label: 'Batch Operations', 
-    icon: Layers, 
-    path: '/batch-operations',
-    description: 'Bulk processing'
+  {
+    label: 'Issue a card',
+    icon: CreditCard,
+    path: '/cards',
+    description: 'Create, activate, and manage virtual or physical cards for approved customers.',
+    actionLabel: 'Start',
   },
-  { 
-    label: 'Reports', 
-    icon: FileText, 
+  {
+    label: 'Load funds',
+    icon: Wallet,
+    path: '/loads',
+    description: 'Fund linked accounts, review submitted loads, and monitor operational flow.',
+    actionLabel: 'Start',
+    highlight: true,
+  },
+  {
+    label: 'Reports',
+    icon: FileText,
     path: '/reports',
-    description: 'Analytics and reporting'
+    description: 'Open reporting tools for performance, funding activity, and export-ready summaries.',
+    actionLabel: 'Open',
   },
-  { 
-    label: 'Notifications', 
-    icon: Bell, 
+  {
+    label: 'Notifications',
+    icon: Bell,
     path: '/notifications',
-    description: 'System alerts'
+    description: 'Review alerts, approvals, and operational updates across the platform.',
+    actionLabel: 'Open',
   },
-  { 
-    label: 'User Management', 
-    icon: UserCog, 
+  {
+    label: 'User access',
+    icon: UserCog,
     path: '/users',
-    description: 'Manage users and roles',
-    roles: ['Admin', ]
+    description: 'Manage user access, role assignments, and operating permissions for your team.',
+    actionLabel: 'Manage',
+    roles: ['Admin'],
   },
 ];
 
@@ -96,142 +110,135 @@ export default function DashboardPage() {
     }
   }, [navigate, user?.stakeholderType]);
 
-  // Calculate affiliate metrics
   const metrics = useMemo(() => {
     const tenantId = user?.tenantId;
     const customers = store.getCustomers(tenantId);
     const cards = store.getCards(tenantId);
-    
+
     const totalCustomers = customers.length;
-    const activeCustomers = customers.filter(c => c.status === 'ACTIVE').length;
-    const inactiveCustomers = customers.filter(c => c.status !== 'ACTIVE').length;
-    
+    const activeCustomers = customers.filter((customer) => customer.status === 'ACTIVE').length;
     const totalCards = cards.length;
-    const activeCards = cards.filter(c => c.status === 'ACTIVE').length;
-    
-    // Calculate total balance (credits) - simulating transaction totals
     const totalBalance = cards.reduce((sum, card) => sum + card.currentBalance, 0);
-    
-    // Simulated debit total (mock)
-    const totalDebits = totalBalance * 0.3;
-    
+
     return {
       totalCustomers,
       activeCustomers,
-      inactiveCustomers,
       totalCards,
-      activeCards,
       totalBalance,
-      totalDebits,
     };
   }, [user?.tenantId]);
 
-  const visibleModules = modules.filter((m) => {
-    if (!m.roles?.length) return true;
+  const visibleModules = modules.filter((module) => {
+    if (!module.roles?.length) return true;
     const role = user?.role;
-    return role ? m.roles.includes(role) : false;
+    return role ? module.roles.includes(role) : false;
   });
 
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader 
-            title={`Welcome back, ${user?.name?.split(' ')[0] || 'User'}`}
-            subtitle={user?.tenantName || 'Affiliate Dashboard'}
-            showBack={false}
-          />
+        <div className="animate-fade-in space-y-8">
+          <section className="">
 
-          {/* Metrics Cards */}
-          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className='cursor-pointer '
-            onClick={() => navigate('/customers')}
-            >
-              <StatCard 
-              title="Total Customers" 
-              value={metrics.totalCustomers.toString()} 
-              icon={Users}
-              trend={{ value: 12, isPositive: true }}
-            />
-            </div>
-            <div className='cursor-pointer '
-            onClick={() => navigate('/cards')}
-            >
-              <StatCard 
-              title="Total Cards" 
-              value={metrics.totalCards.toString()} 
-              icon={CreditCard}
-              subtitle={`${metrics.activeCards} active`}
+            <div className="relative space-y-6">
+              <PageHeader
+                title={`Welcome back, ${user?.name?.split(' ')[0] || 'User'}`}
+                subtitle={user?.tenantName || 'Affiliate Dashboard'}
+                showBack={false}
+                className="mb-0"
               />
-            </div>
-            <StatCard 
-              title="Total Credits" 
-              value={formatCurrency(metrics.totalBalance)} 
-              icon={TrendingUp}
-              trend={{ value: 8, isPositive: true }}
-            />
-            <StatCard 
-              title="Total Debits" 
-              value={formatCurrency(metrics.totalDebits)} 
-              icon={TrendingDown}
-            />
-          </div> */}
 
-          {/* Customer Status Cards */}
-          {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div className="kardit-card p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Customers</p>
-                  <p className="text-2xl font-semibold text-primary">{metrics.activeCustomers}</p>
+              {/* <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-border/70 bg-background/60 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Customers
+                  </p>
+                  <p className="mt-3 text-3xl font-semibold text-foreground">{metrics.totalCustomers}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {metrics.activeCustomers} active accounts
+                  </p>
                 </div>
-                <div className="rounded-lg bg-primary/10 p-3">
-                  <UserCheck className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Inactive/Pending Customers</p>
-                  <p className="text-2xl font-semibold text-muted-foreground">{metrics.inactiveCustomers}</p>
-                </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <UserX className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-          </div> */}
 
-          {/* Quick Actions */}
-          <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {visibleModules.map((module) => (
-              <button
-                key={module.path}
-                onClick={() => navigate(module.path)}
-                className="kardit-card p-4 text-left transition-all duration-200 hover:shadow-md hover:border-primary/30 group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <module.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground text-sm">
-                      {module.label}
-                    </h3>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {module.description}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                <div className="rounded-2xl border border-border/70 bg-background/60 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Cards
+                  </p>
+                  <p className="mt-3 text-3xl font-semibold text-foreground">{metrics.totalCards}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Issued across your portfolio</p>
                 </div>
-              </button>
-            ))}
-          </div>
+
+                <div className="rounded-2xl border border-border/70 bg-background/60 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Balance
+                  </p>
+                  <p className="mt-3 text-3xl font-semibold text-foreground">
+                    {formatCurrency(metrics.totalBalance)}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">Current aggregate card value</p>
+                </div>
+
+                <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary/80">
+                    Workspace
+                  </p>
+                  <p className="mt-3 text-xl font-semibold text-foreground">Get started</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Launch the most common journeys from one place.
+                  </p>
+                </div>
+              </div> */}
+            </div>
+
+            {/* <section className="space-y-2 py-10">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Get started</h2>
+            <p className="text-sm text-muted-foreground">Available journeys in this build</p>
+            </section> */}
+
+            <section className="grid grid-cols-1 gap-5 md:grid-cols-3 2xl:grid-cols-3 mt-10">
+              {visibleModules.map((module) => (
+                <button
+                  key={module.path}
+                  onClick={() => navigate(module.path)}
+                  className={[
+                    'group relative overflow-hidden rounded-[28px] border p-7 text-left transition-all duration-300',
+                    'bg-card shadow-[0_18px_50px_-32px_rgba(0,0,0,0.55)] hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_28px_70px_-34px_rgba(34,197,94,0.28)]',
+                    module.highlight ? 'border-primary/35' : 'border-border/80',
+                  ].join(' ')}
+                >
+                  {/* <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.12),transparent_60%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" /> */}
+
+                  <div className="relative flex h-full flex-col">
+
+                    <div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+                      <module.icon className="h-6 w-6" />
+                    </div>
+
+                    <div className="mt-6 space-y-4">
+                      <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+                        {module.label}
+                      </h3>
+                      <p className="max-w-[34ch] text-base leading-8 text-muted-foreground">
+                        {module.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-8 flex items-center gap-2 text-base font-semibold text-primary">
+                      <span>{module.actionLabel}</span>
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </section>
+          </section>
         </div>
       </AppLayout>
     </ProtectedRoute>

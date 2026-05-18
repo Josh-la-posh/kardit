@@ -152,12 +152,20 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
         pagination: { page, pageSize },
       });
 
+      const storeCustomers = store.getCustomers(resolvedRequestContext.tenantId);
+
       setCustomers(
         response.results.map((item) => {
+          const matchedCustomer = storeCustomers.find(
+            (customer) =>
+              customer.customerId === item.customerRefId ||
+              `${customer.firstName} ${customer.lastName}`.trim().toLowerCase() === item.fullName.trim().toLowerCase() ||
+              customer.email.toLowerCase() === item.email.toLowerCase()
+          );
           const [firstName, ...rest] = item.fullName.split(' ');
           return {
-            id: item.customerRefId,
-            customerId: item.customerRefId,
+            id: matchedCustomer?.id || item.customerRefId,
+            customerId: matchedCustomer?.customerId || item.customerRefId,
             customerRefId: item.customerRefId,
             firstName: firstName || item.fullName,
             lastName: rest.join(' '),
@@ -166,7 +174,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
             phone: item.phone,
             kycLevel: item.kycLevel,
             createdAt: item.createdAt,
-            status: item.kycLevel,
+            status: matchedCustomer?.status || 'PENDING',
           };
         })
       );
