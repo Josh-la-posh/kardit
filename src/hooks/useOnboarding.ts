@@ -24,7 +24,6 @@ import {
   submitOnboardingDraft,
   uploadDocument,
 } from '@/services/onboardingApi';
-import { useAuth } from '@/hooks/useAuth';
 
 export function useOnboardingDraft(draftId: string | undefined) {
   const [draft, setDraft] = useState<OnboardingDraft | null>(null);
@@ -191,7 +190,6 @@ interface ReviewerOnboardingCasesOptions {
 }
 
 export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptions = {}) {
-  const { user } = useAuth();
   const [cases, setCases] = useState<OnboardingCase[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(options.page ?? 1);
@@ -263,9 +261,9 @@ export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptio
   const provision = useCallback(async (
     caseId: string,
     adminContact: { fullName: string; email: string; phone: string } = {
-      fullName: 'Platform Admin',
-      email: user?.email || 'admin@kardit.app',
-      phone: '+2340000000000',
+      fullName: '',
+      email: '',
+      phone: '',
     },
     deliveryChannels: string[] = ['EMAIL']
   ): Promise<ProvisionResponse> => {
@@ -276,7 +274,7 @@ export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptio
     const res = await provisionOnboardingCase(caseId, req);
     await refresh();
     return res;
-  }, [refresh, user?.email]);
+  }, [refresh]);
 
   return { cases, total, page, pageSize, isLoading, error, refresh, decide, provision };
 }

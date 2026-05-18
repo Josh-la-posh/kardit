@@ -55,10 +55,24 @@ export default function OnboardingCaseDetailPage() {
   };
 
   const doProvision = async () => {
-    if (!caseId) return;
+    if (!caseId || !caseItem) return;
+
+    const adminContact = caseItem.contact
+      ? {
+          fullName: caseItem.contact.contactName,
+          email: caseItem.contact.contactEmail,
+          phone: caseItem.contact.contactPhone,
+        }
+      : caseItem.organization?.primaryContact;
+
+    if (!adminContact?.fullName || !adminContact?.email || !adminContact?.phone) {
+      toast.error('This case is missing primary contact details.');
+      return;
+    }
+
     setWorking(true);
     try {
-      await provision(caseId);
+      await provision(caseId, adminContact);
       toast.success('Provisioned');
       navigate(`/super-admin/onboarding/cases/${caseId}?provisioned=1`);
       await refresh();
@@ -177,13 +191,13 @@ export default function OnboardingCaseDetailPage() {
                   <div className="rounded-md border border-border p-4 space-y-2">
                     <p className="text-sm font-semibold">Primary contact</p>
                     <p className="text-sm text-muted-foreground">
-                      Name: {caseItem.contact?.contactName || caseItem.organization?.primaryContact?.fullName || '-'}
+                      Name: {caseItem.contact?.contactName || '-'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Email: {caseItem.contact?.contactEmail || caseItem.organization?.primaryContact?.email || '-'}
+                      Email: {caseItem.contact?.contactEmail || '-'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Phone: {caseItem.contact?.contactPhone || caseItem.organization?.primaryContact?.phone || '-'}
+                      Phone: {caseItem.contact?.contactPhone || '-'}
                     </p>
                   </div>
                 </div>
@@ -317,7 +331,7 @@ export default function OnboardingCaseDetailPage() {
                   </div>
                 )}
 
-                {caseItem.status === 'PROVISIONED' && (
+                {caseItem.status === 'APPROVED' && (
                   <div className="rounded-md border border-border bg-muted p-4">
                     <p className="mb-2 text-sm font-semibold">Provisioning result</p>
                     <p className="text-sm text-muted-foreground">Tenant: {caseItem.provisionedTenantId}</p>

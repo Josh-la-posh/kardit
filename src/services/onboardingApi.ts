@@ -204,16 +204,18 @@ function mapOrganization(response: any) {
 }
 
 function mapContact(response: any, organization: ReturnType<typeof mapOrganization>) {
+  const primaryContact = response.primaryContact || response.PrimaryContact;
+
   return (
     response.contact ||
     response.Contact ||
-    (organization?.primaryContact
+    (primaryContact
       ? {
-        contactName: organization.primaryContact.fullName,
-        contactEmail: organization.primaryContact.email,
-        contactPhone: organization.primaryContact.phone,
+          contactName: primaryContact.contactName ?? primaryContact.ContactName ?? primaryContact.fullName ?? primaryContact.FullName,
+          contactEmail: primaryContact.contactEmail ?? primaryContact.ContactEmail ?? primaryContact.email ?? primaryContact.Email,
+          contactPhone: primaryContact.contactPhone ?? primaryContact.ContactPhone ?? primaryContact.phone ?? primaryContact.Phone,
         }
-      : undefined)
+      : undefined) 
   );
 }
 
@@ -462,7 +464,7 @@ export async function decideOnboardingCase(
     decision: request.decision,
     reviewerNotes: request.reviewerNotes ?? request.reviewerNote,
     decisionReason: request.decisionReason ?? request.reason,
-    selectedBanksApproved: request.selectedBanksApproved,
+    // selectedBanksApproved: request.selectedBanksApproved,
   });
 }
 

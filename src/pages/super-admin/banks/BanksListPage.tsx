@@ -76,6 +76,13 @@ export default function BanksListPage() {
     setCurrentPage(1);
   };
 
+  const handleClearFilters = () => {
+    setSearch('');
+    setCountry('');
+    setStatusFilter('ALL');
+    setCurrentPage(1);
+  };
+
   const handleAddBank = () => {
     navigate('/issuing-banks/new');
   };
@@ -147,23 +154,23 @@ export default function BanksListPage() {
           </div>
 
           <div className="kardit-card p-4 mb-4">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_160px_140px]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_140px_110px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Search by bank name or code..."
+                  placeholder="Search by bank name"
                   value={search}
                   onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
-              <input
+              {/* <input
                 className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm uppercase text-foreground placeholder:normal-case placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Country"
                 maxLength={2}
                 value={country}
                 onChange={(e) => handleCountryChange(e.target.value)}
-              />
+              /> */}
               <Select value={statusFilter} onValueChange={handleStatusChange}>
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Status" />
@@ -188,6 +195,9 @@ export default function BanksListPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button variant="outline" onClick={handleClearFilters} disabled={!search && !country && statusFilter === 'ALL'}>
+                Clear
+              </Button>
             </div>
           </div>
 

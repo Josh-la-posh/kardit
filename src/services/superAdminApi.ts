@@ -63,7 +63,8 @@ function buildQueryBanksPath(request: QueryBanksRequest) {
   const query = new URLSearchParams();
 
   if (request.filters.country) query.set('country', request.filters.country);
-  if (request.filters.search) query.set('search', request.filters.search);
+  if (request.filters.currency) query.set('currency', request.filters.currency);
+  if (request.filters.search) query.set('name', request.filters.search);
 
   request.filters.status?.forEach((status) => {
     if (status) query.append('status', status);

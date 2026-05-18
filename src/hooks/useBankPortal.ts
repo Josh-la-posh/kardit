@@ -136,8 +136,11 @@ export function useBankDashboardData() {
   const [bankId, setBankId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<BankDashboardMetrics | null>(null);
   const [affiliates, setAffiliates] = useState<BankAffiliateSummary[]>([]);
+  const [affiliatesError, setAffiliatesError] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<BankAuditLogItem[]>([]);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [reports, setReports] = useState<BankReportItem[]>([]);
+  const [reportsError, setReportsError] = useState<string | null>(null);
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(DASHBOARD_PAGE_SIZE);
   const [auditTotal, setAuditTotal] = useState(0);
@@ -157,7 +160,7 @@ export function useBankDashboardData() {
       const nextAuditPage = options?.auditPage ?? auditPage;
       const nextReportPage = options?.reportPage ?? reportPage;
 
-      const [affiliateRes, auditRes, reportRes] = await Promise.all([
+      const [affiliateRes, auditRes, reportRes] = await Promise.allSettled([
         getBankAffiliates(resolvedBankId),
         listBankAuditLogs(resolvedBankId, {
           filters: { fromDate: null, toDate: null, actorUserId: null, eventType: null },
@@ -167,28 +170,55 @@ export function useBankDashboardData() {
           filters: { reportType: null, fromDate: null, toDate: null },
           pagination: { page: nextReportPage, pageSize: DASHBOARD_PAGE_SIZE },
         }),
-      ]) as [unknown, ListBankAuditLogsResponse, ListBankReportsResponse];
+      ]);
 
       setMetrics(null);
       setGeneratedAt(null);
-      setAffiliates(extractAffiliates(affiliateRes));
-      setAuditLogs(extractAuditLogs(auditRes));
-      setReports(extractReports(reportRes));
 
-      const auditMeta = extractPaginatedMeta(auditRes);
-      const reportMeta = extractPaginatedMeta(reportRes);
-      setAuditPage(auditMeta.page);
-      setAuditPageSize(auditMeta.pageSize);
-      setAuditTotal(auditMeta.total);
-      setReportPage(reportMeta.page);
-      setReportPageSize(reportMeta.pageSize);
-      setReportTotal(reportMeta.total);
+      if (affiliateRes.status === 'fulfilled') {
+        setAffiliates(extractAffiliates(affiliateRes.value));
+        setAffiliatesError(null);
+      } else {
+        setAffiliates([]);
+        setAffiliatesError(
+          affiliateRes.reason instanceof Error ? affiliateRes.reason.message : 'Failed to load affiliates'
+        );
+      }
+
+      if (auditRes.status === 'fulfilled') {
+        setAuditLogs(extractAuditLogs(auditRes.value as ListBankAuditLogsResponse));
+        const auditMeta = extractPaginatedMeta(auditRes.value as ListBankAuditLogsResponse);
+        setAuditPage(auditMeta.page);
+        setAuditPageSize(auditMeta.pageSize);
+        setAuditTotal(auditMeta.total);
+        setAuditError(null);
+      } else {
+        setAuditLogs([]);
+        setAuditTotal(0);
+        setAuditError(auditRes.reason instanceof Error ? auditRes.reason.message : 'Failed to load audit logs');
+      }
+
+      if (reportRes.status === 'fulfilled') {
+        setReports(extractReports(reportRes.value as ListBankReportsResponse));
+        const reportMeta = extractPaginatedMeta(reportRes.value as ListBankReportsResponse);
+        setReportPage(reportMeta.page);
+        setReportPageSize(reportMeta.pageSize);
+        setReportTotal(reportMeta.total);
+        setReportsError(null);
+      } else {
+        setReports([]);
+        setReportTotal(0);
+        setReportsError(reportRes.reason instanceof Error ? reportRes.reason.message : 'Failed to load reports');
+      }
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank dashboard');
       setMetrics(null);
       setAffiliates([]);
+      setAffiliatesError(null);
       setAuditLogs([]);
+      setAuditError(null);
       setReports([]);
+      setReportsError(null);
       setAuditTotal(0);
       setReportTotal(0);
       setGeneratedAt(null);
@@ -224,8 +254,11 @@ export function useBankDashboardData() {
     bankId,
     metrics,
     affiliates,
+    affiliatesError,
     auditLogs,
+    auditError,
     reports,
+    reportsError,
     auditPage,
     auditPageSize,
     auditTotal,
