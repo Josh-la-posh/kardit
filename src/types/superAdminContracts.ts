@@ -132,6 +132,7 @@ export interface GetReportStatusResponse {
 export interface QueryBanksFilters {
   status?: string[] | null;
   country?: string | null;
+  currency?: string | null;
   search?: string | null;
 }
 

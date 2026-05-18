@@ -18,8 +18,11 @@ export default function BankDashboardPage() {
   const { user } = useAuth();
   const {
     affiliates,
+    affiliatesError,
     auditLogs,
+    auditError,
     reports,
+    reportsError,
     auditPage,
     reportPage,
     reportPageSize,
@@ -75,7 +78,9 @@ export default function BankDashboardPage() {
                       View more
                     </Button>
                   </div>
-                  {auditLogs.length === 0 ? (
+                  {auditError ? (
+                    <div className="px-6 py-8 text-sm text-muted-foreground">{auditError}</div>
+                  ) : auditLogs.length === 0 ? (
                     <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -116,7 +121,9 @@ export default function BankDashboardPage() {
                       View more
                     </Button>
                   </div>
-                  {affiliates.length === 0 ? (
+                  {affiliatesError ? (
+                    <div className="px-6 py-10 text-sm text-muted-foreground">{affiliatesError}</div>
+                  ) : affiliates.length === 0 ? (
                     <div className="px-6 py-10 text-sm text-muted-foreground">No affiliates attached yet.</div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -156,7 +163,9 @@ export default function BankDashboardPage() {
                   <div className="border-b border-border px-6 py-4">
                     <h2 className="font-semibold">Recent Reports</h2>
                   </div>
-                  {reports.length === 0 ? (
+                  {reportsError ? (
+                    <div className="px-6 py-8 text-sm text-muted-foreground">{reportsError}</div>
+                  ) : reports.length === 0 ? (
                     <div className="px-6 py-8 text-sm text-muted-foreground">No reports returned.</div>
                   ) : (
                     <div className="overflow-x-auto">
