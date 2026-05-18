@@ -4,9 +4,10 @@ import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
 import { CitySelect, CountrySelect, GetCity, GetCountries, GetState, StateSelect } from 'react-country-state-city';
 import type { City, Country, State } from 'react-country-state-city/dist/esm/types';
-import { useOnboardingDraft } from '@/hooks/useOnboarding';
+import { useCreateOnboardingSession, useOnboardingDraft } from '@/hooks/useOnboarding';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
+import { saveOrganization as saveOrganizationApi } from '@/services/onboardingApi';
 
 function normalizeCountryValue(value: string) {
   return value.trim().toLowerCase();
@@ -28,6 +29,7 @@ export default function OnboardingOrganizationPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
   const { draft, isLoading, error, updateOrganization } = useOnboardingDraft(draftId);
+  const { create, isLoading: creatingSession } = useCreateOnboardingSession();
 
   const initial = useMemo(() => {
     return {
@@ -121,8 +123,6 @@ export default function OnboardingOrganizationPage() {
   const onNext = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-    if (!draftId || !draft) return;
-
     if (!form.legalName || !form.registrationNumber || !form.country || !form.addressLine1 || !form.contactFullName || !form.contactEmail || !form.contactPhone) {
       setLocalError('Please complete all required fields');
       return;
@@ -130,12 +130,27 @@ export default function OnboardingOrganizationPage() {
 
     setSaving(true);
     try {
-      if (!draft?.onboardingSessionId) {
+      let activeDraftId = draftId;
+      let activeOnboardingSessionId = draft?.onboardingSessionId;
+
+      if (!activeDraftId || !activeOnboardingSessionId) {
+        const session = await create({
+          channel: 'web',
+          email: form.contactEmail || 'affiliate-onboarding@kardit.app',
+          phone: form.contactPhone || '+2340000000000',
+          consentAccepted: true,
+        });
+        activeDraftId = session.draftId;
+        activeOnboardingSessionId = session.onboardingSessionId;
+      }
+
+      if (!activeDraftId || !activeOnboardingSessionId) {
         setLocalError('Missing onboarding session ID. Please restart onboarding.');
         return;
       }
-      await updateOrganization({
-        onboardingSessionId: draft.onboardingSessionId,
+
+      const payload = {
+        onboardingSessionId: activeOnboardingSessionId,
         legalName: form.legalName,
         tradingName: form.tradingName,
         registrationNumber: form.registrationNumber,
@@ -150,8 +165,14 @@ export default function OnboardingOrganizationPage() {
           email: form.contactEmail,
           phone: form.contactPhone,
         },
-      });
-      navigate(`/onboarding/${draftId}/documents`);
+      };
+
+      if (draftId) {
+        await updateOrganization(payload);
+      } else {
+        await saveOrganizationApi(activeDraftId, payload);
+      }
+      navigate(`/onboarding/${activeDraftId}/documents`);
     } catch (err: any) {
       setLocalError(err?.message || 'Failed to save organization details');
     } finally {
@@ -164,8 +185,8 @@ export default function OnboardingOrganizationPage() {
       currentStep="organization"
       draftId={draftId}
       draft={draft}
-      title="Organization & contact details"
-      description="Provide the core business and contact information required to begin your affiliate KYB review."
+      title="Tell us about your organization"
+      description="All fields are required unless marked optional. Use your registered business name and address as on file with CAC."
     >
       <div className="animate-fade-in">
 
@@ -176,7 +197,7 @@ export default function OnboardingOrganizationPage() {
           </div>
         )}
 
-        {isLoading ? (
+        {isLoading && draftId ? (
           <div className="flex items-center justify-center rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -184,14 +205,18 @@ export default function OnboardingOrganizationPage() {
           <form onSubmit={onNext} className="space-y-8">
             <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-foreground">Business information</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Enter the official details exactly as they appear in your registration records.</p>
+                <h2 className="text-xl font-bold text-foreground">Organization Details</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField label="Legal Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
+                <div className="col-span-2">
+                  <TextField label="Legal Business Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
+                </div>
+                <TextField label="RC / Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
                 <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
-                <TextField label="Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
+                <div className="col-span-2">
+                  <TextField className="  md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Country</label>
                   <CountrySelect
@@ -248,30 +273,27 @@ export default function OnboardingOrganizationPage() {
                     placeHolder={selectedState ? 'Select city' : 'Select state first'}
                     disabled={saving || !selectedCountry || !selectedState}
                   />
-                </div>
-                <TextField className="  md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
+                </div>                
               </div>
             </section>
 
             <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
               <div className="mb-5">
-                <h3 className="text-lg font-semibold text-foreground">Primary contact</h3>
-                <p className="mt-1 text-sm text-muted-foreground">We will use this contact for onboarding communication and verification updates.</p>
+                <h2 className="text-xl font-bold text-foreground">Primary contact</h2>
               </div>
-              <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Contact details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2">
                   <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
-                  <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
-                  <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
                 </div>
+                <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
+                <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
               </div>
             </section>
 
             <div className="flex flex-col justify-end gap-3 border-t border-[hsl(var(--landing-panel-border))] pt-2 sm:flex-row">
               <Button type="button" variant="outline" className="h-11 rounded-xl border-[hsl(var(--landing-panel-border))] bg-card px-5" onClick={() => navigate('/onboarding/start')} disabled={saving}>Cancel</Button>
-              <Button type="submit" className="h-11 rounded-xl px-6" disabled={saving}>
-                {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Save and continue'}
+              <Button type="submit" className="h-11 rounded-xl px-6" disabled={saving || creatingSession}>
+                {saving || creatingSession ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Save and continue'}
               </Button>
             </div>
           </form>

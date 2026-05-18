@@ -29,11 +29,11 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
       md: "h-11 text-sm",
       lg: "h-12 text-base rounded-lg",
     };
-    const borderClasses =  "border-[#d6e3d8] bg-white";
+    const toneClasses = "border-[hsl(var(--input))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]";
     return (
       <div className="space-y-1.5">
         {label && (
-          <label className="text-sm font-medium text-foreground" >
+          <label className="text-sm font-semibold text-foreground" >
             {label} 
           </label>
         )}
@@ -41,14 +41,14 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
           <input
             type={inputType}
             className={cn(
-              "flex w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground",
+              "flex w-full rounded-md border px-3 py-2 text-sm",
               sizeClasses[size || "lg"],
-              borderClasses,
-              "placeholder:text-muted-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
+              toneClasses,
+              "placeholder:text-[hsl(var(--muted-foreground))]",
+              "focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))/0.4] focus:border-[hsl(var(--ring))]",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "transition-colors duration-200",
-              error && "border-destructive focus:ring-destructive/50 focus:border-destructive",
+              error && "border-[hsl(var(--destructive))] focus:ring-[hsl(var(--destructive))/0.35] focus:border-[hsl(var(--destructive))]",
               isPassword && "pr-10",
               className
             )}
