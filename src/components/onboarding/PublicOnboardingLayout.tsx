@@ -1,17 +1,20 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Check, FileText, Landmark, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Building2, Check, FileText, Landmark, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { KarditLogo } from '@/components/KarditLogo';
+import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
+import MarketingHeader from '../MarketingHeader';
+import { Switch } from '../ui/switch';
 
-type OnboardingStepId = 'start' | 'organization' | 'documents' | 'issuing-banks' | 'review';
+type OnboardingStepId = 'start' | 'organization' | 'documents' | 'issuing-banks' | 'review' | 'status';
 
 interface OnboardingStepDefinition {
   id: OnboardingStepId;
+  n: number;
   label: string;
-  summary: string;
-  eyebrow: string;
+  meta: string;
   icon: typeof Building2;
 }
 
@@ -26,38 +29,38 @@ interface PublicOnboardingLayoutProps {
 
 const steps: OnboardingStepDefinition[] = [
   {
-    id: 'start',
-    label: 'Start',
-    summary: 'Confirm consent and begin',
-    eyebrow: 'Step 1',
-    icon: PlayCircle,
-  },
-  {
     id: 'organization',
+    n: 1,
     label: 'Organization',
-    summary: 'Business and contact details',
-    eyebrow: 'Step 2',
+    meta: 'Tell us about your business',
     icon: Building2,
   },
   {
     id: 'documents',
+    n: 2,
     label: 'Documents',
-    summary: 'Upload KYB and KYC files',
-    eyebrow: 'Step 3',
+    meta: 'Upload required documents',
     icon: FileText,
   },
   {
     id: 'issuing-banks',
+    n: 3,
     label: 'Issuing Banks',
-    summary: 'Choose your preferred partners',
-    eyebrow: 'Step 4',
+    meta: 'Select your banking partners',
     icon: Landmark,
   },
   {
     id: 'review',
+    n: 4,
     label: 'Review',
-    summary: 'Confirm and submit',
-    eyebrow: 'Step 5',
+    meta: 'Confirm and send for approval',
+    icon: ShieldCheck,
+  },
+  {
+    id: 'status',
+    n: 5,
+    label: 'Status & Tracking',
+    meta: 'Track your application',
     icon: ShieldCheck,
   },
 ];
@@ -67,12 +70,12 @@ function getStepIndex(stepId: OnboardingStepId) {
 }
 
 function getStepHref(draftId: string | undefined, stepId: OnboardingStepId) {
-  if (stepId === 'start') return '/onboarding/start';
   if (!draftId) return '#';
   if (stepId === 'organization') return `/onboarding/${draftId}/organization`;
   if (stepId === 'documents') return `/onboarding/${draftId}/documents`;
   if (stepId === 'issuing-banks') return `/onboarding/${draftId}/issuing-banks`;
-  return `/onboarding/${draftId}/review`;
+  if (stepId === 'review') return `/onboarding/${draftId}/review`;
+  return '#';
 }
 
 function isOrganizationComplete(draft?: OnboardingDraft | null) {
@@ -100,20 +103,20 @@ function isIssuingBanksComplete(draft?: OnboardingDraft | null) {
 }
 
 function getStepCompletion(stepId: OnboardingStepId, draft?: OnboardingDraft | null) {
-  if (stepId === 'start') return Boolean(draft?.consentAccepted);
   if (stepId === 'organization') return isOrganizationComplete(draft);
   if (stepId === 'documents') return isDocumentsComplete(draft);
   if (stepId === 'issuing-banks') return isIssuingBanksComplete(draft);
+  if (stepId === 'review') return Boolean(draft?.submittedCaseId);
   return Boolean(draft?.submittedCaseId);
 }
 
 function isStepEnabled(stepId: OnboardingStepId, currentStep: OnboardingStepId, draft?: OnboardingDraft | null) {
   if (stepId === currentStep) return true;
-  if (stepId === 'start') return true;
-  if (stepId === 'organization') return currentStep !== 'start' && Boolean(draft?.consentAccepted);
+  if (stepId === 'organization') return Boolean(draft?.consentAccepted);
   if (stepId === 'documents') return isOrganizationComplete(draft);
   if (stepId === 'issuing-banks') return isOrganizationComplete(draft) && isDocumentsComplete(draft);
-  return isOrganizationComplete(draft) && isDocumentsComplete(draft) && isIssuingBanksComplete(draft);
+  if (stepId === 'review') return isOrganizationComplete(draft) && isDocumentsComplete(draft) && isIssuingBanksComplete(draft);
+  return Boolean(draft?.submittedCaseId);
 }
 
 function renderStyledTitle(title: string) {
@@ -127,14 +130,14 @@ function renderStyledTitle(title: string) {
 
       return (
         <>
-          <span className="text-foreground">{firstPart}</span>
-          <span className="text-primary">{separator}{secondPart}</span>
+          <span className="text-[var(--cs-ink-900)]">{firstPart}</span>
+          <span className="text-[var(--cs-green-700)]">{separator}{secondPart}</span>
         </>
       );
     }
   }
 
-  return <span className="text-primary">{title}</span>;
+  return <span className="text-[var(--cs-green-700)]">{title}</span>;
 }
 
 export default function PublicOnboardingLayout({
@@ -145,114 +148,136 @@ export default function PublicOnboardingLayout({
   description,
   children,
 }: PublicOnboardingLayoutProps) {
-  const currentStepIndex = getStepIndex(currentStep);
+  const { theme, setTheme } = useTheme();
+  const isDarkMode =
+    theme === 'dark' ||
+    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const normalizedStep = currentStep === 'start' ? 'organization' : currentStep;
+  const currentStepIndex = getStepIndex(normalizedStep as OnboardingStepId);
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--landing-bg))] px-4 py-4 md:px-6 md:py-6">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] shadow-[0_24px_80px_hsl(var(--landing-brand)/0.12)] md:flex-row">
-        <aside className="hidden border-r border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-soft))] p-3 lg:p-6 md:block w-56 lg:w-80">
-          <div className="flex h-full flex-col">
-            <div className="mb-2">
-              <Link to="/onboarding/start" className="inline-flex">
-                <KarditLogo size="md" />
-              </Link>
-              <div className="mt-8">
-                <p className="text-[10px] lg:text-xs font-semibold uppercase tracking-[0.28em] text-primary/80">Affiliate onboarding Progress</p>
-              </div>
+    <div className="min-h-screen bg-[var(--cs-paper)]">
+      <div className="flex min-h-screen flex-col">
+        <MarketingHeader
+          showStartEnrollment={false}
+          pathLabel={steps[currentStepIndex]?.label ?? 'Organization'}
+          rightSlot={
+            <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel)/0.72)] px-3 py-2 shadow-[0_10px_24px_hsl(var(--landing-fg)/0.1)] backdrop-blur">
+              <Sun className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
+              <Switch
+                checked={isDarkMode}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                aria-label="Toggle dark mode"
+              />
+              <Moon className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
             </div>
+          }
+        />
 
-            <nav className="mt-6 space-y-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_1fr]">
+          <aside className="hidden overflow-auto border-r border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-6 md:block">
+            <h6 className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--cs-ink-100)]">
+              Onboarding Progress
+            </h6>
+            <ol className="space-y-1">
               {steps.map((step, index) => {
-                const isCurrent = step.id === currentStep;
-                const isComplete = index < currentStepIndex;
-                const enabled = isStepEnabled(step.id, currentStep, draft);
-                const Icon = step.icon;
-
+                const isCurrent = step.id === normalizedStep;
+                const isComplete = index < currentStepIndex || getStepCompletion(step.id, draft);
+                const enabled = isStepEnabled(step.id, normalizedStep as OnboardingStepId, draft);
                 const content = (
                   <>
-                    <div
+                    <span
                       className={cn(
-                        'flex h-8 lg:h-11 w-8 lg:w-11 flex-shrink-0 items-center justify-center rounded-2xl transition-colors',
+                        'mt-0.5 grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border text-[11px] font-bold',
                         isCurrent
-                          ? 'border-primary/50 bg-primary text-primary-foreground'
+                          ? 'border-[var(--cs-green-700)] bg-[var(--cs-green-700)] text-white'
                           : isComplete
-                            ? 'border-primary/20 bg-primary/10 text-primary'
-                            : enabled
-                              ? 'border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] text-muted-foreground'
-                              : 'border-[hsl(var(--landing-panel-border)/0.8)] bg-[hsl(var(--landing-soft-2))] text-[hsl(var(--text-muted))]'
+                            ? 'border-[var(--cs-green-500)] bg-[var(--cs-green-500)] text-white'
+                            : 'border-[var(--cs-line-strong)] bg-[var(--cs-mist)] text-[var(--cs-ink-200)]'
                       )}
                     >
-                      {isComplete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                    </div>
-                    <div className="min-w-0 lg:space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] lg:tracking-[0.24em] text-[hsl(var(--text-muted))]">{step.eyebrow}</p>
-                      <p className={cn('text-sm font-semibold', isCurrent ? 'text-foreground' : enabled ? 'text-[hsl(var(--text-secondary))]' : 'text-[hsl(var(--text-muted))]')}>
-                        {step.label}
-                      </p>
-                      <p className={cn('text-xs lg:text-sm leading-5', enabled ? 'text-muted-foreground' : 'text-[hsl(var(--text-muted))]')}>{step.summary}</p>
-                    </div>
+                      {isComplete ? <Check className="h-3.5 w-3.5" /> : step.n}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-[var(--cs-ink-700)]">{step.label}</span>
+                      <span className="mt-0.5 block text-[11px] text-[var(--cs-ink-100)]">{step.meta}</span>
+                    </span>
                   </>
                 );
 
                 const itemClassName = cn(
-                  'flex w-full items-start gap-3 lg:gap-4 rounded-2xl lg:rounded-3xl border px-2 lg:px-4 py-4 text-left transition-all duration-200',
+                  'flex w-full items-start gap-3 rounded-[10px] px-2.5 py-2.5 text-left transition-colors',
                   isCurrent
-                    ? 'border-primary/25 bg-primary/10'
+                    ? 'bg-[var(--cs-green-100)]'
                     : enabled
-                      ? 'border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] hover:border-primary/25 hover:bg-[hsl(var(--landing-soft))]'
-                      : 'cursor-not-allowed border-[hsl(var(--landing-panel-border)/0.7)] bg-[hsl(var(--landing-soft-2))] opacity-80'
+                      ? 'hover:bg-[var(--cs-mist)]'
+                      : 'cursor-not-allowed opacity-60'
                 );
 
                 return enabled ? (
-                  <Link
-                    key={step.id}
-                    to={getStepHref(draftId, step.id)}
-                    className={itemClassName}
-                    aria-current={isCurrent ? 'step' : undefined}
-                  >
-                    {content}
-                  </Link>
+                  <li key={step.id}>
+                    <Link to={getStepHref(draftId, step.id)} className={itemClassName} aria-current={isCurrent ? 'step' : undefined}>
+                      {content}
+                    </Link>
+                  </li>
                 ) : (
-                  <button key={step.id} type="button" disabled className={itemClassName} aria-disabled="true">
-                    {content}
-                  </button>
+                  <li key={step.id}>
+                    <button type="button" disabled className={itemClassName} aria-disabled="true">
+                      {content}
+                    </button>
+                  </li>
                 );
               })}
-            </nav>
-          </div>
-        </aside>
+            </ol>
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-          <div className="mx-auto flex h-full w-full max-w-4xl flex-col rounded-[1.75rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6 md:p-8 lg:p-10">
-            <div className="mb-6 rounded-[1.35rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-soft))] p-4 md:hidden">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">STEP {currentStepIndex + 1} OF {steps.length}</p>
-                <span className="text-sm font-medium text-[hsl(var(--text-secondary))]">{steps[currentStepIndex]?.label}</span>
+            <div className="mt-8 rounded-xl border border-[var(--cs-green-300)] bg-[var(--cs-green-100)] p-3.5">
+              <div className="text-xs font-bold text-[var(--cs-green-900)]">Need help?</div>
+              <div className="mt-1.5 text-xs leading-5 text-[var(--cs-ink-200)]">
+                Save your progress at any time. Our team is available 9am-6pm WAT to walk you through
+                the process.
               </div>
-              <div className="mt-3 flex gap-2">
-                {steps.map((step, index) => {
-                  const isActive = index <= currentStepIndex || getStepCompletion(step.id, draft);
-                  return (
-                    <div
-                      key={step.id}
-                      className={cn(
-                        'h-2.5 flex-1 rounded-full transition-colors',
-                        isActive ? 'bg-primary' : 'bg-[hsl(var(--landing-soft-2))]'
-                      )}
-                    />
-                  );
-                })}
+              <a href="#" className="mt-2 inline-block text-xs font-bold text-[var(--cs-green-700)] no-underline">
+                Talk to a Consultant -
+              </a>
+            </div>
+          </aside>
+
+          <main className="overflow-auto bg-[var(--cs-paper)] p-4 md:p-8">
+            <div className="mx-auto w-full max-w-[720px]">
+              <div className="mb-6 rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-4 md:hidden">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">
+                    Step {currentStepIndex + 1} of {steps.length}
+                  </p>
+                  <span className="text-sm font-medium text-[var(--cs-ink-200)]">
+                    {steps[currentStepIndex]?.label}
+                  </span>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  {steps.map((step, index) => {
+                    const isActive = index <= currentStepIndex || getStepCompletion(step.id, draft);
+                    return (
+                      <div key={step.id} className={cn('h-2.5 flex-1 rounded-full', isActive ? 'bg-[var(--cs-green-700)]' : 'bg-[var(--cs-line)]')} />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">Affiliate onboarding</div>
+                <h2 className="mt-2 text-[32px] font-extrabold tracking-[-0.02em] text-[var(--cs-ink-900)]">
+                  {renderStyledTitle(title)}
+                </h2>
+                <p className="mt-2 max-w-[640px] text-base leading-[1.55] text-[var(--cs-ink-200)]">{description}</p>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-5 shadow-[var(--cs-shadow-sm)] md:p-7">
+                {children}
               </div>
             </div>
-
-            <div className='mb-10 text-center border-b border-[hsl(var(--landing-panel-border))] md:mb-0 md:border-0 md:text-center'>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-3xl">{renderStyledTitle(title)}</h2>
-              <p className="mt-3 max-w-2xl text-xs leading-6 text-muted-foreground">{description}</p>
-            </div>
-
-            <div className="flex-1">{children}</div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );

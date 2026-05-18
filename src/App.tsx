@@ -129,6 +129,7 @@ const App = () => (
 
             {/* Affiliate onboarding (no login) */}
             <Route path="/onboarding/start" element={<OnboardingStartPage />} />
+            <Route path="/onboarding/organization" element={<OnboardingOrganizationPage />} />
             <Route path="/onboarding/:draftId/organization" element={<OnboardingOrganizationPage />} />
             <Route path="/onboarding/:draftId/documents" element={<OnboardingDocumentsPage />} />
             <Route path="/onboarding/:draftId/issuing-banks" element={<OnboardingIssuingBanksPage />} />

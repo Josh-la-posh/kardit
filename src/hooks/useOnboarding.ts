@@ -32,7 +32,12 @@ export function useOnboardingDraft(draftId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!draftId) return;
+    if (!draftId) {
+      setDraft(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
