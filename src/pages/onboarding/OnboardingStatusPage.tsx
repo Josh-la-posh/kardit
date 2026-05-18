@@ -72,18 +72,18 @@ export default function OnboardingStatusPage() {
             <section className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--cs-green-700)]">Application</div>
-                <h1 className="mt-1 break-all text-[44px] font-extrabold tracking-[-0.02em] text-[var(--cs-ink-900)] md:text-[52px]">{caseItem.caseId}</h1>
-                <p className="mt-1 text-sm text-[var(--cs-ink-200)]">
-                  {(caseItem.organization?.legalName || caseItem.affiliateName || 'Your organization')} - Submitted {formatDateTime(caseItem.submittedAt)}
+                <h1 className="mt-1 break-all text-sm font-extrabold tracking-[-0.02em] text-[var(--cs-ink-900)] md:text-lg">{caseItem.caseId}</h1>
+                <p className="mt-1 text-[9px] md:text-xs text-[var(--cs-ink-200)]">
+                  Submitted {formatDateTime(caseItem.submittedAt)}
                 </p>
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="ghost" className="h-10 px-3" onClick={refresh}>
                   <RefreshCcw className="h-4 w-4" /> Refresh
                 </Button>
-                <Button type="button" variant="outline" className="h-10 rounded-xl border-[var(--cs-green-700)] px-4 text-[var(--cs-green-700)]">
+                {/* <Button type="button" variant="outline" className="h-10 rounded-xl border-[var(--cs-green-700)] px-4 text-[var(--cs-green-700)]">
                   <Download className="h-4 w-4" /> Download summary
-                </Button>
+                </Button> */}
               </div>
             </section>
 
@@ -113,7 +113,7 @@ export default function OnboardingStatusPage() {
 
             <section className="mt-6 overflow-hidden rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)]">
               <div className="flex items-center justify-between border-b border-[var(--cs-line)] px-5 py-4">
-                <h3 className="text-[32px] font-semibold text-[var(--cs-ink-900)]">Timeline</h3>
+                <h3 className="text-base md:text-xl font-semibold text-[var(--cs-ink-900)]">Timeline</h3>
                 <span className="rounded-full border border-[#E8CF8C] bg-[#FFF5DE] px-3 py-1 text-xs font-semibold text-[#8B6500]">
                   {isClarification ? '- Awaiting your response' : '- In progress'}
                 </span>
@@ -137,9 +137,9 @@ export default function OnboardingStatusPage() {
                       {index !== timeline.length - 1 && <div className="absolute top-8 h-[42px] w-px bg-[#2EA463]" />}
                     </div>
                     <div className={`pb-7 ${index === timeline.length - 1 ? 'pb-0' : ''}`}>
-                      <div className={`text-[32px] font-semibold ${item.state === 'todo' ? 'text-[var(--cs-ink-100)]' : 'text-[var(--cs-ink-900)]'}`}>{item.title}</div>
-                      <div className="text-sm text-[var(--cs-ink-200)]">{item.description}</div>
-                      <div className="mt-1 text-xs text-[var(--cs-ink-100)]">{item.at}</div>
+                      <div className={`text:base md:text-lg font-semibold ${item.state === 'todo' ? 'text-[var(--cs-ink-100)]' : 'text-[var(--cs-ink-900)]'}`}>{item.title}</div>
+                      <div className="text-xs md:text-sm text-[var(--cs-ink-200)]">{item.description}</div>
+                      <div className="mt-1 text-[9px] md:text-xs text-[var(--cs-ink-100)]">{item.at}</div>
                     </div>
                   </div>
                 ))}
@@ -148,35 +148,41 @@ export default function OnboardingStatusPage() {
 
             <section className="mt-6 overflow-hidden rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)]">
               <div className="border-b border-[var(--cs-line)] px-5 py-4">
-                <h3 className="text-[32px] font-semibold text-[var(--cs-ink-900)]">Messages</h3>
+                <h3 className="text-base md:text-xl font-semibold text-[var(--cs-ink-900)]">Messages</h3>
               </div>
               <div className="p-5">
-                <div className="flex gap-3 rounded-2xl bg-[var(--cs-mist)] p-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--cs-line)] text-xs font-bold text-[var(--cs-ink-200)]">CO</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between text-xs text-[var(--cs-ink-100)]">
-                      <span className="font-semibold">Compliance Officer</span>
-                      <span>{formatDateTime(caseItem.updatedAt)}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-[var(--cs-ink-700)]">
-                      {caseItem.reviewerNote || caseItem.decisionReason || 'No new messages yet. We will notify you when there is an update.'}
-                    </p>
+                {caseItem.messages?.length ? (
+                  <div className="space-y-3">
+                    {caseItem.messages.map((message, index) => (
+                      <div key={`${message.at}-${index}`} className="flex gap-3 rounded-2xl bg-[var(--cs-mist)] p-3">
+                        <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--cs-line)] text-xs font-bold text-[var(--cs-ink-200)]">
+                          {(message.from || 'CO').slice(0, 2).toUpperCase()}
+                        </span>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between text-xs text-[var(--cs-ink-100)]">
+                            <span className="font-semibold">{message.from || 'Compliance Officer'}</span>
+                            <span>{formatDateTime(message.at)}</span>
+                          </div>
+                          <p className="mt-1 text-sm text-[var(--cs-ink-700)]">
+                            {message.text || message.message || 'No message body'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="mt-4 flex justify-end">
-                  <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => navigate(`/onboarding/notifications/${caseItem.caseId}`)}>
-                    View all updates
-                  </Button>
-                </div>
+                ) : (
+                  <div className="rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-paper)] px-4 py-5 text-sm text-[var(--cs-ink-200)]">
+                    No messages yet.
+                  </div>
+                )}
               </div>
             </section>
 
-            <div className="mt-5">
+            {/* <div className="mt-5">
               <Button type="button" variant="ghost" className="px-0 text-[var(--cs-ink-900)]" onClick={() => navigate('/onboarding/start')}>
                 Back
               </Button>
-            </div>
+            </div> */}
           </>
         )}
       </main>
