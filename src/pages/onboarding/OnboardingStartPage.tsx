@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MarketingHeader from '@/components/MarketingHeader';
-import { ArrowRight, Clock3, Loader2, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Clock3, Loader2 } from 'lucide-react';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
-import { useTheme } from '@/components/ThemeProvider';
-import { Switch } from '@/components/ui/switch';
 import { TextField } from '@/components/ui/text-field';
 import { JOURNEY_STEPS } from './journeySteps';
 import { useCreateOnboardingSession } from '@/hooks/useOnboarding';
@@ -13,10 +11,6 @@ export default function OnboardingStartPage() {
   const navigate = useNavigate();
   const { create, isLoading } = useCreateOnboardingSession();
 
-  const { theme, setTheme } = useTheme()
-  const isDarkMode =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -79,20 +73,7 @@ export default function OnboardingStartPage() {
   return (
     <div className="min-h-screen bg-[var(--cs-paper)] text-[var(--cs-fg)]">
       <div className="flex min-h-screen flex-col">
-        <MarketingHeader
-          showStartEnrollment={false}
-          rightSlot={
-            <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel)/0.72)] px-3 py-2 shadow-[0_10px_24px_hsl(var(--landing-fg)/0.1)] backdrop-blur">
-              <Sun className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-              <Switch
-                checked={isDarkMode}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                aria-label="Toggle dark mode"
-              />
-              <Moon className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-            </div>
-          }
-        />
+        <MarketingHeader showStartEnrollment={false} />
 
         <main className="relative flex-1 overflow-auto">
           <div className="relative mx-auto max-w-[1280px] px-8 py-16">

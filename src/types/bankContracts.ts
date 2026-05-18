@@ -4,6 +4,7 @@ export interface QueryBanksRequest {
   filters: {
     status?: BankStatus[];
     country?: string;
+    name?: string;
     search?: string;
   };
   page: number;

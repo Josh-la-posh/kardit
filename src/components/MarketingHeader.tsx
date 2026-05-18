@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
+import { Moon, Sun } from 'lucide-react'
+import { useTheme } from '@/components/ThemeProvider'
+import { Switch } from '@/components/ui/switch'
 
 interface MarketingHeaderProps {
   authUrl?: string
@@ -7,6 +10,8 @@ interface MarketingHeaderProps {
   showStartEnrollment?: boolean
   rightSlot?: ReactNode
   pathLabel?: string
+  showAffiliatePortal?: boolean
+  showThemeToggle?: boolean
 }
 
 export default function MarketingHeader({
@@ -15,10 +20,16 @@ export default function MarketingHeader({
   showStartEnrollment = true,
   rightSlot,
   pathLabel,
+  showAffiliatePortal = false,
+  showThemeToggle = true,
 }: MarketingHeaderProps) {
   const { pathname } = useLocation()
+  const { theme, setTheme } = useTheme()
   const isEnrollmentRoute = pathname.startsWith('/onboarding')
   const shouldShowEnrollment = showStartEnrollment && !isEnrollmentRoute
+  const isDarkMode =
+    theme === 'dark' ||
+    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   return (
     <header
@@ -36,16 +47,32 @@ export default function MarketingHeader({
               Kard<span className="text-[var(--cs-green-700)]">i</span>t
             </span>
           </a>
-          {pathLabel && (
+          {(showAffiliatePortal || pathLabel) && (
             <div className="hidden items-center gap-2 text-[13px] text-[var(--cs-ink-200)] md:flex">
               <span>Affiliate Portal</span>
-              <span>/</span>
-              <strong className="font-semibold text-[var(--cs-ink-700)]">{pathLabel}</strong>
+              {pathLabel && (
+                <>
+                  <span>/</span>
+                  <strong className="font-semibold text-[var(--cs-ink-700)]">{pathLabel}</strong>
+                </>
+              )}
             </div>
           )}
         </div>
         <div className="flex items-center gap-5">
-          {rightSlot}
+          {rightSlot ?? (
+            showThemeToggle ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel)/0.72)] px-3 py-2 shadow-[0_10px_24px_hsl(var(--landing-fg)/0.1)] backdrop-blur">
+                <Sun className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
+                <Switch
+                  checked={isDarkMode}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                  aria-label="Toggle dark mode"
+                />
+                <Moon className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
+              </div>
+            ) : null
+          )}
           <a className="font-semibold text-[var(--cs-ink-900)] hover:text-primary no-underline" href={authUrl}>
             Sign in
           </a>

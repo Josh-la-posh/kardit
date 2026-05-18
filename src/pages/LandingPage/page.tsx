@@ -1,15 +1,8 @@
-import { Moon, Sun } from 'lucide-react'
-import { useTheme } from '@/components/ThemeProvider'
-import { Switch } from '@/components/ui/switch'
 import MarketingHeader from '@/components/MarketingHeader'
 import Footer from './components/Footer'
 import HowItWorks from './components/HowItWorks'
 
 const Page = () => {
-  const { theme, setTheme } = useTheme()
-  const isDarkMode =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
     // const featureCards = [
     //   {
     //     icon: Lock,
@@ -36,17 +29,6 @@ const Page = () => {
         <MarketingHeader
           authUrl={authUrl}
           enrollmentUrl={onboardingUrl}
-          rightSlot={
-            <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel)/0.72)] px-3 py-2 shadow-[0_10px_24px_hsl(var(--landing-fg)/0.1)] backdrop-blur">
-              <Sun className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-              <Switch
-                checked={isDarkMode}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                aria-label="Toggle dark mode"
-              />
-              <Moon className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-            </div>
-          }
         />
         <main>
           <section className="relative overflow-hidden py-20" data-swoosh>

@@ -1,158 +1,185 @@
-import React from 'react';
+﻿import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { useOnboardingCase } from '@/hooks/useOnboarding';
-import { Loader2, CheckCircle2, Circle } from 'lucide-react';
-import { StatusChip } from '@/components/ui/status-chip';
-import type { StatusType } from '@/components/ui/status-chip';
+import { Download, Check, MessageSquare, RefreshCcw, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import MarketingHeader from '@/components/MarketingHeader';
 
-const statusToChip: Record<string, StatusType> = {
-  DRAFT: 'INACTIVE',
-  SUBMITTED: 'PENDING',
-  IN_REVIEW: 'PROCESSING',
-  UNDER_REVIEW: 'PROCESSING',
-  CLARIFICATION_REQUESTED: 'WARNING',
-  REJECTED: 'FAILED',
-  APPROVED: 'SUCCESS',
-  PROVISIONED: 'SUCCESS',
-};
+function formatDateTime(value?: string) {
+  if (!value) return '--';
+  try {
+    return format(new Date(value), 'dd MMM yyyy, HH:mm');
+  } catch {
+    return '--';
+  }
+}
 
 export default function OnboardingStatusPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { caseItem, isLoading, error, refresh } = useOnboardingCase(caseId);
 
-  const steps = [
-    { key: 'SUBMITTED', label: 'Submitted' },
-    { key: 'UNDER_REVIEW', label: 'Under review' },
-    { key: 'DECISION', label: 'Decision' },
-    { key: 'PROVISIONED', label: 'Provisioned' },
-  ] as const;
+  const status = caseItem?.status || 'SUBMITTED';
+  const isClarification = status === 'CLARIFICATION_REQUESTED';
 
-  const stepState = (status: string, stepKey: (typeof steps)[number]['key']): 'DONE' | 'CURRENT' | 'TODO' => {
-    const done = (k: string) => ({
-      SUBMITTED: ['SUBMITTED', 'IN_REVIEW', 'UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
-      UNDER_REVIEW: ['IN_REVIEW', 'UNDER_REVIEW', 'CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
-      DECISION: ['CLARIFICATION_REQUESTED', 'REJECTED', 'APPROVED', 'PROVISIONED'],
-      PROVISIONED: ['PROVISIONED'],
-    } as const)[k as 'SUBMITTED' | 'UNDER_REVIEW' | 'DECISION' | 'PROVISIONED']?.includes(status as any);
-
-    if (stepKey === 'SUBMITTED') {
-      if (done('SUBMITTED')) return status === 'SUBMITTED' ? 'CURRENT' : 'DONE';
-      return 'TODO';
-    }
-    if (stepKey === 'UNDER_REVIEW') {
-      if (done('UNDER_REVIEW')) return status === 'UNDER_REVIEW' || status === 'IN_REVIEW' ? 'CURRENT' : 'DONE';
-      return 'TODO';
-    }
-    if (stepKey === 'DECISION') {
-      if (done('DECISION')) return status === 'CLARIFICATION_REQUESTED' || status === 'REJECTED' || status === 'APPROVED' ? 'CURRENT' : 'DONE';
-      return 'TODO';
-    }
-    // PROVISIONED
-    if (done('PROVISIONED')) return status === 'PROVISIONED' ? 'CURRENT' : 'DONE';
-    return 'TODO';
-  };
+  const timeline = [
+    {
+      key: 'submitted',
+      title: 'Submitted',
+      description: 'Application received',
+      at: formatDateTime(caseItem?.submittedAt),
+      state: 'done' as const,
+    },
+    {
+      key: 'review',
+      title: 'In Review',
+      description: 'Compliance team reviewing your documents',
+      at: formatDateTime(caseItem?.updatedAt),
+      state: status === 'SUBMITTED' ? ('todo' as const) : ('done' as const),
+    },
+    {
+      key: 'clarification',
+      title: 'Clarification',
+      description: isClarification ? 'We need a small piece of extra info' : 'No clarification required',
+      at: isClarification ? formatDateTime(caseItem?.updatedAt) : '--',
+      state: isClarification ? ('current' as const) : ('todo' as const),
+    },
+    {
+      key: 'approved',
+      title: 'Approved',
+      description: 'Welcome aboard - credentials issued',
+      at: status === 'APPROVED' || status === 'PROVISIONED' ? formatDateTime(caseItem?.updatedAt) : '--',
+      state: status === 'APPROVED' || status === 'PROVISIONED' ? ('done' as const) : ('todo' as const),
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-2xl animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <KarditLogo size="md" />
-        </div>
+    <div className="min-h-screen bg-[var(--cs-paper)]">
+      <MarketingHeader showStartEnrollment={false} pathLabel="Application Status" />
 
-        <div className="kardit-card p-8">
-          <div className="flex items-start justify-between gap-3 mb-6">
-            <div>
-              <h1 className="text-xl font-semibold">Onboarding status</h1>
-              <p className="text-sm text-muted-foreground">Track your onboarding case.</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/login')}>Back</Button>
-              <Button variant="outline" onClick={refresh}>Refresh</Button>
-            </div>
+      <main className="mx-auto w-full max-w-[860px] px-4 py-6 md:px-6 md:py-8">
+        {isLoading ? (
+          <div className="flex items-center justify-center rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error || !caseItem ? (
+          <div className="rounded-3xl border border-destructive/25 bg-destructive/10 p-5 text-sm text-destructive">
+            {error || 'Case not found'}
+          </div>
+        ) : (
+          <>
+            <section className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--cs-green-700)]">Application</div>
+                <h1 className="mt-1 break-all text-[44px] font-extrabold tracking-[-0.02em] text-[var(--cs-ink-900)] md:text-[52px]">{caseItem.caseId}</h1>
+                <p className="mt-1 text-sm text-[var(--cs-ink-200)]">
+                  {(caseItem.organization?.legalName || caseItem.affiliateName || 'Your organization')} - Submitted {formatDateTime(caseItem.submittedAt)}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" className="h-10 px-3" onClick={refresh}>
+                  <RefreshCcw className="h-4 w-4" /> Refresh
+                </Button>
+                <Button type="button" variant="outline" className="h-10 rounded-xl border-[var(--cs-green-700)] px-4 text-[var(--cs-green-700)]">
+                  <Download className="h-4 w-4" /> Download summary
+                </Button>
+              </div>
+            </section>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error || !caseItem ? (
-            <div className="text-sm text-muted-foreground">{error || 'Case not found'}</div>
-          ) : (
-            <>
-              <div className="rounded-md border border-border p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Case</p>
-                  <p className="text-sm font-medium break-all">{caseItem.caseId}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Submitted: {format(new Date(caseItem.submittedAt), 'MMM d, yyyy HH:mm')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Updated: {format(new Date(caseItem.updatedAt), 'MMM d, yyyy HH:mm')}
-                  </p>
+            {isClarification && (
+              <section className="mt-6 rounded-3xl border border-[hsl(var(--destructive)/0.15)] border-l-4 border-l-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/0.08)] p-6">
+                <div className="flex items-start gap-4">
+                  <span className="mt-0.5 grid h-10 w-10 place-items-center rounded-full bg-white text-[hsl(var(--destructive))]">
+                    <MessageSquare className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-[30px] font-bold text-[hsl(var(--destructive))]">Clarification requested</h2>
+                    <p className="mt-1 text-sm text-[var(--cs-ink-700)]">
+                      {caseItem.reviewerNote || caseItem.decisionReason || 'Compliance asked for additional information.'}
+                    </p>
+                    <div className="mt-4 flex gap-3">
+                      <Button type="button" className="h-10 rounded-xl px-5" onClick={() => navigate(`/onboarding/notifications/${caseItem.caseId}`)}>
+                        Respond to Clarification
+                      </Button>
+                      <Button type="button" variant="ghost" className="h-10 px-2 text-[hsl(var(--destructive))]" onClick={() => navigate(`/onboarding/notifications/${caseItem.caseId}`)}>
+                        View message
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <StatusChip status={statusToChip[caseItem.status] || 'INACTIVE'} label={caseItem.status} />
+              </section>
+            )}
+
+            <section className="mt-6 overflow-hidden rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)]">
+              <div className="flex items-center justify-between border-b border-[var(--cs-line)] px-5 py-4">
+                <h3 className="text-[32px] font-semibold text-[var(--cs-ink-900)]">Timeline</h3>
+                <span className="rounded-full border border-[#E8CF8C] bg-[#FFF5DE] px-3 py-1 text-xs font-semibold text-[#8B6500]">
+                  {isClarification ? '- Awaiting your response' : '- In progress'}
+                </span>
               </div>
 
-              <div className="mt-4 rounded-md border border-border p-4">
-                <p className="text-sm font-medium mb-3">Progress</p>
-                <div className="space-y-2">
-                  {steps.map((s) => {
-                    const state = stepState(caseItem.status, s.key);
-                    const Icon = state === 'DONE' ? CheckCircle2 : Circle;
-                    return (
-                      <div key={s.key} className="flex items-center gap-2 text-sm">
-                        <Icon className={`h-4 w-4 ${state === 'DONE' ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span className={state === 'CURRENT' ? 'font-medium' : ''}>{s.label}</span>
+              <div className="px-5 py-5">
+                {timeline.map((item, index) => (
+                  <div key={item.key} className="grid grid-cols-[34px_1fr] gap-4">
+                    <div className="relative flex justify-center">
+                      <div
+                        className={
+                          item.state === 'done'
+                            ? 'grid h-8 w-8 place-items-center rounded-full bg-[#2EA463] text-white'
+                            : item.state === 'current'
+                              ? 'grid h-8 w-8 place-items-center rounded-full border-4 border-[#DDF2E7] bg-white text-[#2EA463]'
+                              : 'grid h-8 w-8 place-items-center rounded-full border border-[#C8D0CA] bg-[#F5F7F5] text-[#8A928C]'
+                        }
+                      >
+                        {item.state === 'done' ? <Check className="h-4 w-4" /> : <span className="text-xs">{index + 1}</span>}
                       </div>
-                    );
-                  })}
+                      {index !== timeline.length - 1 && <div className="absolute top-8 h-[42px] w-px bg-[#2EA463]" />}
+                    </div>
+                    <div className={`pb-7 ${index === timeline.length - 1 ? 'pb-0' : ''}`}>
+                      <div className={`text-[32px] font-semibold ${item.state === 'todo' ? 'text-[var(--cs-ink-100)]' : 'text-[var(--cs-ink-900)]'}`}>{item.title}</div>
+                      <div className="text-sm text-[var(--cs-ink-200)]">{item.description}</div>
+                      <div className="mt-1 text-xs text-[var(--cs-ink-100)]">{item.at}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-6 overflow-hidden rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)]">
+              <div className="border-b border-[var(--cs-line)] px-5 py-4">
+                <h3 className="text-[32px] font-semibold text-[var(--cs-ink-900)]">Messages</h3>
+              </div>
+              <div className="p-5">
+                <div className="flex gap-3 rounded-2xl bg-[var(--cs-mist)] p-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--cs-line)] text-xs font-bold text-[var(--cs-ink-200)]">CO</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between text-xs text-[var(--cs-ink-100)]">
+                      <span className="font-semibold">Compliance Officer</span>
+                      <span>{formatDateTime(caseItem.updatedAt)}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--cs-ink-700)]">
+                      {caseItem.reviewerNote || caseItem.decisionReason || 'No new messages yet. We will notify you when there is an update.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/onboarding/notifications/${caseItem.caseId}`)}
-                  >
-                    View updates
+
+                <div className="mt-4 flex justify-end">
+                  <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => navigate(`/onboarding/notifications/${caseItem.caseId}`)}>
+                    View all updates
                   </Button>
                 </div>
               </div>
+            </section>
 
-              {caseItem.status === 'CLARIFICATION_REQUESTED' && (
-                <div className="mt-4 rounded-md border border-border bg-muted p-4">
-                  <p className="text-sm font-medium">Clarification requested</p>
-                  <p className="text-sm text-muted-foreground">A reviewer requested more information.</p>
-                  {caseItem.reviewerNote && (
-                    <p className="text-sm text-muted-foreground mt-1">Note: {caseItem.reviewerNote}</p>
-                  )}
-                  {caseItem.decisionReason && (
-                    <p className="text-sm text-muted-foreground mt-1">Reason: {caseItem.decisionReason}</p>
-                  )}
-                </div>
-              )}
-
-              {caseItem.status === 'REJECTED' && (
-                <div className="mt-4 rounded-md border border-border bg-muted p-4">
-                  <p className="text-sm font-medium">Rejected</p>
-                  <p className="text-sm text-muted-foreground">Reason: {caseItem.decisionReason || '—'}</p>
-                </div>
-              )}
-
-              {caseItem.status === 'PROVISIONED' && (
-                <div className="mt-4 rounded-md border border-border bg-muted p-4">
-                  <p className="text-sm font-medium">Provisioned</p>
-                  <p className="text-sm text-muted-foreground">Tenant: {caseItem.provisionedTenantId || '—'}</p>
-                  <p className="text-sm text-muted-foreground">Admin: {caseItem.provisionedAdminEmail || '—'}</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+            <div className="mt-5">
+              <Button type="button" variant="ghost" className="px-0 text-[var(--cs-ink-900)]" onClick={() => navigate('/onboarding/start')}>
+                Back
+              </Button>
+            </div>
+          </>
+        )}
+      </main>
     </div>
   );
 }

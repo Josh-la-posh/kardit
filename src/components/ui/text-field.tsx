@@ -33,7 +33,7 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     return (
       <div className="space-y-1.5">
         {label && (
-          <label className="text-sm font-semibold text-foreground" >
+          <label className="text-sm md:text-base font-semibold text-foreground" >
             {label} 
           </label>
         )}
@@ -41,7 +41,7 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
           <input
             type={inputType}
             className={cn(
-              "flex w-full rounded-md border px-3 py-2 text-sm",
+              "w-full rounded-md border px-3 py-2",
               sizeClasses[size || "lg"],
               toneClasses,
               "placeholder:text-[hsl(var(--muted-foreground))]",

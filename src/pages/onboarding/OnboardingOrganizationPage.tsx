@@ -21,11 +21,23 @@ function normalizeCityValue(value: string) {
   return value.trim().toLowerCase();
 }
 
-function getSelectInputClassName() {
-  return 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+function getSelectInputClassName(hasError?: boolean) {
+  return [
+    'h-10 px-5 text-[hsl(var(--foreground))] rounded-lg text-base placeholder:text-muted-foreground bg-[hsl(var(--background))] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+    hasError ? 'border border-[hsl(var(--destructive))] focus:ring-[hsl(var(--destructive))/0.35]' : '',
+  ].join(' ');
 }
 
 export default function OnboardingOrganizationPage() {
+  type RequiredFieldKey =
+    | 'legalName'
+    | 'registrationNumber'
+    | 'addressLine1'
+    | 'country'
+    | 'contactFullName'
+    | 'contactEmail'
+    | 'contactPhone';
+
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
   const { draft, isLoading, error, updateOrganization } = useOnboardingDraft(draftId);
@@ -52,6 +64,16 @@ export default function OnboardingOrganizationPage() {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<RequiredFieldKey, string>>>({});
+  const requiredFieldKeys: RequiredFieldKey[] = [
+    'legalName',
+    'registrationNumber',
+    'addressLine1',
+    'country',
+    'contactFullName',
+    'contactEmail',
+    'contactPhone',
+  ];
 
   React.useEffect(() => {
     let active = true;
@@ -118,12 +140,34 @@ export default function OnboardingOrganizationPage() {
     };
   }, [initial]);
 
-  const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof typeof form, v: string) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    if (requiredFieldKeys.includes(k as RequiredFieldKey)) {
+      setFieldErrors((prev) => ({ ...prev, [k as RequiredFieldKey]: undefined }));
+    }
+  };
+
+  const validateRequiredFields = () => {
+    const errors: Partial<Record<RequiredFieldKey, string>> = {};
+
+    if (!form.legalName.trim()) errors.legalName = 'Legal business name is required';
+    if (!form.registrationNumber.trim()) errors.registrationNumber = 'Registration number is required';
+    if (!form.addressLine1.trim()) errors.addressLine1 = 'Address line 1 is required';
+    if (!form.country.trim()) errors.country = 'Country is required';
+    if (!form.contactFullName.trim()) errors.contactFullName = 'Full name is required';
+    if (!form.contactEmail.trim()) errors.contactEmail = 'Email is required';
+    if (!form.contactPhone.trim()) errors.contactPhone = 'Phone is required';
+
+    return errors;
+  };
 
   const onNext = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-    if (!form.legalName || !form.registrationNumber || !form.country || !form.addressLine1 || !form.contactFullName || !form.contactEmail || !form.contactPhone) {
+    const errors = validateRequiredFields();
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       setLocalError('Please complete all required fields');
       return;
     }
@@ -179,6 +223,7 @@ export default function OnboardingOrganizationPage() {
       setSaving(false);
     }
   };
+  const toneClasses = "border-[hsl(var(--input))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]";
 
   return (
     <PublicOnboardingLayout
@@ -188,7 +233,7 @@ export default function OnboardingOrganizationPage() {
       title="Tell us about your organization"
       description="All fields are required unless marked optional. Use your registered business name and address as on file with CAC."
     >
-      <div className="animate-fade-in">
+      <div className="animate-fade-in rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-5 shadow-[var(--cs-shadow-lg)] md:p-7">
 
         {(localError || error) && (
           <div className="mb-5 flex items-center gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
@@ -203,30 +248,35 @@ export default function OnboardingOrganizationPage() {
           </div>
         ) : (
           <form onSubmit={onNext} className="space-y-8">
-            <section className="rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] p-6">
+            <section className="bg-[hsl(var(--landing-panel))] p-5">
               <div className="mb-5">
-                <h2 className="text-xl font-bold text-foreground">Organization Details</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-foreground">Organization Details</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <TextField label="Legal Business Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} />
+                  <TextField label="Legal Business Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
                 </div>
-                <TextField label="RC / Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} />
-                <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
+                <div className="col-span-1">
+                  <TextField label="RC / Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
+                </div>
+                <div className="col-span-1">
+                  <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
+                </div>
                 <div className="col-span-2">
-                  <TextField className="  md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} />
+                  <TextField className="  md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Country</label>
+                  <label className="text-sm md:text-base font-semibold text-foreground">Country</label>
                   <CountrySelect
-                    containerClassName="border-none "
-                    inputClassName={getSelectInputClassName()}
+                    containerClassName={[toneClasses, fieldErrors.country ? 'border-[hsl(var(--destructive))]' : ''].join(' ')}
+                    inputClassName={getSelectInputClassName(Boolean(fieldErrors.country))}
                     defaultValue={(selectedCountry ?? undefined) as any}
                     onChange={(country) => {
                       setSelectedCountry(country);
                       setSelectedState(null);
                       setSelectedCity(null);
+                      setFieldErrors((prev) => ({ ...prev, country: undefined }));
                       setForm((prev) => ({
                         ...prev,
                         country: country.iso2,
@@ -237,12 +287,13 @@ export default function OnboardingOrganizationPage() {
                     placeHolder="Select country"
                     disabled={saving}
                   />
+                  {fieldErrors.country && <p className="text-xs text-destructive">{fieldErrors.country}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">State</label>
+                  <label className="text-sm md:text-base font-semibold text-foreground">State</label>
                   <StateSelect
                     countryid={selectedCountry?.id ?? 0}
-                    containerClassName="w-full"
+                    containerClassName={toneClasses}
                     inputClassName={getSelectInputClassName()}
                     defaultValue={(selectedState ?? undefined) as any}
                     onChange={(state) => {
@@ -259,11 +310,11 @@ export default function OnboardingOrganizationPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">City</label>
+                  <label className="text-sm md:text-base font-semibold text-foreground">City</label>
                   <CitySelect
                     countryid={selectedCountry?.id ?? 0}
                     stateid={selectedState?.id ?? 0}
-                    containerClassName="w-full "
+                    containerClassName={toneClasses}
                     inputClassName={getSelectInputClassName()}
                     defaultValue={(selectedCity ?? undefined) as any}
                     onChange={(city) => {
@@ -281,12 +332,12 @@ export default function OnboardingOrganizationPage() {
               <div className="mb-5">
                 <h2 className="text-xl font-bold text-foreground">Primary contact</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} />
+                  <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
                 </div>
-                <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} />
-                <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} />
+                <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} error={fieldErrors.contactEmail} />
+                <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} error={fieldErrors.contactPhone} />
               </div>
             </section>
 

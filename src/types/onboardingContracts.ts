@@ -34,8 +34,7 @@ export interface SaveIssuingBanksResponse {
   savedAt: string;
 }
 
-export type OnboardingDocumentType = 'CERTIFICATE_OF_INCORPORATION' | 'TAX_ID' | 'DIRECTORS_ID' | 'PROOF_OF_ADDRESS' | 'OTHER';
-
+export type OnboardingDocumentType = 'CERTIFICATE_OF_INCORPORATION' | 'TAX_IDENTIFICATION_CERTIFICATE' | 'MEMORANDUM_OF_ASSOCIATION' | 'ARTICLES_OF_ASSOCIATION' | 'BOARD_RESOLUTION'
 export type OnboardingCaseStatus =
   | 'DRAFT'
   | 'SUBMITTED'

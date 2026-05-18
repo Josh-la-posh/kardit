@@ -213,7 +213,7 @@ export function useProvisioningProgress(sessionId: string | undefined) {
   return { progress, status, isComplete, isFailed, errorMessage };
 }
 
-export function useIssuingBanks() {
+export function useIssuingBanks(nameQuery?: string) {
   const [banks, setBanks] = useState<IssuingBank[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,7 +223,10 @@ export function useIssuingBanks() {
     setError(null);
     try {
       const response = await queryBanks({
-        filters: {},
+        filters: {
+          status: ['ACTIVE'],
+          ...(nameQuery?.trim() ? { name: nameQuery.trim() } : {}),
+        },
         page: 1,
         pageSize: 100,
       });
@@ -237,7 +240,7 @@ export function useIssuingBanks() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [nameQuery]);
 
   useEffect(() => {
     fetch();
