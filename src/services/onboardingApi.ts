@@ -414,9 +414,9 @@ export async function submitOnboardingDraft(
 }
 
 export async function getOnboardingCase(caseId: string, onboardingSessionId: string): Promise<OnboardingCase> {
-  const search = new URLSearchParams({ onboardingSessionId });
-  const response = await getJson<Partial<OnboardingCase>>(
-    `/affiliates/onboarding/cases/${encodeURIComponent(caseId)}?${search.toString()}`
+  const response = await postJson<Partial<OnboardingCase>>(
+    `/affiliates/onboarding/cases/${encodeURIComponent(caseId)}`,
+    { onboardingSessionId }
   );
   return mapOnboardingCase(response, { caseId, onboardingSessionId });
 }

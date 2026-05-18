@@ -1,12 +1,10 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Check, FileText, Landmark, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { Building2, Check, FileText, Landmark, ShieldCheck } from 'lucide-react';
 import { KarditLogo } from '@/components/KarditLogo';
-import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
 import MarketingHeader from '../MarketingHeader';
-import { Switch } from '../ui/switch';
 
 type OnboardingStepId = 'start' | 'organization' | 'documents' | 'issuing-banks' | 'review' | 'status';
 
@@ -31,14 +29,14 @@ const steps: OnboardingStepDefinition[] = [
   {
     id: 'organization',
     n: 1,
-    label: 'Organization',
+    label: 'Organization & Contact',
     meta: 'Tell us about your business',
     icon: Building2,
   },
   {
     id: 'documents',
     n: 2,
-    label: 'Documents',
+    label: 'KYB/KYC Documents',
     meta: 'Upload required documents',
     icon: FileText,
   },
@@ -52,7 +50,7 @@ const steps: OnboardingStepDefinition[] = [
   {
     id: 'review',
     n: 4,
-    label: 'Review',
+    label: 'Review & Submit',
     meta: 'Confirm and send for approval',
     icon: ShieldCheck,
   },
@@ -148,11 +146,6 @@ export default function PublicOnboardingLayout({
   description,
   children,
 }: PublicOnboardingLayoutProps) {
-  const { theme, setTheme } = useTheme();
-  const isDarkMode =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
   const normalizedStep = currentStep === 'start' ? 'organization' : currentStep;
   const currentStepIndex = getStepIndex(normalizedStep as OnboardingStepId);
 
@@ -162,17 +155,6 @@ export default function PublicOnboardingLayout({
         <MarketingHeader
           showStartEnrollment={false}
           pathLabel={steps[currentStepIndex]?.label ?? 'Organization'}
-          rightSlot={
-            <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel)/0.72)] px-3 py-2 shadow-[0_10px_24px_hsl(var(--landing-fg)/0.1)] backdrop-blur">
-              <Sun className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-              <Switch
-                checked={isDarkMode}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                aria-label="Toggle dark mode"
-              />
-              <Moon className="h-3.5 w-3.5 text-[hsl(var(--landing-subtle))]" />
-            </div>
-          }
         />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_1fr]">
@@ -243,9 +225,9 @@ export default function PublicOnboardingLayout({
             </div>
           </aside>
 
-          <main className="overflow-auto bg-[var(--cs-paper)] p-4 md:p-8">
-            <div className="mx-auto w-full max-w-[720px]">
-              <div className="mb-6 rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-4 md:hidden">
+          <main className="overflow-auto bg-[var(--cs-paper)] p-8 md:p-20">
+            <div className="mx-auto w-full">
+              {/* <div className="mb-6 rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">
                     Step {currentStepIndex + 1} of {steps.length}
@@ -262,17 +244,19 @@ export default function PublicOnboardingLayout({
                     );
                   })}
                 </div>
-              </div>
+              </div> */}
 
               <div className="mb-6">
-                <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">Affiliate onboarding</div>
+                <p className="text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">
+                  Step {currentStepIndex + 1} of {steps.length}
+                </p>
                 <h2 className="mt-2 text-[32px] font-extrabold tracking-[-0.02em] text-[var(--cs-ink-900)]">
                   {renderStyledTitle(title)}
                 </h2>
                 <p className="mt-2 max-w-[640px] text-base leading-[1.55] text-[var(--cs-ink-200)]">{description}</p>
               </div>
 
-              <div className="rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-5 shadow-[var(--cs-shadow-sm)] md:p-7">
+              <div className="">
                 {children}
               </div>
             </div>
