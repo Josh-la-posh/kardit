@@ -82,7 +82,7 @@ const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswor
       name: 'John Doe',
       role: 'Admin',
       stakeholderType: 'AFFILIATE',
-      affiliateId: '00000000-0000-0000-0000-000000000000',
+      affiliateId: 'a7d5929b-cba8-4e97-8985-2ce1d9fc91c3',
       tenantId: 'oMicqwLQ',
       tenantName: 'Alpha Bank Affiliate',
     },

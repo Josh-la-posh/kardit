@@ -293,9 +293,13 @@ export function getCardLoadTransactions(cardId: string): Promise<CardLoadTransac
   });
 }
 
-export function getCardTransactions(cardId: string): Promise<CardTransactionsResponse> {
+export function getCardTransactions(
+  cardId: string,
+  pageNumber = 1,
+  pageSize = 25
+): Promise<CardTransactionsResponse> {
   return getJson<CardTransactionsResponse | ApiEnvelope<CardTransactionsResponse>>(
-    `/transactions/cards/${encodeURIComponent(cardId)}/transactions`
+    `/transactions/cards/${encodeURIComponent(cardId)}?pageNumber=${pageNumber}&pageSize=${pageSize}`
   ).then((response) => {
     const value = unwrapApiValue(response) as CardTransactionsResponse & {
       results?: CardTransactionsResponse['data'];
@@ -304,7 +308,7 @@ export function getCardTransactions(cardId: string): Promise<CardTransactionsRes
       transactions?: CardTransactionsResponse['data'];
     };
     return {
-      ...normalizeListResponse(value),
+      ...normalizeListResponse(value, pageNumber, pageSize),
       cardId: value.cardId ?? cardId,
     } as CardTransactionsResponse;
   });
