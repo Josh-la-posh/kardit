@@ -70,17 +70,25 @@ import UserDetailPage from "./pages/users/UserDetailPage";
 // Customer Management
 import CustomersListPage from "./pages/customers/CustomersListPage";
 import CreateCustomerPage from "./pages/customers/CreateCustomerPage";
+import {
+  CardStepRoute,
+  CustomerStepRoute,
+  ResultStepRoute,
+  ReviewStepRoute,
+} from "./pages/customers/create-customer-steps/CreateCustomerStepRoutes";
 import CustomerProfilePage from "./pages/customers/CustomerProfilePage";
 import CustomerBatchesPage from "./pages/customers/CustomerBatchesPage";
 import IssueCardPage from "./pages/customers/IssueCardPage";
 
 // Card Management
 import CardsListPage from "./pages/cards/CardsListPage";
+import CardIssueStartPage from "./pages/cards/CardIssueStartPage";
 import CardDetailPage from "./pages/cards/CardDetailPage";
 import CreateCardPage from "./pages/cards/CreateCardPage";
 
 // Batch Operations
 import BatchOperationsPage from "./pages/batch/BatchOperationsPage";
+import BatchUploadPage from "./pages/batch/BatchUploadPage";
 
 // Loads
 import LoadsHomePage from "./pages/loads/LoadsHomePage";
@@ -190,13 +198,22 @@ const App = () => (
 
             {/* Customer Management */}
             <Route path="/customers" element={<CustomersListPage />} />
-            <Route path="/customers/create" element={<CreateCustomerPage />} />
+            <Route path="/customers/create" element={<CreateCustomerPage />}>
+              <Route index element={<Navigate to="/customers/create/customer" replace />} />
+              <Route path="customer" element={<CustomerStepRoute />} />
+              <Route path="card" element={<CardStepRoute />} />
+              <Route path="review" element={<ReviewStepRoute />} />
+              <Route path="result" element={<ResultStepRoute />} />
+            </Route>
             <Route path="/customers/batches" element={<CustomerBatchesPage />} />
             <Route path="/customers/:customerId" element={<CustomerProfilePage />} />
             <Route path="/customers/:customerId/cards/new" element={<IssueCardPage />} />
 
             {/* Card Management */}
-            <Route path="/cards" element={<CardsListPage />} />
+            <Route path="/card" element={<CardIssueStartPage />} />
+            <Route path="/cards" element={<CardIssueStartPage />} />
+            <Route path="/cards/list" element={<CardsListPage />} />
+            <Route path="/cards/issue" element={<CardIssueStartPage />} />
             <Route path="/cards/create" element={<CreateCardPage />} />
             <Route path="/cards/:cardId" element={<CardDetailPage />} />
 
@@ -225,6 +242,7 @@ const App = () => (
 
             {/* Batch Operations */}
             <Route path="/batch-operations" element={<BatchOperationsPage />} />
+            <Route path="/batch-operations/new" element={<BatchUploadPage />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

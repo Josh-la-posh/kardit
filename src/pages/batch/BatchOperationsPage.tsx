@@ -1,265 +1,186 @@
-import React, { useRef, useState } from 'react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { AppLayout } from '@/components/AppLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { StatusChip, StatusType } from '@/components/ui/status-chip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBatch, useBatches } from '@/hooks/useBatches';
-import { CARD_PRODUCTS } from '@/stores/mockStore';
-import { CreditCard, Download, Loader2, Upload } from 'lucide-react';
+import React, { useMemo, useState } from 'react'
+import { formatDistanceToNow } from 'date-fns'
+import { Link } from 'react-router-dom'
+import { AppLayout } from '@/components/AppLayout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { useBatches } from '@/hooks/useBatches'
+import { CARD_PRODUCTS } from '@/stores/mockStore'
+import { Eye, Filter, Loader2, RefreshCw, Search, Upload } from 'lucide-react'
 
-function mapStatus(status: string): StatusType {
-  const normalized = status.toUpperCase();
-  if (normalized === 'COMPLETED' || normalized === 'SUCCESS') return 'SUCCESS' as StatusType;
-  if (normalized === 'FAILED') return 'FAILED' as StatusType;
-  if (normalized === 'UPLOADED') return 'PENDING' as StatusType;
-  if (normalized === 'PROCESSING') return 'PROCESSING' as StatusType;
-  return 'ACTIVE' as StatusType;
+type UiStatus = 'PROCESSING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'PENDING'
+
+function normalizeStatus(status: string): UiStatus {
+  const s = status.toUpperCase()
+  if (s === 'COMPLETED' || s === 'SUCCESS') return 'COMPLETED'
+  if (s === 'FAILED') return 'FAILED'
+  if (s === 'PROCESSING') return 'PROCESSING'
+  if (s === 'UPLOADED' || s === 'VALIDATED' || s === 'SUBMITTED') return 'PENDING'
+  return 'PARTIAL'
+}
+
+const STATUS_CLASS: Record<UiStatus, string> = {
+  PROCESSING: 'processing',
+  PARTIAL: 'partial',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  PENDING: 'pending',
 }
 
 export default function BatchOperationsPage() {
-  const { batches, isLoading, upload } = useBatches('cards');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const { batches, isLoading, error, refetch } = useBatches('cards')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | UiStatus>('ALL')
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedProductId) return;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return batches.filter((b) => {
+      const st = normalizeStatus(b.status)
+      if (statusFilter !== 'ALL' && st !== statusFilter) return false
+      if (!q) return true
+      const product = CARD_PRODUCTS.find((p) => p.id === b.productId)?.name ?? b.productId ?? ''
+      const hay = [b.batchId, b.fileName, product].join(' ').toLowerCase()
+      return hay.includes(q)
+    })
+  }, [batches, query, statusFilter])
 
-    setUploading(true);
-    try {
-      const response = await upload({
-        category: 'cards',
-        file,
-        productId: selectedProductId,
-      });
-      setSelectedBatchId(response.batchId);
-      toast.success(`Batch ${response.batchId} uploaded.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Batch upload failed');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const stats = useMemo(() => {
+    const all = batches.map((b) => normalizeStatus(b.status))
+    return {
+      active: all.filter((s) => s === 'PROCESSING' || s === 'PENDING').length,
+      totalRows: batches.reduce((n, b) => n + (b.totalRows || 0), 0),
+      completed: all.filter((s) => s === 'COMPLETED').length,
+      failedRows: batches.reduce((n, b) => n + (b.failedRows || 0), 0),
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    const content = 'customerId,embossName,deliveryMethod,currency\nCUST-001,JANE DOE,COURIER,USD\n';
-    const blob = new Blob([content], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'card_batch_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Template downloaded.');
-  };
+  }, [batches])
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader title="Batch Operations" subtitle="Bulk card issuance" />
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Batch issuance</h1>
+                <p className="page-sub">Upload customer files to onboard and issue cards in bulk.</p>
+              </div>
+              <div className="row-end" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button className="btn btn-ghost" type="button" onClick={refetch}>
+                  <RefreshCw /> Refresh
+                </button>
+                <Link className="btn btn-primary" to="/batch-operations/new">
+                  <Upload /> New batch
+                </Link>
+              </div>
+            </header>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <div className="xl:col-span-2 space-y-4">
-              <div className="kardit-card p-6">
-                <div className="flex items-start gap-3 mb-6">
-                  <div className="rounded-lg bg-primary/10 p-2.5">
-                    <CreditCard className="h-5 w-5 text-primary" />
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Active jobs" value={String(stats.active)} sub="Processing and pending batches" />
+              <Kpi label="Total rows" value={stats.totalRows.toLocaleString()} sub="Rows received from backend" />
+              <Kpi label="Completed" value={String(stats.completed)} valueCls="success" sub="Successfully finalized batches" />
+              <Kpi label="Failed rows" value={String(stats.failedRows)} valueCls="warning" sub="Rows with processing errors" />
+            </section>
+
+            <section className="bch-card" style={{ marginTop: 20 }}>
+              <div className="card-head">
+                <div className="card-head-title">Recent batch jobs</div>
+                <div className="row-end" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="search-wrap">
+                    <Search />
+                    <input
+                      className="bch-input bch-input-sm"
+                      placeholder="Search batch ID or filename"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
                   </div>
-                  <div>
-                    <h2 className="font-medium">Batch Card Creation</h2>
-                    <p className="text-sm text-muted-foreground">Upload a file, choose the issuing product, then submit and execute the batch from the history panel.</p>
-                  </div>
+                  <label className="btn btn-ghost btn-sm" style={{ gap: 6 }}>
+                    <Filter />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as 'ALL' | UiStatus)}
+                      style={{ background: 'transparent', border: 'none', outline: 'none' }}
+                    >
+                      <option value="ALL">All</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="PROCESSING">Processing</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="PARTIAL">Partial</option>
+                      <option value="FAILED">Failed</option>
+                    </select>
+                  </label>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Product <span className="text-destructive">*</span></label>
-                    <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                      <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select product" /></SelectTrigger>
-                      <SelectContent>
-                        {CARD_PRODUCTS.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>{product.name} ({product.code})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button variant="outline" onClick={handleDownloadTemplate}>
-                      <Download className="h-4 w-4 mr-1" /> Template
-                    </Button>
-                    <Button onClick={() => fileInputRef.current?.click()} disabled={!selectedProductId || uploading}>
-                      {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />} Upload File
-                    </Button>
-                    <input ref={fileInputRef} type="file" className="hidden" accept=".csv" onChange={handleFileUpload} />
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground">Upload request requirements: actor user, affiliate scope, product, and CSV file content.</p>
               </div>
 
-              <div className="kardit-card overflow-hidden">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-                ) : batches.length === 0 ? (
-                  <div className="p-12 text-center text-muted-foreground text-sm">No card issuance batches uploaded yet.</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Batch ID</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">File Name</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Records</th>
+              {isLoading ? (
+                <div style={{ padding: 40, display: 'grid', placeItems: 'center' }}>
+                  <Loader2 className="spin" style={{ width: 22, height: 22 }} />
+                </div>
+              ) : error ? (
+                <div className="empty-list" style={{ padding: 24 }}>
+                  <div className="empty-list-title">Could not load batches</div>
+                  <div className="empty-list-sub">{error}</div>
+                  <button className="btn btn-secondary" onClick={refetch}><RefreshCw /> Try again</button>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="empty-list" style={{ padding: 24 }}>
+                  <div className="empty-list-title">No batches found</div>
+                  <div className="empty-list-sub">Try another filter, or upload a new batch.</div>
+                </div>
+              ) : (
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Batch ID</th>
+                      <th>File</th>
+                      <th>Product</th>
+                      <th>Submitted</th>
+                      <th className="right">Rows</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((b) => {
+                      const status = normalizeStatus(b.status)
+                      const product = CARD_PRODUCTS.find((p) => p.id === b.productId)?.name || b.productId || '-'
+                      return (
+                        <tr key={b.batchId}>
+                          <td className="id">{b.batchId}</td>
+                          <td className="meta">{b.fileName}</td>
+                          <td className="meta">{product}</td>
+                          <td className="meta">{formatDistanceToNow(new Date(b.uploadedAt), { addSuffix: true })}</td>
+                          <td className="right tabular">{b.totalRows || b.recordsReceived}</td>
+                          <td>
+                            <span className={`badge ${STATUS_CLASS[status]}`}>
+                              {status === 'PROCESSING' && <Loader2 className="spin" style={{ width: 11, height: 11 }} />}
+                              {status}
+                            </span>
+                          </td>
+                          <td className="right">
+                            <Link to={`/batch-operations?batchId=${encodeURIComponent(b.batchId)}`} className="icon-button" style={{ marginLeft: 'auto' }}>
+                              <Eye />
+                            </Link>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {batches.map((batch, i) => (
-                          <tr
-                            key={batch.batchId}
-                            onClick={() => setSelectedBatchId(batch.batchId)}
-                            className={`cursor-pointer transition-colors hover:bg-muted/40 ${selectedBatchId === batch.batchId ? 'bg-primary/10' : i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                          >
-                            <td className="px-4 py-3 text-sm font-mono text-primary">{batch.batchId}</td>
-                            <td className="px-4 py-3 text-sm">{batch.fileName}</td>
-                            <td className="px-4 py-3 text-sm">{CARD_PRODUCTS.find((product) => product.id === batch.productId)?.name || batch.productId || '—'}</td>
-                            <td className="px-4 py-3"><StatusChip status={mapStatus(batch.status)} label={batch.status} /></td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{batch.processedRows}/{batch.totalRows}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <CardBatchDetail batchId={selectedBatchId} />
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </section>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
-  );
+  )
 }
 
-function CardBatchDetail({ batchId }: { batchId: string | null }) {
-  const { batch, isLoading, refetch } = useBatch(batchId || undefined);
-  const { validate, submit } = useBatches('cards');
-  const [validating, setValidating] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-
-  const handleValidate = async () => {
-    if (!batchId) return;
-    setValidating(true);
-    try {
-      const response = await validate(batchId);
-      toast.success(`Batch ${response.batchId} validated.`);
-      await refetch();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to validate batch');
-    } finally {
-      setValidating(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!batchId) return;
-    setSubmitting(true);
-    try {
-      const response = await submit(batchId);
-      toast.success(`Batch ${response.batchId} submitted.`);
-      await refetch();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to submit batch');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDownloadResults = async () => {
-    if (!batch?.results) return;
-    setDownloading(true);
-    try {
-      window.open(batch.results.downloadUrl, '_blank', 'noopener,noreferrer');
-      toast.success(`Opened ${batch.results.resultFile}`);
-    } finally {
-      setDownloading(false);
-    }
-  };
-
+function Kpi({ label, value, sub, valueCls }: { label: string; value: string; sub: string; valueCls?: string }) {
   return (
-    <div className="kardit-card p-6">
-      {!batchId ? (
-        <p className="text-sm text-muted-foreground">Select a card batch to view its current state and actions.</p>
-      ) : isLoading ? (
-        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-      ) : !batch ? (
-        <p className="text-sm text-muted-foreground">Batch not found.</p>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase">Batch ID</p>
-            <p className="text-sm font-mono">{batch.batch.batchId}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase">Status</p>
-            <StatusChip status={mapStatus(batch.batch.status)} label={batch.batch.status} />
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Uploaded: {format(new Date(batch.upload.uploadedAt), 'MMM d, yyyy HH:mm')}
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            <div><p className="text-xs text-muted-foreground uppercase">Total</p><p>{batch.batch.totalRows}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Valid</p><p>{batch.batch.validRows}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Invalid</p><p>{batch.batch.invalidRows}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Processed</p><p>{batch.batch.processedRows}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Failed</p><p>{batch.batch.failedRows}</p></div>
-            <div><p className="text-xs text-muted-foreground uppercase">Rows Shown</p><p>{batch.rows.length}/{batch.rowsTotal}</p></div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleValidate} disabled={validating}>
-              {validating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Validate
-            </Button>
-            <Button variant="outline" onClick={handleSubmit} disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Submit
-            </Button>
-            <Button variant="outline" onClick={handleDownloadResults} disabled={!batch.results || downloading}>
-              {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Download Results
-            </Button>
-          </div>
-          {batch.rows.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase">Rows</p>
-              {batch.rows.slice(0, 5).map((row) => (
-                <div key={row.rowNumber} className="rounded-md border border-border p-2 text-xs">
-                  <div className="flex justify-between gap-3">
-                    <span className="font-mono">Row {row.rowNumber}</span>
-                    <span>{row.status}</span>
-                  </div>
-                  {row.errors?.map((error) => (
-                    <p key={`${row.rowNumber}-${error.errorCode}`} className="mt-1 text-muted-foreground">{error.message}</p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-          {batch.results && (
-            <div className="text-sm text-muted-foreground">
-              Result file: <span className="font-mono text-foreground">{batch.results.resultFile}</span>
-            </div>
-          )}
-        </div>
-      )}
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className={valueCls ? `kpi-value ${valueCls}` : 'kpi-value'}>{value}</div>
+      <div className="kpi-sub">{sub}</div>
     </div>
-  );
+  )
 }

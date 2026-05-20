@@ -62,9 +62,10 @@ export interface CreateCustomerDraftInput {
     country: string;
   };
   kyc: {
-    idType: number;
+    idType: string;
     idNumber: string;
     kycLevel?: string;
+    verifiedAt?: string;
   };
 }
 
@@ -92,31 +93,25 @@ interface UseCustomersOptions {
   pageSize?: number;
 }
 
-const toScopeType = (stakeholderType?: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER') => {
-  if (stakeholderType === 'BANK') return 'BANK_PORTFOLIO';
-  if (stakeholderType === 'SERVICE_PROVIDER') return 'GLOBAL';
-  return 'AFFILIATE_TENANT';
-};
-
 const buildCriteria = (query: string): CustomerSearchCriteria => {
   const trimmed = query.trim();
   if (!trimmed) {
-    return { phone: null, name: null, customerRefId: null, idNumber: null };
+    return {};
   }
 
   if (trimmed.toUpperCase().startsWith('CUST-')) {
-    return { phone: null, name: null, customerRefId: trimmed, idNumber: null };
+    return { customerRefId: trimmed };
   }
 
   if (/^\+?\d[\d\s-]{6,}$/.test(trimmed)) {
-    return { phone: trimmed, name: null, customerRefId: null, idNumber: null };
+    return { phone: trimmed };
   }
 
   if (/^\d{6,}$/.test(trimmed)) {
-    return { phone: null, name: null, customerRefId: null, idNumber: trimmed };
+    return { idNumber: trimmed };
   }
 
-  return { phone: null, name: trimmed, customerRefId: null, idNumber: null };
+  return { name: trimmed };
 };
 
 export function useCustomers(query = '', options: UseCustomersOptions = {}) {
@@ -124,35 +119,23 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  const { user } = useAuth();
   const { requestContext, criteria, page = 1, pageSize = 20 } = options;
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const resolvedRequestContext =
-        requestContext ||
-        (user?.id && user?.tenantId
-          ? {
-              actorUserId: user.id,
-              userType: user.stakeholderType || 'AFFILIATE',
-              tenantId: user.tenantId,
-              scopeType: toScopeType(user.stakeholderType),
-            }
-          : null);
-
-      if (!resolvedRequestContext) {
-        throw new Error('Missing customer search context');
-      }
-
       const response = await searchCustomers({
-        requestContext: resolvedRequestContext,
+        ...(requestContext
+          ? {
+              requestContext,
+            }
+          : {}),
         criteria: criteria || buildCriteria(query),
         pagination: { page, pageSize },
       });
 
-      const storeCustomers = store.getCustomers(resolvedRequestContext.tenantId);
+      const storeCustomers = store.getCustomers(requestContext?.tenantId);
 
       setCustomers(
         response.results.map((item) => {
@@ -186,7 +169,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, page, pageSize, query, requestContext, user]);
+  }, [criteria, page, pageSize, query, requestContext]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -344,6 +327,7 @@ export function useCreateCustomer() {
             idType: data.kyc.idType,
             idNumber: data.kyc.idNumber,
             kycLevel: data.kyc.kycLevel || 'LEVEL_2',
+            verifiedAt: data.kyc.verifiedAt,
           },
         },
       });

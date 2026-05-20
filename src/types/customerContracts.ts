@@ -28,9 +28,10 @@ export interface CreateCustomerDraftRequest {
       };
     };
     kyc: {
-      idType: number;
+      idType: string;
       idNumber: string;
       kycLevel: string;
+      verifiedAt?: string;
     };
   };
 }
@@ -54,7 +55,7 @@ export interface PaginationRequest {
 }
 
 export interface SearchCustomersRequest {
-  requestContext: CustomerSearchRequestContext;
+  requestContext?: CustomerSearchRequestContext;
   criteria: CustomerSearchCriteria;
   pagination: PaginationRequest;
 }

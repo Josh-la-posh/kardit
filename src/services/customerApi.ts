@@ -15,6 +15,13 @@ type ApiEnvelope<T> = {
   };
 };
 
+type ApiStatusEnvelope<T> = {
+  status?: string;
+  message?: string;
+  error?: unknown;
+  data?: T;
+};
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -62,15 +69,27 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   return (await res.json()) as TResponse;
 }
 
-function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>): TResponse {
-  if (response && typeof response === 'object' && 'data' in response) {
-    const envelope = response as ApiEnvelope<TResponse>;
-    if (envelope.data?.isSuccess === false) {
-      throw new ApiError('Request failed', 200, envelope.data.error);
+function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> | ApiStatusEnvelope<TResponse>): TResponse {
+  if (response && typeof response === 'object') {
+    if ('status' in response && 'data' in response) {
+      const envelope = response as ApiStatusEnvelope<TResponse>;
+      if (envelope.status && envelope.status.toLowerCase() !== 'success') {
+        throw new ApiError(envelope.message || 'Request failed', 200, envelope.error);
+      }
+      if (envelope.data !== undefined) {
+        return envelope.data;
+      }
     }
 
-    if (envelope.data?.value !== undefined) {
-      return envelope.data.value;
+    if ('data' in response) {
+      const envelope = response as ApiEnvelope<TResponse>;
+      if (envelope.data?.isSuccess === false) {
+        throw new ApiError('Request failed', 200, envelope.data.error);
+      }
+
+      if (envelope.data?.value !== undefined) {
+        return envelope.data.value;
+      }
     }
   }
 
@@ -78,10 +97,31 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse>)
 }
 
 export async function searchCustomers(request: SearchCustomersRequest): Promise<SearchCustomersResponse> {
+  const stripEmpty = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      const next = value.map(stripEmpty).filter((item) => item !== undefined);
+      return next.length ? next : undefined;
+    }
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>)
+        .map(([key, item]) => [key, stripEmpty(item)] as const)
+        .filter(([, item]) => item !== undefined);
+      return entries.length ? Object.fromEntries(entries) : undefined;
+    }
+    if (value === null || value === undefined || value === '') return undefined;
+    return value;
+  };
+
+  const sanitizedRequest = (stripEmpty(request) || {}) as SearchCustomersRequest;
+
   const value = unwrapApiValue(
-    await postJson<SearchCustomersResponse | ApiEnvelope<SearchCustomersResponse & { result?: SearchCustomersResponse['results'] }>>(
+    await postJson<
+      SearchCustomersResponse |
+      ApiEnvelope<SearchCustomersResponse & { result?: SearchCustomersResponse['results'] }> |
+      ApiStatusEnvelope<SearchCustomersResponse & { result?: SearchCustomersResponse['results'] }>
+    >(
       '/customers/search',
-      request
+      sanitizedRequest
     )
   ) as SearchCustomersResponse & { result?: SearchCustomersResponse['results'] };
 

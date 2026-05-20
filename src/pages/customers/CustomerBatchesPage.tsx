@@ -1,9 +1,8 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useBatch, useBatches } from '@/hooks/useBatches';
@@ -56,12 +55,14 @@ export default function CustomerBatchesPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Customer Batches"
-            subtitle="Bulk customer onboarding"
-            actions={
-              <div className="flex gap-2">
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Customer Batches</h1>
+                <p className="page-sub">Bulk customer onboarding</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <Button variant="outline" onClick={handleDownloadTemplate}>
                   <Download className="h-4 w-4" /> Download Template
                 </Button>
@@ -70,29 +71,30 @@ export default function CustomerBatchesPage() {
                 </Button>
                 <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".csv" />
               </div>
-            }
-          />
+            </header>
 
-          <div className="kardit-card p-6 mb-4">
+          <section className="card card-pad">
             <h3 className="font-medium mb-2">How batch uploads work</h3>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
               <li>Download the CSV template.</li>
               <li>Upload the completed file to create a batch record.</li>
               <li>Select a batch below to submit, execute, and download results.</li>
             </ol>
-          </div>
+          </section>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <div className="xl:col-span-2 kardit-card overflow-hidden">
+            <section className="xl:col-span-2 card" style={{ overflow: 'hidden' }}>
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : batches.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground text-sm">No batches uploaded yet.</div>
+                <div className="empty-list">
+                  <div className="empty-list-title">No batches uploaded yet.</div>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="data">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Batch ID</th>
@@ -120,11 +122,12 @@ export default function CustomerBatchesPage() {
                   </table>
                 </div>
               )}
-            </div>
+            </section>
 
             <CustomerBatchDetail batchId={selectedBatchId} />
           </div>
-        </div>
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
@@ -177,7 +180,7 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
   };
 
   return (
-    <div className="kardit-card p-6">
+    <section className="card card-pad">
       {!batchId ? (
         <p className="text-sm text-muted-foreground">Select a batch to view its status and actions.</p>
       ) : isLoading ? (
@@ -236,6 +239,6 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

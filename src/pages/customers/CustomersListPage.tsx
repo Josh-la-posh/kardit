@@ -1,34 +1,276 @@
-import React, { useMemo, useState } from 'react';
-import { format } from 'date-fns';
-import { ChevronRight, Loader2, RefreshCw, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/AppLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { StatusChip, type StatusType } from '@/components/ui/status-chip';
-import { useAuth } from '@/hooks/useAuth';
-import { useCustomers } from '@/hooks/useCustomers';
-import { store } from '@/stores/mockStore';
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ChevronRight, RefreshCw, Search, SearchX, UserPlus, X } from 'lucide-react'
+import { AppLayout } from '@/components/AppLayout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { useCustomers } from '@/hooks/useCustomers'
+import type { CustomerListItem } from '@/hooks/useCustomers'
 
-const kycFilterOptions = ['ALL', 'LEVEL_3', 'LEVEL_2', 'LEVEL_1'] as const;
-const statusFilterOptions = ['ALL', 'PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED'] as const;
+type KycFilter = 'all' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3'
+type StatusFilter = 'all' | 'DRAFT' | 'ACTIVE' | 'FROZEN' | 'PENDING'
 
-const customerStatusToChip: Record<string, StatusType> = {
-  ACTIVE: 'ACTIVE',
-  PENDING: 'PENDING',
-  REJECTED: 'REJECTED',
-  BLOCKED: 'BLOCKED',
-};
+export default function CustomersListPage() {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [kyc, setKyc] = useState<KycFilter>('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [page, setPage] = useState(1)
+  const pageSize = 20
 
-const kycToneMap: Record<string, string> = {
-  LEVEL_1: 'border-warning/30 bg-warning/10 text-warning',
-  LEVEL_2: 'border-info/30 bg-info/10 text-info',
-  LEVEL_3: 'border-success/30 bg-success/10 text-success',
-};
+  const { customers, isLoading, error, refetch, total } = useCustomers(query, { page, pageSize })
 
-function formatKycLevel(kycLevel: string) {
-  return kycLevel.replace('LEVEL_', 'Tier ');
+  const filtered = useMemo(() => {
+    return customers.filter((c) => {
+      if (kyc !== 'all' && c.kycLevel !== kyc) return false
+      if (status !== 'all' && c.status !== status) return false
+      return true
+    })
+  }, [customers, kyc, status])
+
+  function clearFilters() {
+    setQuery('')
+    setKyc('all')
+    setStatus('all')
+    setPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  return (
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+      <AppLayout>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Customers</h1>
+                <p className="page-sub">
+                  Search and view captured customers in your tenant. Click any row to open the
+                  profile.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button className="btn btn-secondary" onClick={() => refetch()} disabled={isLoading}>
+                  <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
+                </button>
+                <Link to="/customers/create" className="btn btn-primary">
+                  <UserPlus /> New customer
+                </Link>
+              </div>
+            </header>
+
+            <section className="card" style={{ padding: '18px 22px' }}>
+              <div className="list-toolbar">
+                <div className="search-input-wrap">
+                  <Search className="search-icn" />
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Search by name, phone, customer ref, BVN, or NIN"
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value)
+                      setPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14 }}>
+                <div>
+                  <FilterLabel>KYC level</FilterLabel>
+                  <div className="filter-chips">
+                    <Chip active={kyc === 'all'} onClick={() => { setKyc('all'); setPage(1) }}>All</Chip>
+                    <Chip active={kyc === 'LEVEL_3'} onClick={() => { setKyc('LEVEL_3'); setPage(1) }}>Tier 3</Chip>
+                    <Chip active={kyc === 'LEVEL_2'} onClick={() => { setKyc('LEVEL_2'); setPage(1) }}>Tier 2</Chip>
+                    <Chip active={kyc === 'LEVEL_1'} onClick={() => { setKyc('LEVEL_1'); setPage(1) }}>Tier 1</Chip>
+                  </div>
+                </div>
+                <div>
+                  <FilterLabel>Status</FilterLabel>
+                  <div className="filter-chips">
+                    <Chip active={status === 'all'} onClick={() => { setStatus('all'); setPage(1) }}>All</Chip>
+                    <Chip active={status === 'DRAFT'} onClick={() => { setStatus('DRAFT'); setPage(1) }}>Draft</Chip>
+                    <Chip active={status === 'ACTIVE'} onClick={() => { setStatus('ACTIVE'); setPage(1) }}>Active</Chip>
+                    <Chip active={status === 'FROZEN'} onClick={() => { setStatus('FROZEN'); setPage(1) }}>Frozen</Chip>
+                    <Chip active={status === 'PENDING'} onClick={() => { setStatus('PENDING'); setPage(1) }}>Pending</Chip>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="result-meta">
+              Showing <strong>{filtered.length}</strong> of <strong>{total}</strong> customers
+            </div>
+
+            <section className="card" style={{ padding: 0 }}>
+              <table className="data customers">
+                <thead>
+                  <tr>
+                    <th style={{ width: 170 }}>Reference</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>KYC</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th className="right" style={{ width: 50 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <RefreshCw className="spin" />
+                          <div className="empty-list-title">Loading customers...</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <SearchX />
+                          <div className="empty-list-title">Unable to load customers</div>
+                          <div className="empty-list-sub">{error}</div>
+                          <button className="btn btn-secondary" onClick={() => refetch()}>
+                            <RefreshCw /> Try again
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <SearchX />
+                          <div className="empty-list-title">No customers match those filters</div>
+                          <div className="empty-list-sub">
+                            Try changing or clearing the filters above.
+                            <br />
+                            Search runs against name, phone, ref, BVN, and NIN.
+                          </div>
+                          <button className="btn btn-secondary" onClick={clearFilters}>
+                            <X /> Clear filters
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((c) => (
+                      <CustomerRow
+                        key={c.customerRefId}
+                        c={c}
+                        onOpen={() => navigate(`/customers/${encodeURIComponent(c.customerRefId)}`)}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </section>
+            <div className="table-pager">
+              <div className="table-pager__meta">
+                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+              </div>
+              <div className="table-pager__actions">
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1 || isLoading}
+                >
+                  Previous
+                </button>
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || isLoading}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+            <div className="notice info" style={{ marginTop: 10 }}>
+              <InfoIcon />
+              <div>
+                <span className="strong">Scope.</span>{' '}
+                This list is segregated to your tenant. Issuing-bank users see only customers
+                under their bank's cards; service-provider users see globally.
+              </div>
+            </div>
+          </div>
+        </main>
+      </AppLayout>
+    </ProtectedRoute>
+  )
+}
+
+function CustomerRow({ c, onOpen }: { c: CustomerListItem; onOpen: () => void }) {
+  return (
+    <tr onClick={onOpen} className="row-clickable">
+      <td className="id">{c.customerRefId}</td>
+      <td>
+        <div className="customer-name">
+          <div className="avatar-sm">{getInitials(c.fullName)}</div>
+          <div>
+            <div className="customer-name__title">{c.fullName}</div>
+            <div className="customer-name__sub">{c.email || c.phone}</div>
+          </div>
+        </div>
+      </td>
+      <td className="mono customer-phone">{c.phone || '-'}</td>
+      <td><KycBadge level={c.kycLevel} /></td>
+      <td><StatusBadge status={c.status} /></td>
+      <td className="meta">{formatShortDate(c.createdAt)}</td>
+      <td className="right">
+        <Link
+          to={`/customers/${encodeURIComponent(c.customerRefId)}`}
+          className="icon-button"
+          aria-label="View profile"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ChevronRight />
+        </Link>
+      </td>
+    </tr>
+  )
+}
+
+function Chip({ active, onClick, children }: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button className={active ? 'filter-chip is-active' : 'filter-chip'} onClick={onClick}>
+      {children}
+    </button>
+  )
+}
+
+function FilterLabel({ children }: { children: React.ReactNode }) {
+  return <div className="filter-label">{children}</div>
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const css = `status-${status.toLowerCase()}`
+  return <span className={`badge ${css}`}>{status}</span>
+}
+
+function KycBadge({ level }: { level: string }) {
+  const n = level.replace('LEVEL_', '')
+  return <span className={`kyc-pill lvl-${n}`}>Tier {n}</span>
+}
+
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  )
 }
 
 function getInitials(name: string) {
@@ -37,231 +279,11 @@ function getInitials(name: string) {
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
-    .join('');
+    .join('')
 }
 
-function FilterPill({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-        active
-          ? 'border-primary/25 bg-primary/10 text-primary'
-          : 'border-border bg-background/60 text-muted-foreground hover:border-primary/25 hover:text-foreground',
-      ].join(' ')}
-    >
-      {label}
-    </button>
-  );
-}
-
-export default function CustomersListPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [search, setSearch] = useState('');
-  const [kycFilter, setKycFilter] = useState<(typeof kycFilterOptions)[number]>('ALL');
-  const [statusFilter, setStatusFilter] = useState<(typeof statusFilterOptions)[number]>('ALL');
-  const { customers, isLoading, error, refetch } = useCustomers(search);
-
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) => {
-      const matchesKyc = kycFilter === 'ALL' || customer.kycLevel === kycFilter;
-      const matchesStatus = statusFilter === 'ALL' || customer.status === statusFilter;
-      return matchesKyc && matchesStatus;
-    });
-  }, [customers, kycFilter, statusFilter]);
-
-  const customerCardCounts = useMemo(() => {
-    const tenantCustomers = store.getCustomers(user?.tenantId);
-    return new Map(
-      tenantCustomers.map((customer) => [customer.customerId, store.getCardsByCustomer(customer.id, customer.tenantId).length])
-    );
-  }, [user?.tenantId]);
-
-  const subtitle = useMemo(() => {
-    if (!search.trim() && kycFilter === 'ALL' && statusFilter === 'ALL') {
-      return `${customers.length} customer${customers.length === 1 ? '' : 's'}`;
-    }
-    return `${filteredCustomers.length} of ${customers.length} customer${customers.length === 1 ? '' : 's'}`;
-  }, [customers.length, filteredCustomers.length, kycFilter, search, statusFilter]);
-
-  return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
-      <AppLayout>
-        <div className="animate-fade-in space-y-6">
-          <PageHeader
-            title="Customers"
-            subtitle={subtitle}
-            actions={
-              <Button variant="outline" onClick={() => refetch()} disabled={isLoading} className="gap-2">
-                <RefreshCw className={['h-4 w-4', isLoading ? 'animate-spin' : ''].join(' ')} />
-                Refresh
-              </Button>
-            }
-          />
-
-          <section className="rounded-[28px] border border-border/80 bg-card px-6 py-6 shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)]">
-            <div className="space-y-6">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  className="flex h-12 w-full rounded-xl border border-border bg-background/70 px-4 py-2 pl-12 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
-                  placeholder="Search by name, phone, customer ref, BVN, or NIN"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-2">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    KYC level
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {kycFilterOptions.map((option) => (
-                      <FilterPill
-                        key={option}
-                        active={kycFilter === option}
-                        label={option === 'ALL' ? 'All' : formatKycLevel(option)}
-                        onClick={() => setKycFilter(option)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Status
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {statusFilterOptions.map((option) => (
-                      <FilterPill
-                        key={option}
-                        active={statusFilter === option}
-                        label={option === 'ALL' ? 'All' : option.charAt(0) + option.slice(1).toLowerCase()}
-                        onClick={() => setStatusFilter(option)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{filteredCustomers.length}</span> of{' '}
-            <span className="font-semibold text-foreground">{customers.length}</span> customers
-          </p>
-
-          <section className="overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)]">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">{error}</div>
-            ) : filteredCustomers.length === 0 ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">
-                No customers match the current filters.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-border/80 bg-background/40">
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Reference
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Name
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Phone
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        KYC
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Cards
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Created
-                      </th>
-                      <th className="w-12 px-6 py-4" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/80">
-                    {filteredCustomers.map((customer) => (
-                      <tr
-                        key={customer.customerRefId}
-                        onClick={() => navigate(`/customers/${customer.customerRefId}`)}
-                        className="cursor-pointer transition-colors hover:bg-background/40"
-                      >
-                        <td className="px-6 py-5 align-middle text-sm font-mono font-medium text-foreground">
-                          {customer.customerRefId}
-                        </td>
-                        <td className="px-6 py-5 align-middle">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-sm font-medium text-primary">
-                              {getInitials(customer.fullName)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-base font-semibold text-foreground">{customer.fullName}</p>
-                              <p className="truncate text-sm text-muted-foreground">{customer.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 align-middle text-sm text-muted-foreground">
-                          {customer.phone || '-'}
-                        </td>
-                        <td className="px-6 py-5 align-middle">
-                          <span
-                            className={[
-                              'inline-flex rounded-full border px-3 py-1 text-sm font-medium',
-                              kycToneMap[customer.kycLevel] || 'border-border bg-muted/50 text-muted-foreground',
-                            ].join(' ')}
-                          >
-                            {formatKycLevel(customer.kycLevel)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5 align-middle">
-                          <StatusChip
-                            status={customerStatusToChip[customer.status] || 'INACTIVE'}
-                            label={customer.status}
-                            showIcon={false}
-                          />
-                        </td>
-                        <td className="px-6 py-5 align-middle text-sm text-muted-foreground">
-                          {customerCardCounts.get(customer.customerId) ?? 0}
-                        </td>
-                        <td className="px-6 py-5 align-middle text-sm text-muted-foreground">
-                          {format(new Date(customer.createdAt), 'dd MMM yyyy')}
-                        </td>
-                        <td className="px-6 py-5 align-middle text-right text-muted-foreground">
-                          <ChevronRight className="ml-auto h-5 w-5" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
-      </AppLayout>
-    </ProtectedRoute>
-  );
+function formatShortDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }

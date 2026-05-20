@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
@@ -156,32 +155,33 @@ export default function IssueCardPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Issue Additional Card"
-            subtitle="Create a new card for this customer"
-            actions={
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Issue Additional Card</h1>
+                <p className="page-sub">Create a new card for this customer</p>
+              </div>
               <Button variant="outline" size="sm" onClick={() => navigate(`/customers/${customerId}`)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
-            }
-          />
+            </header>
 
           {/* Customer Header */}
           {customer && (
-            <div className="kardit-card p-4 mb-6 flex items-center justify-between">
+            <section className="card card-pad mb-6 flex items-center justify-between">
               <div>
                 <p className="font-medium">{customer.firstName} {customer.lastName}</p>
                 <p className="text-sm text-muted-foreground">{customer.customerId}</p>
               </div>
               <StatusChip status={customer.status as StatusType} />
-            </div>
+            </section>
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-6">
               {/* Card Details */}
-              <div className="kardit-card p-6 space-y-4">
+              <section className="card card-pad space-y-4">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Details</h2>
                 <div>
                   <TextField label={fieldLabel('Emboss Name', true)} value={form.embossName} onChange={(e) => set('embossName', e.target.value.toUpperCase())} error={errors.embossName} placeholder="Name on card" />
@@ -254,11 +254,11 @@ export default function IssueCardPage() {
                     {banksError && <p className="text-xs text-destructive">{banksError}</p>}
                   </div>
                 </div>
-              </div>
+              </section>
 
               {/* Customer KYC & Contact (collapsible) */}
               <Collapsible open={kycOpen} onOpenChange={setKycOpen}>
-                <div className="kardit-card p-6 space-y-4">
+                <section className="card card-pad space-y-4">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
                     <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Customer KYC & Contact</h2>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${kycOpen ? 'rotate-180' : ''}`} />
@@ -282,7 +282,7 @@ export default function IssueCardPage() {
                       <TextField label={fieldLabel('ID Number', true)} value={form.idNumber} onChange={(e) => set('idNumber', e.target.value)} error={errors.idNumber} />
                     </div>
                   </CollapsibleContent>
-                </div>
+                </section>
               </Collapsible>
 
               <div className="flex gap-3 justify-end">
@@ -312,7 +312,8 @@ export default function IssueCardPage() {
               </Collapsible>
             </div>
           </div>
-        </div>
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );

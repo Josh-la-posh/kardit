@@ -1,41 +1,234 @@
-import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
-import {
-  ArrowLeft,
-  ChevronRight,
-  CreditCard,
-  Loader2,
-  Mail,
-  MapPin,
-  Phone,
-} from 'lucide-react';
-import { AppLayout } from '@/components/AppLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Button } from '@/components/ui/button';
-import { StatusChip, type StatusType } from '@/components/ui/status-chip';
-import { useCustomer } from '@/hooks/useCustomers';
+﻿import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, CreditCard, Edit2, List, Plus, Snowflake, Sun, UserX, Wallet } from 'lucide-react'
+import { AppLayout } from '@/components/AppLayout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { useCustomer } from '@/hooks/useCustomers'
 
-const customerStatusToChip: Record<string, StatusType> = {
-  ACTIVE: 'ACTIVE',
-  PENDING: 'PENDING',
-  REJECTED: 'REJECTED',
-  BLOCKED: 'BLOCKED',
-};
+export default function CustomerProfilePage() {
+  const { customerId } = useParams<{ customerId: string }>()
+  const { customer, cards, isLoading, error } = useCustomer(customerId)
 
-const cardTypeToneMap: Record<string, string> = {
-  VIRTUAL: 'border-info/30 bg-info/10 text-info',
-  PHYSICAL: 'border-success/30 bg-success/10 text-success',
-};
+  return (
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+      <AppLayout>
+        <main className="scr-main">
+          <div className="container">
+            <Link to="/customers" className="back-link">
+              <ArrowLeft /> Back to customers
+            </Link>
+            {isLoading ? (
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Loading customer profile...</div>
+              </div>
+            ) : error || !customer ? (
+              <NotFound refValue={customerId} message={error} />
+            ) : (
+              <Profile customer={customer} cards={cards} />
+            )}
+          </div>
+        </main>
+      </AppLayout>
+    </ProtectedRoute>
+  )
+}
 
-const kycToneMap: Record<string, string> = {
-  LEVEL_1: 'border-warning/30 bg-warning/10 text-warning',
-  LEVEL_2: 'border-info/30 bg-info/10 text-info',
-  LEVEL_3: 'border-success/30 bg-success/10 text-success',
-};
+function Profile({ customer, cards }: { customer: NonNullable<ReturnType<typeof useCustomer>['customer']>; cards: ReturnType<typeof useCustomer>['cards'] }) {
+  const cardCount = cards.length
+  const fullName = customer.fullName
+  const issueLink = `/customers/${encodeURIComponent(customer.customerRefId)}/cards/new`
 
-function formatKycLevel(kycLevel?: string) {
-  return kycLevel ? kycLevel.replace('LEVEL_', 'Tier ') : '-';
+  return (
+    <>
+      <section className="profile-hero">
+        <div className="profile-avatar">{getInitials(fullName)}</div>
+        <div className="profile-meta">
+          <div className="profile-name">{fullName}</div>
+          <div className="profile-meta-row">
+            <span className="profile-ref">{customer.customerRefId}</span>
+            <StatusBadge status={customer.status} />
+            <KycBadge level={customer.kycLevel || 'LEVEL_2'} />
+            <span>Captured {formatDate(customer.dateOfBirth)}</span>
+          </div>
+        </div>
+        <div className="profile-actions">
+          <a
+            href="#edit"
+            className="btn btn-secondary btn-sm"
+            onClick={(e) => {
+              e.preventDefault()
+              window.alert('Editing happens in the capture flow - not from this view.')
+            }}
+          >
+            <Edit2 /> Edit
+          </a>
+          <Link to={issueLink} className="btn btn-primary">
+            <CreditCard /> Issue new card
+          </Link>
+        </div>
+      </section>
+
+      <div className="profile-two-col">
+        <div className="panel-card">
+          <div className="panel-head"><div className="panel-title">Identity</div></div>
+          <div className="panel-body">
+            <dl className="profile-specs">
+              <div><dt>Title</dt><dd>-</dd></div>
+              <div><dt>Full name</dt><dd>{fullName}</dd></div>
+              <div><dt>Date of birth</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
+              <div><dt>Gender</dt><dd>-</dd></div>
+              <div><dt>Nationality</dt><dd>-</dd></div>
+              <div><dt>Mobile</dt><dd className="mono">{customer.phone || '-'}</dd></div>
+              <div><dt>Email</dt><dd>{customer.email || <span className="muted">not provided</span>}</dd></div>
+              <div>
+                <dt>Address</dt>
+                <dd>
+                  {customer.address
+                    ? [customer.address.line1, customer.address.city, customer.address.state, customer.address.country].filter(Boolean).join(', ')
+                    : <span className="muted">not provided</span>}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <div className="panel-card">
+          <div className="panel-head"><div className="panel-title">KYC details</div></div>
+          <div className="panel-body">
+            <dl className="profile-specs">
+              <div><dt>KYC level</dt><dd><KycBadge level={customer.kycLevel || 'LEVEL_2'} /></dd></div>
+              <div><dt>BVN</dt><dd className="mono">{customer.idNumber || '-'}</dd></div>
+              <div><dt>NIN</dt><dd className="mono"><span className="muted">not provided</span></dd></div>
+              <div><dt>Secondary ID</dt><dd>{customer.idType || <span className="muted">not provided</span>}</dd></div>
+              <div><dt>Verified at</dt><dd>{customer.verifiedAt ? formatDate(customer.verifiedAt) : <span className="muted">pending</span>}</dd></div>
+              <div><dt>Created</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div className="cards-list-card">
+        <div className="cards-list-head">
+          <div>
+            <span className="cards-list-title">Cards</span>
+            <span className="cards-list-count">{cardCount} linked</span>
+          </div>
+          {cardCount > 0 && (
+            <Link to={issueLink} className="btn btn-secondary btn-sm">
+              <Plus /> Issue card
+            </Link>
+          )}
+        </div>
+        <div className="cards-list-body">
+          {cardCount === 0 ? (
+            <div className="cards-empty">
+              No cards linked to this customer yet.{' '}
+              <Link to={issueLink} className="cta-link">Issue the first card -&gt;</Link>
+            </div>
+          ) : (
+            cards.map((card) => <CardRow key={card.id} card={card} />)
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function CardRow({ card }: { card: ReturnType<typeof useCustomer>['cards'][number] }) {
+  const cardType = card.productCode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL'
+  const status = card.status as 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING'
+  const thumbCls = status === 'FROZEN' ? 'frozen' : cardType === 'PHYSICAL' ? 'physical' : ''
+
+  return (
+    <div className="card-row">
+      <div className={`card-thumb ${thumbCls}`}>VERVE</div>
+      <div className="card-body">
+        <div className="card-head-row">
+          <span className="card-id">{card.id}</span>
+          <CardStatusBadge status={status} />
+          <span className={`kyc-pill lvl-${cardType === 'VIRTUAL' ? '2' : '3'}`}>{cardType}</span>
+        </div>
+        <div className="card-product">{card.productName} · {card.issuingBankName}</div>
+        <div className="card-meta">
+          <span className="card-pan">{card.maskedPan}</span> · created {formatDate(card.createdAt)}
+        </div>
+      </div>
+      <div className="card-actions">
+        <Link to={`/cards/${encodeURIComponent(card.id)}`} className="btn btn-ghost btn-sm">
+          <Wallet /> Balance
+        </Link>
+        <a
+          href="#txns"
+          className="btn btn-ghost btn-sm"
+          onClick={(e) => {
+            e.preventDefault()
+            window.alert('Transactions - coming later.')
+          }}
+        >
+          <List /> Txns
+        </a>
+        {status === 'ACTIVE' && (
+          <a
+            href="#freeze"
+            className="btn btn-ghost btn-sm"
+            onClick={(e) => {
+              e.preventDefault()
+              window.alert('Freeze flow - coming later.')
+            }}
+          >
+            <Snowflake /> Freeze
+          </a>
+        )}
+        {status === 'FROZEN' && (
+          <a
+            href="#unfreeze"
+            className="btn btn-ghost btn-sm"
+            onClick={(e) => {
+              e.preventDefault()
+              window.alert('Unfreeze flow - coming later.')
+            }}
+          >
+            <Sun /> Unfreeze
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CardStatusBadge({ status }: { status: 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' }) {
+  return <span className={`badge status-${status.toLowerCase()}`}>{status}</span>
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`badge status-${status.toLowerCase()}`}>{status}</span>
+}
+
+function KycBadge({ level }: { level: string }) {
+  const n = level.replace('LEVEL_', '')
+  return <span className={`kyc-pill lvl-${n}`}>Tier {n}</span>
+}
+
+function NotFound({ refValue, message }: { refValue: string | undefined; message?: string | null }) {
+  return (
+    <div className="empty-list profile-empty-card">
+      <UserX />
+      <div className="empty-list-title">Customer not found</div>
+      <div className="empty-list-sub">
+        {message ? (
+          message
+        ) : refValue ? (
+          <>No customer in your tenant scope with reference <span className="mono profile-ref-inline">{refValue}</span>.</>
+        ) : (
+          'No customer reference was provided.'
+        )}
+        <br />
+        It may belong to a different tenant or have been removed - you only see customers in your scope.
+      </div>
+      <Link to="/customers" className="btn btn-primary">
+        <ArrowLeft /> Back to customers
+      </Link>
+    </div>
+  )
 }
 
 function getInitials(name: string) {
@@ -44,255 +237,12 @@ function getInitials(name: string) {
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
-    .join('');
+    .join('')
 }
 
-function DetailGrid({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: Array<{ label: string; value: React.ReactNode }>;
-}) {
-  return (
-    <section className="overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)]">
-      <div className="border-b border-border/80 px-6 py-4">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-      </div>
-      <div className="divide-y divide-border/80">
-        {rows.map((row) => (
-          <div key={row.label} className="grid gap-2 px-6 py-4 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-start">
-            <p className="text-sm text-muted-foreground">{row.label}</p>
-            <div className="text-sm font-medium text-foreground sm:text-right">{row.value}</div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export default function CustomerProfilePage() {
-  const { customerId } = useParams<{ customerId: string }>();
-  const navigate = useNavigate();
-  const { customer, cards, isLoading, error } = useCustomer(customerId);
-
-  if (isLoading) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
-        <AppLayout>
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  if (error || !customer) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
-        <AppLayout>
-          <div className="py-20 text-center text-muted-foreground">{error || 'Customer not found.'}</div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  const identityRows = [
-    { label: 'Full name', value: customer.fullName },
-    {
-      label: 'Date of birth',
-      value: customer.dateOfBirth ? format(new Date(customer.dateOfBirth), 'dd MMM yyyy') : '-',
-    },
-    {
-      label: 'Mobile',
-      value: customer.phone ? (
-        <span className="inline-flex items-center gap-2">
-          <Phone className="h-4 w-4 text-muted-foreground" />
-          {customer.phone}
-        </span>
-      ) : (
-        '-'
-      ),
-    },
-    {
-      label: 'Email',
-      value: customer.email ? (
-        <span className="inline-flex items-center gap-2 break-all">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          {customer.email}
-        </span>
-      ) : (
-        '-'
-      ),
-    },
-    {
-      label: 'Address',
-      value: customer.address ? (
-        <span className="inline-flex items-start justify-end gap-2 text-right">
-          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-          <span>
-            {[customer.address.line1, customer.address.city, customer.address.state, customer.address.country]
-              .filter(Boolean)
-              .join(', ')}
-          </span>
-        </span>
-      ) : (
-        '-'
-      ),
-    },
-  ];
-
-  const kycRows = [
-    {
-      label: 'KYC level',
-      value: (
-        <span
-          className={[
-            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
-            kycToneMap[customer.kycLevel || ''] || 'border-border bg-muted/50 text-muted-foreground',
-          ].join(' ')}
-        >
-          {formatKycLevel(customer.kycLevel)}
-        </span>
-      ),
-    },
-    { label: 'ID type', value: customer.idType || '-' },
-    { label: 'ID number', value: customer.idNumber || '-' },
-    {
-      label: 'Verified at',
-      value: customer.verifiedAt ? format(new Date(customer.verifiedAt), 'dd MMM yyyy') : '-',
-    },
-    // {
-    //   label: 'Created',
-    //   value: customer.createdAt ? format(new Date(customer.createdAt), 'dd MMM yyyy') : '-',
-    // },
-  ];
-
-  return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
-      <AppLayout>
-        <div className="animate-fade-in space-y-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/customers')} className="gap-2 px-0">
-            <ArrowLeft className="h-4 w-4" />
-            Back to customers
-          </Button>
-
-          <section className="rounded-[28px] border border-border/80 bg-card px-6 py-6 shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)] sm:px-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xl font-semibold text-primary">
-                  {getInitials(customer.fullName)}
-                </div>
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-3xl font-semibold tracking-tight text-foreground">{customer.fullName}</h1>
-                    <span className="text-sm font-mono font-medium text-muted-foreground">
-                      {customer.customerRefId}
-                    </span>
-                    <StatusChip
-                      status={customerStatusToChip[customer.status] || 'INACTIVE'}
-                      label={customer.status}
-                      showIcon={false}
-                    />
-                    <span
-                      className={[
-                        'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
-                        kycToneMap[customer.kycLevel || ''] || 'border-border bg-muted/50 text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      {formatKycLevel(customer.kycLevel)}
-                    </span>
-                  </div>
-
-                  {/* <p className="text-sm text-muted-foreground">
-                    Captured {format(new Date(customer.createdAt), 'dd MMM yyyy')}
-                  </p> */}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => navigate(`/customers/${customer.customerRefId}/cards/new`)}>
-                  <CreditCard className="h-4 w-4" />
-                  Issue new card
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <DetailGrid title="Identity" rows={identityRows} />
-            <DetailGrid title="KYC details" rows={kycRows} />
-          </div>
-
-          <section className="overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)]">
-            <div className="flex items-center justify-between border-b border-border/80 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-base font-semibold text-foreground">Cards</h2>
-                <span className="text-sm text-muted-foreground">
-                  {cards.length} linked
-                </span>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => navigate(`/customers/${customer.customerRefId}/cards/new`)}>
-                <CreditCard className="h-4 w-4" />
-                Issue card
-              </Button>
-            </div>
-
-            {cards.length === 0 ? (
-              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
-                No cards have been issued for this customer yet.
-              </div>
-            ) : (
-              <div className="divide-y divide-border/80">
-                {cards.map((card) => {
-                  const cardType = card.productCode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL';
-
-                  return (
-                    <button
-                      key={card.id}
-                      type="button"
-                      onClick={() => navigate(`/cards/${card.id}`)}
-                      className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-background/40"
-                    >
-                      <div className="flex min-w-0 items-center gap-4">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                          <CreditCard className="h-5 w-5" />
-                        </div>
-
-                        <div className="min-w-0 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-mono font-semibold text-foreground">{card.maskedPan}</p>
-                            <StatusChip status={card.status as StatusType} showIcon={false} />
-                            <span
-                              className={[
-                                'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
-                                cardTypeToneMap[cardType] || 'border-border bg-muted/50 text-muted-foreground',
-                              ].join(' ')}
-                            >
-                              {cardType}
-                            </span>
-                          </div>
-
-                          <p className="text-sm text-foreground">
-                            {card.productName} <span className="text-muted-foreground">. {card.issuingBankName}</span>
-                          </p>
-
-                          <p className="text-xs text-muted-foreground">
-                            Created {format(new Date(card.createdAt), 'dd MMM yyyy')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <ChevronRight className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
-      </AppLayout>
-    </ProtectedRoute>
-  );
+function formatDate(value?: string) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
