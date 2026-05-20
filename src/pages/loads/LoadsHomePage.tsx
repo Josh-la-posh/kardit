@@ -2,9 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { useLoadSummary } from '@/hooks/useLoads';
-import { Loader2, ArrowRight, CreditCard, RotateCcw, Layers } from 'lucide-react';
+import { Loader2, ArrowRight, CreditCard, RotateCcw } from 'lucide-react';
 
 const tiles = [
   { label: 'Single Load', description: 'Load funds to a single card', icon: CreditCard, path: '/loads/single' },
@@ -19,43 +18,63 @@ export default function LoadsHomePage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader title="Loads" subtitle="Manage card funding and unload operations" />
+        <main className="scr-main">
+          <div className="container container--narrow">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Loads</h1>
+                <p className="page-sub">Manage card funding and unload operations.</p>
+              </div>
+            </header>
 
-          {/* Summary widgets */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div className="kardit-card p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Today's Loads</p>
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary mt-2" /> : (
-                <p className="text-2xl font-bold text-primary mt-1">{summary.todayCount}</p>
-              )}
-            </div>
-            <div className="kardit-card p-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Today's Total Amount</p>
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary mt-2" /> : (
-                <p className="text-2xl font-bold text-primary mt-1">${summary.todayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-              )}
-            </div>
-          </div>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <div className="kpi">
+                <div className="kpi-label">Today's loads</div>
+                <div className="kpi-value">
+                  {isLoading ? <Loader2 className="spin" style={{ width: 20, height: 20 }} /> : summary.todayCount}
+                </div>
+                <div className="kpi-sub">Number of load operations posted today</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">Today's amount</div>
+                <div className="kpi-value">
+                  {isLoading ? <Loader2 className="spin" style={{ width: 20, height: 20 }} /> : `$${summary.todayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                </div>
+                <div className="kpi-sub">Aggregate load value processed today</div>
+              </div>
+            </section>
 
-          {/* Tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {tiles.map(tile => (
-              <button
-                key={tile.path}
-                onClick={() => navigate(tile.path)}
-                className="kardit-card p-6 text-left hover:border-primary/50 transition-colors group"
-              >
-                <tile.icon className="h-8 w-8 text-primary mb-3" />
-                <h3 className="text-base font-semibold mb-1">{tile.label}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{tile.description}</p>
-                <span className="text-xs text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-                  Go <ArrowRight className="h-3 w-3" />
-                </span>
-              </button>
-            ))}
+            <section>
+              <div className="section-head">
+                <div>
+                  <div className="section-title">Load operations</div>
+                  <div className="section-sub">Choose what you want to process</div>
+                </div>
+              </div>
+
+              <div className="action-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                {tiles.map((tile) => (
+                  <button
+                    key={tile.path}
+                    onClick={() => navigate(tile.path)}
+                    className="action-card"
+                    type="button"
+                    style={{ textAlign: 'left' }}
+                  >
+                    <div className="action-icon">
+                      <tile.icon />
+                    </div>
+                    <div className="action-title">{tile.label}</div>
+                    <div className="action-meta">{tile.description}</div>
+                    <div className="action-cta">
+                      Open <ArrowRight />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );

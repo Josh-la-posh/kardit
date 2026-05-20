@@ -3,9 +3,20 @@
 /* UJR006 — Batch Onboarding (unique-to-batches styles only;
    shared shell + buttons + kpi + notice live in portal.css) */
 
+/* Theme bridge: keep batch-specific colors adaptive across light/dark */
+:root {
+  --bch-warning-bg: var(--warning-bg, var(--cs-red-100));
+  --bch-warning-text: var(--warning-text, var(--cs-red-900));
+  --bch-warning-border: var(--warning-ring, var(--cs-red-300));
+  --bch-info-bg: var(--info-bg, var(--cs-green-100));
+  --bch-info-text: var(--info-text, var(--cs-green-900));
+  --bch-info-border: var(--info-ring, var(--cs-green-300));
+  --bch-focus-ring: color-mix(in srgb, var(--cs-green-700) 22%, transparent);
+}
+
 /* Horizontal stepper between AppBar and main content on step pages */
 .hstepper {
-  background: var(--cs-white);
+  background: var(--surface);
   border-bottom: 1px solid var(--cs-line);
   padding: 14px 28px;
   display: flex;
@@ -31,7 +42,7 @@
   width: 22px; height: 22px;
   border-radius: 50%;
   border: 1.5px solid var(--cs-line-strong);
-  background: var(--cs-white);
+  background: var(--surface);
   display: grid; place-items: center;
   font-size: 11px; font-weight: 700;
   color: var(--cs-ink-200);
@@ -40,12 +51,12 @@
 }
 .hstep.is-active .hstep__circle {
   background: var(--cs-green-700);
-  color: var(--cs-white);
+  color: var(--surface);
   border-color: var(--cs-green-700);
 }
 .hstep.is-done .hstep__circle {
   background: var(--cs-green-500);
-  color: var(--cs-white);
+  color: var(--surface);
   border-color: var(--cs-green-500);
 }
 .hstep__circle svg { width: 10px; height: 10px; }
@@ -55,12 +66,12 @@
   padding: 1px 6px; border-radius: 999px;
   background: var(--cs-mist); color: var(--cs-ink-100);
 }
-.hstep.is-active .hstep__actor { background: var(--cs-white); }
+.hstep.is-active .hstep__actor { background: var(--surface); }
 .hstep__actor.checker { background: var(--cs-red-100); color: var(--cs-red-900); }
 
 /* Welcome page big stepper */
 .big-stepper {
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1px solid var(--cs-line);
   border-radius: var(--cs-radius-lg);
   padding: 20px 16px;
@@ -84,7 +95,7 @@
   width: 38px; height: 38px;
   border-radius: 50%;
   border: 1.5px solid var(--cs-line-strong);
-  background: var(--cs-white);
+  background: var(--surface);
   display: grid; place-items: center;
   font-size: 14px; font-weight: 700;
   color: var(--cs-ink-200);
@@ -93,12 +104,12 @@
 }
 .big-step.is-active .big-step__circle {
   background: var(--cs-green-700);
-  color: var(--cs-white);
+  color: var(--surface);
   border-color: var(--cs-green-700);
 }
 .big-step.is-done .big-step__circle {
   background: var(--cs-green-500);
-  color: var(--cs-white);
+  color: var(--surface);
   border-color: var(--cs-green-500);
 }
 .big-step__circle svg { width: 14px; height: 14px; }
@@ -139,7 +150,7 @@
   line-height: 1.6; max-width: 640px;
 }
 .currently-pill {
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1px solid var(--cs-line);
   border-radius: 999px;
   padding: 10px 28px 10px 10px;
@@ -179,7 +190,7 @@
 .resume-banner {
   display: flex; align-items: center; gap: 20px;
   padding: 20px 24px;
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1.5px solid var(--cs-green-300);
   border-radius: var(--cs-radius-lg);
   box-shadow: var(--cs-shadow-xs);
@@ -187,7 +198,7 @@
 .resume-banner__icon {
   width: 48px; height: 48px;
   border-radius: 50%;
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1.5px solid var(--cs-green-300);
   color: var(--cs-green-700);
   display: grid; place-items: center;
@@ -212,7 +223,7 @@
 
 .btn-accent {
   background: var(--cs-red-700);
-  color: var(--cs-white);
+  color: var(--surface);
   padding: 11px 22px;
   border-radius: var(--cs-radius-md);
   font-weight: 700;
@@ -235,7 +246,7 @@
 
 .btn-success {
   background: var(--cs-green-700);
-  color: var(--cs-white);
+  color: var(--surface);
   padding: 10px 16px;
   border-radius: var(--cs-radius-md);
   font-weight: 700;
@@ -248,7 +259,7 @@
 .btn-success svg { width: 14px; height: 14px; }
 
 .btn-danger {
-  background: var(--cs-white);
+  background: var(--surface);
   color: var(--cs-red-700);
   border: 1.5px solid var(--cs-red-700);
   padding: 8.5px 14.5px;
@@ -289,13 +300,13 @@
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .kpis.cols-3 { grid-template-columns: repeat(3, 1fr); }
 .kpi-value.success { color: var(--cs-green-700); }
-.kpi-value.warning { color: #7A5800; }
+.kpi-value.warning { color: var(--bch-warning-text); }
 .kpi-value.danger { color: var(--cs-red-700); }
 
 /* Card surface used across batches screens */
 .bch-card {
   border: 1px solid var(--cs-line);
-  background: var(--cs-white);
+  background: var(--surface);
   border-radius: var(--cs-radius-lg);
   overflow: hidden;
   box-shadow: var(--cs-shadow-sm);
@@ -304,7 +315,7 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--cs-line);
-  background: var(--cs-white);
+  background: var(--surface);
 }
 .card-head-title {
   font-family: var(--font-display);
@@ -320,7 +331,7 @@
 table.data { font-size: 13px; width: 100%; border-collapse: collapse; }
 table.data thead tr {
   border-bottom: 1px solid var(--cs-line);
-  background: var(--cs-paper);
+  background: var(--bg);
 }
 table.data th {
   text-align: left;
@@ -337,7 +348,7 @@ table.data td {
   color: var(--cs-ink-400);
 }
 table.data tbody tr:last-child td { border-bottom: none; }
-table.data tbody tr:hover { background: var(--cs-paper); }
+table.data tbody tr:hover { background: var(--bg); }
 table.data .right { text-align: right; }
 table.data th.right { text-align: right; }
 table.data .id { font-family: var(--font-mono); font-size: 11.5px; color: var(--cs-ink-700); font-weight: 500; }
@@ -370,11 +381,11 @@ table.data .tabular { font-variant-numeric: tabular-nums; }
   letter-spacing: 0.01em;
 }
 .badge.uploaded   { background: var(--cs-mist);    color: var(--cs-ink-200); border-color: var(--cs-line); }
-.badge.validated  { background: #E6F0F9; color: #1B547F; border-color: #B7D2EA; }
-.badge.pending    { background: #FFF6DD; color: #7A5800; border-color: #F2DC9E; }
-.badge.processing { background: #E6F0F9; color: #1B547F; border-color: #B7D2EA; }
+.badge.validated  { background: var(--bch-info-bg); color: var(--bch-info-text); border-color: var(--bch-info-border); }
+.badge.pending    { background: var(--bch-warning-bg); color: var(--bch-warning-text); border-color: var(--bch-warning-border); }
+.badge.processing { background: var(--bch-info-bg); color: var(--bch-info-text); border-color: var(--bch-info-border); }
 .badge.completed  { background: var(--cs-green-100); color: var(--cs-green-900); border-color: var(--cs-green-300); }
-.badge.partial    { background: #FFF6DD; color: #7A5800; border-color: #F2DC9E; }
+.badge.partial    { background: var(--bch-warning-bg); color: var(--bch-warning-text); border-color: var(--bch-warning-border); }
 .badge.failed     { background: var(--cs-red-100); color: var(--cs-red-900); border-color: var(--cs-red-300); }
 .badge.processed  { background: var(--cs-green-100); color: var(--cs-green-900); border-color: var(--cs-green-300); }
 .badge.error-code {
@@ -388,7 +399,7 @@ table.data .tabular { font-variant-numeric: tabular-nums; }
 
 /* Inputs used in batches */
 .bch-input, .bch-select {
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1px solid var(--cs-line-strong);
   border-radius: var(--cs-radius-sm);
   padding: 10px 13px;
@@ -402,7 +413,7 @@ table.data .tabular { font-variant-numeric: tabular-nums; }
 .bch-input::placeholder { color: var(--cs-ink-100); }
 .bch-input:focus, .bch-select:focus {
   border-color: var(--cs-green-700);
-  box-shadow: 0 0 0 3px rgba(15, 79, 46, 0.12);
+  box-shadow: 0 0 0 3px var(--bch-focus-ring);
 }
 .bch-input-sm { padding: 7px 12px 7px 32px; font-size: 12.5px; }
 .search-wrap { position: relative; }
@@ -438,7 +449,7 @@ textarea.bch-input { resize: vertical; min-height: 90px; line-height: 1.5; }
 .dropzone {
   display: block;
   border: 2px dashed var(--cs-line-strong);
-  background: var(--cs-paper);
+  background: var(--bg);
   border-radius: var(--cs-radius-md);
   padding: 44px 24px;
   text-align: center;
@@ -461,7 +472,7 @@ textarea.bch-input { resize: vertical; min-height: 90px; line-height: 1.5; }
 .file-pill { display: flex; align-items: center; gap: 12px; }
 .file-icon {
   width: 42px; height: 42px;
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1px solid var(--cs-green-300);
   border-radius: var(--cs-radius-sm);
   display: grid;
@@ -490,7 +501,7 @@ textarea.bch-input { resize: vertical; min-height: 90px; line-height: 1.5; }
   font: inherit;
   color: inherit;
 }
-.queue-item:hover { background: var(--cs-paper); }
+.queue-item:hover { background: var(--bg); }
 .queue-item.selected { background: var(--cs-green-100); border-left-color: var(--cs-green-700); }
 .queue-item:last-child { border-bottom: none; }
 .queue-row { display: flex; justify-content: space-between; align-items: center; }
@@ -540,7 +551,7 @@ textarea.bch-input { resize: vertical; min-height: 90px; line-height: 1.5; }
 .failure-info { display: flex; align-items: center; gap: 14px; }
 .failure-count {
   width: 32px; height: 32px;
-  background: var(--cs-white);
+  background: var(--surface);
   border: 1px solid var(--cs-red-300);
   border-radius: var(--cs-radius-sm);
   display: grid; place-items: center;
@@ -562,7 +573,7 @@ textarea.bch-input { resize: vertical; min-height: 90px; line-height: 1.5; }
 .result-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
 .result-pill svg { width: 14px; height: 14px; }
 .result-pill.success    { color: var(--cs-green-700); }
-.result-pill.processing { color: #1B547F; }
+.result-pill.processing { color: var(--bch-info-text); }
 .result-pill.failed     { color: var(--cs-red-700); }
 
 /* dl.specs used on submit screen */
@@ -593,3 +604,5 @@ dl.specs dd.danger  { color: var(--cs-red-700); }
   .resume-banner { flex-direction: column; align-items: flex-start; }
   .approval-grid { grid-template-columns: 1fr; }
 }
+
+

@@ -15,6 +15,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Dashboard
 import DashboardPage from "./pages/DashboardPage";
 import AffiliateBanksPage from "./pages/affiliate/AffiliateBanksPage";
+import AffiliateBankRequestPage from "./pages/affiliate/AffiliateBankRequestPage";
 import ProfilePage from "./pages/ProfilePage";
 import BankDashboardPage from "./pages/bank/BankDashboardPage";
 import ActiveAffiliatesPage from "./pages/bank/ActiveAffiliatesPage";
@@ -149,6 +150,7 @@ const App = () => (
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/banks" element={<AffiliateBanksPage />} />
+            <Route path="/banks/request-partnership" element={<AffiliateBankRequestPage />} />
             <Route path="/bank/dashboard" element={<BankDashboardPage />} />
             <Route path="/bank/affiliates" element={<BankAffiliatesListPage />} />
             <Route path="/bank/affiliate-partnership-requests" element={<BankPartnershipRequestsPage />} />

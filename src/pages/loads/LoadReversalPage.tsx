@@ -4,16 +4,16 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { TextField } from '@/components/ui/text-field';
 import { useAuth } from '@/hooks/useAuth';
 import { useCard, useCards } from '@/hooks/useCards';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { createCardUnload, getCardBalance } from '@/services/cardsApi';
 import type { CardUnloadResponse } from '@/types/cardContracts';
-import { ArrowLeft, CheckCircle2, ChevronRight, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, ChevronRight, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 
 type Step = 1 | 2 | 3;
 
@@ -45,7 +45,7 @@ function Stepper({ step }: { step: Step }) {
   ];
 
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+    <div className="mb-8 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
       {items.map((item) => {
         const complete = step > item.key;
         const active = step === item.key;
@@ -58,7 +58,7 @@ function Stepper({ step }: { step: Step }) {
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
                 complete || active ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground'
               }`}>
-                {complete ? '✓' : item.key}
+                {complete ? <Check className="h-3 w-3" /> : item.key}
               </span>
               <span className="font-medium">{item.label}</span>
             </div>
@@ -168,28 +168,29 @@ export default function LoadReversalPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Card Unload"
-            subtitle="Move funds from a card to a destination account."
-            actions={
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                  <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/loads')}>
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                </Button>
+        <main className="scr-main">
+          <div className="container container--narrow">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Card Unload</h1>
+                <p className="page-sub">Move funds from a card to a destination account.</p>
               </div>
-            }
-          />
+              <div className="flex items-center gap-2">
+                <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={refreshing}>
+                  <RefreshCw className={refreshing ? 'spin' : ''} style={{ width: 14, height: 14 }} /> Refresh
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/loads')}>
+                  <ArrowLeft style={{ width: 14, height: 14 }} /> Back
+                </button>
+              </div>
+            </header>
 
-          <div className="mx-auto max-w-5xl">
+            <div className="mx-auto w-full max-w-5xl">
             <Stepper step={step} />
 
             {step === 1 && (
               <div className="space-y-6">
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold">Select card</h2>
@@ -257,7 +258,7 @@ export default function LoadReversalPage() {
                   )}
                 </div>
 
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="mb-6 flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold">Unload details</h2>
@@ -295,50 +296,37 @@ export default function LoadReversalPage() {
                   )}
 
                   <div className="space-y-6">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Amount <span className="text-destructive">*</span></label>
-                      <input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        className="flex h-12 w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                      />
-                    </div>
+                    <TextField
+                      label={<><span>Amount</span> <span className="text-destructive">*</span></>}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
 
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium">Destination account ID <span className="text-destructive">*</span></label>
-                        <input
-                          className="flex h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          placeholder="ACC-REG-00081"
-                          value={accountId}
-                          onChange={(e) => setAccountId(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-sm font-medium">Bank code <span className="text-destructive">*</span></label>
-                        <input
-                          className="flex h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          placeholder="058"
-                          value={bankCode}
-                          onChange={(e) => setBankCode(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Account number masked <span className="text-destructive">*</span></label>
-                      <input
-                        type='number'
-                        className="flex h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="01******89"
-                        value={accountNumberMasked}
-                        onChange={(e) => setAccountNumberMasked(e.target.value)}
+                      <TextField
+                        label={<><span>Destination account ID</span> <span className="text-destructive">*</span></>}
+                        placeholder="ACC-REG-00081"
+                        value={accountId}
+                        onChange={(e) => setAccountId(e.target.value)}
+                      />
+                      <TextField
+                        label={<><span>Bank code</span> <span className="text-destructive">*</span></>}
+                        placeholder="058"
+                        value={bankCode}
+                        onChange={(e) => setBankCode(e.target.value)}
                       />
                     </div>
+
+                    <TextField
+                      label={<><span>Account number masked</span> <span className="text-destructive">*</span></>}
+                      placeholder="01******89"
+                      value={accountNumberMasked}
+                      onChange={(e) => setAccountNumberMasked(e.target.value)}
+                    />
 
                     <div>
                       <label className="mb-2 block text-sm font-medium">Reason <span className="text-destructive">*</span></label>
@@ -363,14 +351,14 @@ export default function LoadReversalPage() {
 
             {step === 2 && (
               cardLoading ? (
-                <div className="kardit-card p-6 md:p-8">
+                <div className="bch-card card-pad-lg">
                   <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading review details...
                   </div>
                 </div>
               ) : !selectedCard ? (
-                <div className="kardit-card p-6 md:p-8">
+                <div className="bch-card card-pad-lg">
                   <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                     Unable to load the selected card details. Please go back and select the card again.
                   </div>
@@ -379,19 +367,19 @@ export default function LoadReversalPage() {
                   </div>
                 </div>
               ) : (
-              <div className="kardit-card p-6 md:p-8">
+              <div className="bch-card card-pad-lg">
                 <div className="mb-6">
-                  <h2 className="text-3xl font-semibold tracking-tight">Review & submit</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <h2 className="page-title">Review & submit</h2>
+                  <p className="page-sub mt-2">
                     Confirm the card and destination details before this unload request is submitted for approval.
                   </p>
                 </div>
 
-                <div className="mb-8 flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                <div className="notice info mb-8">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
                   <div>
                     <p className="font-medium">Approval required from a checker</p>
-                    <p className="mt-1 text-sky-800">
+                    <p className="mt-1">
                       On submit, this unload enters the approval queue and is completed after checker approval and destination validation.
                     </p>
                   </div>
@@ -498,14 +486,14 @@ export default function LoadReversalPage() {
                     <CheckCircle2 className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-semibold tracking-tight">Funds unloaded</h2>
+                    <h2 className="page-title">Funds unloaded</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       The unload request has been submitted successfully for the selected card.
                     </p>
                   </div>
                 </div>
 
-                <div className="kardit-card p-6 text-center">
+                <div className="bch-card card-pad-lg" style={{ textAlign: 'center' }}>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Amount unloaded</p>
                   <p className="mt-3 text-5xl font-semibold text-primary">{Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-3xl">{selectedCard.currency || 'NGN'}</span></p>
                   <p className="mt-3 text-sm text-muted-foreground">
@@ -516,7 +504,7 @@ export default function LoadReversalPage() {
                   </p>
                 </div>
 
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-4 border-b border-border pb-3 text-sm">
                       <span className="text-muted-foreground">Unload transaction ID</span>
@@ -565,9 +553,11 @@ export default function LoadReversalPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
 }
+

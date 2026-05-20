@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { TextField } from '@/components/ui/text-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useCard, useCards } from '@/hooks/useCards';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { createCardLoad, getCardBalance } from '@/services/cardsApi';
 import type { CardLoadResponse } from '@/types/cardContracts';
-import { ArrowLeft, CheckCircle2, ChevronRight, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, ChevronRight, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 
 type Step = 1 | 2 | 3;
 
@@ -32,6 +32,7 @@ const proofTypeOptions = [
     description: 'Direct credit into the issuing bank virtual account.',
   },
 ];
+const quickAmounts = [5000, 10000, 25000, 50000, 100000];
 
 function randomId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -61,7 +62,7 @@ function Stepper({ step }: { step: Step }) {
   ];
 
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+    <div className="mb-8 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
       {items.map((item) => {
         const complete = step > item.key;
         const active = step === item.key;
@@ -74,7 +75,7 @@ function Stepper({ step }: { step: Step }) {
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
                 complete || active ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground'
               }`}>
-                {complete ? '✓' : item.key}
+                {complete ? <Check className="h-3 w-3" /> : item.key}
               </span>
               <span className="font-medium">{item.label}</span>
             </div>
@@ -102,6 +103,7 @@ export default function SingleLoadPage() {
   const [step, setStep] = useState<Step>(1);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<'NGN' | 'USD' | 'CNY'>('NGN');
   const [bankTransferReference, setBankTransferReference] = useState('');
   const [proofType, setProofType] = useState('BANK_TRANSFER_CONFIRMED');
   const [reference, setReference] = useState('');
@@ -157,6 +159,8 @@ export default function SingleLoadPage() {
         requestContext: {
           requestId: randomId('load-request'),
           actorUserId: user?.id || 'user_unknown',
+          bankId: fundingDetails?.bankId || 'bank_unknown',
+          role: user?.role || 'AFFILIATE_OPERATOR',
           userType: user?.stakeholderType || 'AFFILIATE',
           tenantId: user?.tenantId || 'tenant_unknown',
           affiliateId,
@@ -164,7 +168,7 @@ export default function SingleLoadPage() {
         },
         amount: {
           value: Number(amount),
-          currency: selectedCard.currency || fundingDetails.fundingInstructions.currency || 'NGN',
+          currency,
         },
         fundingReference: {
           virtualAccountNumber: fundingDetails.virtualAccount.accountNumber,
@@ -187,28 +191,29 @@ export default function SingleLoadPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Single Load"
-            subtitle="Load both virtual and physical cards through the linked funding account."
-            actions={
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                  <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/loads')}>
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                </Button>
+        <main className="scr-main">
+          <div className="container container--narrow">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Load Card</h1>
+                <p className="page-sub">Load both virtual and physical cards through the linked funding account.</p>
               </div>
-            }
-          />
+              <div className="flex items-center gap-2">
+                <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={refreshing}>
+                  <RefreshCw className={refreshing ? 'spin' : ''} style={{ width: 14, height: 14 }} /> Refresh
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/loads')}>
+                  <ArrowLeft style={{ width: 14, height: 14 }} /> Back
+                </button>
+              </div>
+            </header>
 
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto w-full max-w-5xl">
             <Stepper step={step} />
 
             {step === 1 && (
               <div className="space-y-6">
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold">Select card</h2>
@@ -255,34 +260,30 @@ export default function SingleLoadPage() {
                       )}
 
                       {selectedCard && (
-                        <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="h-4 w-4 text-primary" />
-                              <span className="font-mono text-sm">{selectedCard.maskedPan}</span>
-                            </div>
-                            <span className="rounded-full border border-border px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {cardKindLabel(selectedCard)}
-                            </span>
+                        <div className="rounded-2xl border border-border bg-card p-7 text-center">
+                          <div className="mx-auto mb-4 grid h-12 w-20 place-items-center rounded-lg bg-primary">
+                            <div className="h-4 w-6 rounded-sm bg-[#E7C16C]" />
                           </div>
-                          <div className="grid gap-2 text-sm md:grid-cols-3">
-                            <p><span className="text-muted-foreground">Product:</span> {selectedCard.productName}</p>
-                            <p><span className="text-muted-foreground">Customer:</span> {selectedCard.customerId}</p>
-                            <p><span className="text-muted-foreground">Currency:</span> {selectedCard.currency}</p>
+                          <div className="font-mono text-2xl font-semibold tracking-wide text-foreground">{selectedCard.maskedPan}</div>
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {selectedCard.productName} · {fundingDetails?.virtualAccount.bankName || selectedCard.issuingBankName} · {selectedCard.customerId}
                           </div>
+                          <button type="button" className="mt-5 text-sm font-semibold text-primary" onClick={() => setSelectedCardId(null)}>
+                            Change card →
+                          </button>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="mb-6 flex items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-semibold">Load details</h2>
+                      <h2 className="text-2xl font-semibold">Load details</h2>
                       <p className="text-sm text-muted-foreground">Enter the amount and funding proof for this load request.</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">In {selectedCard?.currency || fundingDetails?.fundingInstructions.currency || 'NGN'}</span>
+                    <span className="text-xs text-muted-foreground">In {currency}</span>
                   </div>
 
                   {cardLoading ? (
@@ -314,21 +315,47 @@ export default function SingleLoadPage() {
                   )}
 
                   <div className="space-y-6">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Amount <span className="text-destructive">*</span></label>
-                      <input
+                    <div className="rounded-2xl border border-border bg-card p-5">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="text-2xl font-semibold text-foreground">Amount</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">In</span>
+                          <Select value={currency} onValueChange={(v) => setCurrency(v as 'NGN' | 'USD' | 'CNY')}>
+                            <SelectTrigger className="h-9 w-36">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NGN">Naira (NGN)</SelectItem>
+                              <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                              <SelectItem value="CNY">Yuan (CNY)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <TextField
                         type="number"
-                        className="flex h-12 w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                         placeholder="0.00"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                       />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {quickAmounts.map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className="rounded-full border border-border px-4 py-2 font-mono text-sm font-semibold hover:bg-muted"
+                            onClick={() => setAmount(String(value))}
+                          >
+                            ₦{value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <label className="block text-sm font-medium">Funding reference</label>
-                        <span className="text-xs text-muted-foreground">Maker submits, checker approves</span>
+                        <label className="block text-2xl font-semibold text-foreground">Funding reference</label>
+                        <span className="text-sm text-muted-foreground">Virtual account must already be funded</span>
                       </div>
 
                       <div className="space-y-3">
@@ -339,17 +366,17 @@ export default function SingleLoadPage() {
                               key={option.value}
                               type="button"
                               onClick={() => setProofType(option.value)}
-                              className={`w-full rounded-2xl border p-4 text-left transition ${
+                              className={`w-full rounded-2xl border p-3 text-left transition ${
                                 checked
-                                  ? 'border-primary bg-primary/5'
-                                  : 'border-border bg-background hover:border-primary/40 hover:bg-muted/40'
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border bg-card hover:border-primary/50 hover:bg-muted/40'
                               }`}
                             >
                               <div className="flex items-start gap-3">
-                                <span className={`mt-1 h-4 w-4 rounded-full border ${checked ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`} />
+                                <span className={`mt-1 h-3 md:h-4 w-3 md:w-4 rounded-full border ${checked ? 'border-primary bg-primary' : 'border-border'}`} />
                                 <div>
-                                  <p className="text-sm font-medium">{option.label}</p>
-                                  <p className="text-xs text-muted-foreground">{option.description}</p>
+                                  <p className="text-base md:text-lg font-semibold text-foreground">{option.label}</p>
+                                  <p className="mt-1 text-xs md:text-sm text-muted-foreground">{option.description}</p>
                                 </div>
                               </div>
                             </button>
@@ -359,36 +386,27 @@ export default function SingleLoadPage() {
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium">Linked virtual account number</label>
-                        <input
-                          readOnly
-                          className="flex h-11 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground focus:outline-none"
-                          value={fundingDetails?.virtualAccount.accountNumber || ''}
-                          placeholder="Available after card selection"
-                        />
-                      </div>
+                      <TextField
+                        label="Linked virtual account number"
+                        readOnly
+                        value={fundingDetails?.virtualAccount.accountNumber || ''}
+                        placeholder="Available after card selection"
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium">Bank transfer reference <span className="text-destructive">*</span></label>
-                        <input
-                          className="flex h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          placeholder="TRF-2026-009811"
-                          value={bankTransferReference}
-                          onChange={(e) => setBankTransferReference(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Reference</label>
-                      <input
-                        className="flex h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="Optional note for audit trail"
-                        value={reference}
-                        onChange={(e) => setReference(e.target.value)}
+                      <TextField
+                        label={<><span>Bank transfer reference</span> <span className="text-destructive">*</span></>}
+                        placeholder="TRF-2026-009811"
+                        value={bankTransferReference}
+                        onChange={(e) => setBankTransferReference(e.target.value)}
                       />
                     </div>
+
+                    <TextField
+                      label="Reference"
+                      placeholder="Optional note for audit trail"
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                    />
                   </div>
 
                   <div className="mt-8 flex items-center justify-between gap-3">
@@ -403,14 +421,14 @@ export default function SingleLoadPage() {
 
             {step === 2 && (
               cardLoading ? (
-                <div className="kardit-card p-6 md:p-8">
+                <div className="bch-card card-pad-lg">
                   <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading review details...
                   </div>
                 </div>
               ) : !selectedCard ? (
-                <div className="kardit-card p-6 md:p-8">
+                <div className="bch-card card-pad-lg">
                   <div className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                     Unable to load the selected card details. Please go back and select the card again.
                   </div>
@@ -419,19 +437,19 @@ export default function SingleLoadPage() {
                   </div>
                 </div>
               ) : (
-              <div className="kardit-card p-6 md:p-8">
+              <div className="bch-card card-pad-lg">
                 <div className="mb-6">
-                  <h2 className="text-3xl font-semibold tracking-tight">Review & submit</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <h2 className="page-title">Review & submit</h2>
+                  <p className="page-sub mt-2">
                     Confirm the card and funding details before this load request is submitted for approval.
                   </p>
                 </div>
 
-                <div className="mb-8 flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                <div className="notice info mb-8">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
                   <div>
                     <p className="font-medium">Approval required from a checker</p>
-                    <p className="mt-1 text-sky-800">
+                    <p className="mt-1">
                       On submit, this load enters the approval queue and is completed after checker approval and funding validation.
                     </p>
                   </div>
@@ -472,7 +490,7 @@ export default function SingleLoadPage() {
                       <div className="rounded-2xl border border-border">
                         <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3">
                           <span className="text-sm text-muted-foreground">Amount</span>
-                          <span className="text-3xl font-semibold">{formatMoney(Number(amount), selectedCard.currency || 'NGN')}</span>
+                          <span className="text-3xl font-semibold">{formatMoney(Number(amount), currency)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 text-sm">
                           <span className="text-muted-foreground">Proof type</span>
@@ -509,7 +527,7 @@ export default function SingleLoadPage() {
                           <Wallet className="mt-0.5 h-4 w-4 text-primary" />
                           <div>
                             <p className="font-medium">Funding currency</p>
-                            <p className="text-muted-foreground">{fundingDetails?.fundingInstructions.currency || selectedCard.currency}</p>
+                            <p className="text-muted-foreground">{currency}</p>
                           </div>
                         </div>
                         <div className="rounded-xl border border-border bg-background p-4 text-xs text-muted-foreground">
@@ -538,25 +556,25 @@ export default function SingleLoadPage() {
                     <CheckCircle2 className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-semibold tracking-tight">Funds loaded</h2>
+                    <h2 className="page-title">Funds loaded</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       The load request has been submitted {result.response.status === 'APPROVED' ? 'successfully' : result.response.status === 'PENDING' ? 'is pending for approval' : 'with issues'} for the selected card.
                     </p>
                   </div>
                 </div>
 
-                <div className="kardit-card p-6 text-center">
+                <div className="bch-card card-pad-lg" style={{ textAlign: 'center' }}>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Amount loaded</p>
-                  <p className="mt-3 text-5xl font-semibold text-primary">{Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-3xl">{selectedCard.currency || 'NGN'}</span></p>
+                  <p className="mt-3 text-5xl font-semibold text-primary">{Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-3xl">{currency}</span></p>
                   <p className="mt-3 text-sm text-muted-foreground">
                     Posted to {selectedCard.maskedPan} • {selectedCard.customerId}
                   </p>
                   <p className="mt-1 text-sm">
-                    New balance: <span className="font-semibold">{formatMoney(result.response.balanceAfter, selectedCard.currency || 'NGN')}</span>
+                    New balance: <span className="font-semibold">{formatMoney(result.response.balanceAfter, currency)}</span>
                   </p>
                 </div>
 
-                <div className="kardit-card p-6">
+                <div className="bch-card card-pad-lg">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-4 border-b border-border pb-3 text-sm">
                       <span className="text-muted-foreground">Funding transaction ID</span>
@@ -580,7 +598,7 @@ export default function SingleLoadPage() {
                     </div>
                     <div className="flex items-center justify-between gap-4 border-b border-border pb-3 text-sm">
                       <span className="text-muted-foreground">Previous balance</span>
-                      <span>{result.previousBalance === null ? 'Unavailable' : formatMoney(result.previousBalance, selectedCard.currency || 'NGN')}</span>
+                      <span>{result.previousBalance === null ? 'Unavailable' : formatMoney(result.previousBalance, currency)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <span className="text-muted-foreground">Completed at</span>
@@ -596,6 +614,7 @@ export default function SingleLoadPage() {
                       setResult(null);
                       setStep(1);
                       setAmount('');
+                      setCurrency('NGN');
                       setBankTransferReference('');
                       setReference('');
                       setProofType('BANK_TRANSFER_CONFIRMED');
@@ -609,8 +628,11 @@ export default function SingleLoadPage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
 }
+
+

@@ -178,7 +178,7 @@ export default function IssueCardPage() {
             </section>
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="">
             <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-6">
               {/* Card Details */}
               <section className="card card-pad space-y-4">
@@ -294,7 +294,7 @@ export default function IssueCardPage() {
             </form>
 
             {/* CMS Request Preview */}
-            <div className="xl:col-span-1">
+            {/* <div className="xl:col-span-1">
               <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
                 <div className="kardit-card p-4 sticky top-24">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
@@ -310,7 +310,7 @@ export default function IssueCardPage() {
                   </CollapsibleContent>
                 </div>
               </Collapsible>
-            </div>
+            </div> */}
           </div>
           </div>
         </main>
