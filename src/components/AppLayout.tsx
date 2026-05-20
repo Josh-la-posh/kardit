@@ -143,7 +143,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 h-screen bg-white border-r border-sidebar-border transition-all duration-300 lg:sticky lg:top-0 lg:flex-shrink-0',
+          'fixed inset-y-0 left-0 z-50 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 lg:sticky lg:top-0 lg:flex-shrink-0',
           sidebarCollapsed ? 'w-16' : 'w-64',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
@@ -170,7 +170,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
             {/* Mobile close button */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden text-sidebar-foreground hover:text-foreground"
+              className="lg:hidden text-sidebar-foreground hover:text-sidebar-accent-foreground"
             >
               <X className="h-5 w-5" />
             </button>
@@ -187,17 +187,17 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
                     className={cn(
                       'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive(item.path)
-                        ? 'bg-primary/10 text-sidebar-accent-foreground'
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                     )}
                   >
                     <item.icon className={cn(
                       'h-5 w-5 flex-shrink-0',
-                      isActive(item.path) && 'text-primary'
+                      isActive(item.path) && 'text-sidebar-primary'
                     )} />
                     {!sidebarCollapsed && <span>{item.label}</span>}
                     {item.label === 'Notifications' && unreadCount > 0 && !sidebarCollapsed && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-sidebar-primary text-xs text-sidebar-primary-foreground">
                         {unreadCount}
                       </span>
                     )}
@@ -226,7 +226,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
       {/* Main Content Area */}
       <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-sidebar lg:px-6">
           {/* Left side */}
           <div className="flex items-center gap-4">
             {/* Mobile menu toggle */}
@@ -306,7 +306,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6 bg-primary/5">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6 bg-muted">
           {children}
         </main>
       </div>
