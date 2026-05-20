@@ -178,6 +178,7 @@ export interface RefreshCardFulfillmentRequest {
     actorUserId: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
     tenantId: string;
+    affiliateId: string;
   };
 }
 

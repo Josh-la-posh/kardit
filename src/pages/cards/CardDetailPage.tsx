@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -38,6 +39,7 @@ import {
   Landmark,
   Loader2,
   Minus,
+  OctagonAlert,
   PackageCheck,
   RefreshCw,
   ShieldCheck,
@@ -61,7 +63,16 @@ export default function CardDetailPage() {
   const navigate = useNavigate();
   const { cardId } = useParams<{ cardId: string }>();
   const { user } = useAuth();
-  const { card, fundingDetails, fulfillmentStatus, isLoading, refetch: refetchCard } = useCard(cardId);
+  const {
+    card,
+    fundingDetails,
+    fulfillmentStatus,
+    isLoading,
+    isFundingLoading,
+    isFulfillmentLoading,
+    error,
+    refetch: refetchCard
+  } = useCard(cardId);
   const [filters, setFilters] = useState<TransactionFilters>({});
   const { transactions, isLoading: txLoading, refetch: refetchTx } = useCardTransactions(cardId, filters);
 
@@ -150,6 +161,7 @@ export default function CardDetailPage() {
           actorUserId: user?.id || 'user_unknown',
           userType: user?.stakeholderType || 'AFFILIATE',
           tenantId: user?.tenantId || 'tenant_unknown',
+          affiliateId: user?.affiliateId
         },
       });
       toast.success(`Fulfillment updated to ${response.currentStatus}`);
@@ -319,7 +331,32 @@ export default function CardDetailPage() {
     return (
       <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
         <AppLayout>
-          <div className="text-center py-20 text-muted-foreground">Card not found.</div>
+          <div className="mx-auto max-w-2xl py-12">
+
+            <div className="kardit-card p-6 space-y-4">
+              <Alert variant="destructive">
+                <OctagonAlert className="h-4 w-4" />
+                <AlertTitle>Unable to load card details</AlertTitle>
+                <AlertDescription>
+                  {error || 'Card not found.'}
+                </AlertDescription>
+              </Alert>
+{/* 
+              <p className="text-sm text-muted-foreground">
+                If this was a temporary backend issue, you can retry this page immediately.
+              </p> */}
+
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => refetchCard()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/cards')}>
+                  Return to Cards
+                </Button>
+              </div>
+            </div>
+          </div>
         </AppLayout>
       </ProtectedRoute>
     );
@@ -456,7 +493,9 @@ export default function CardDetailPage() {
 
             <div className="kardit-card p-6 space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Funding Details</h3>
-              {fundingDetails?.virtualAccount ? (
+              {isFundingLoading ? (
+                <p className="text-sm text-muted-foreground">Loading funding details...</p>
+              ) : fundingDetails?.virtualAccount ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Landmark className="h-4 w-4 text-muted-foreground" />
@@ -497,7 +536,9 @@ export default function CardDetailPage() {
                   </div>
                 ) : null}
               </div>
-              {fulfillmentStatus ? (
+              {isFulfillmentLoading ? (
+                <p className="text-sm text-muted-foreground">Loading fulfillment status...</p>
+              ) : fulfillmentStatus ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <PackageCheck className="h-4 w-4 text-muted-foreground" />

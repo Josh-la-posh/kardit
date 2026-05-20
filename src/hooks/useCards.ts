@@ -280,6 +280,8 @@ export function useCard(cardId: string | undefined) {
   const [fundingDetails, setFundingDetails] = useState<GetCardFundingDetails | null>(null);
   const [fulfillmentStatus, setFulfillmentStatus] = useState<GetCardFulfillmentStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFundingLoading, setIsFundingLoading] = useState(false);
+  const [isFulfillmentLoading, setIsFulfillmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
@@ -289,29 +291,63 @@ export function useCard(cardId: string | undefined) {
       setFundingDetails(null);
       setFulfillmentStatus(null);
       setIsLoading(false);
+      setIsFundingLoading(false);
+      setIsFulfillmentLoading(false);
       return;
     }
 
     setIsLoading(true);
+    setIsFundingLoading(true);
+    setIsFulfillmentLoading(false);
     setError(null);
+    setFundingDetails(null);
+    setFulfillmentStatus(null);
 
     try {
-      const [cardResponse, fundingResponse] = await Promise.all([
-        getCardApi(cardId),
-        getCardFundingDetails(cardId).catch(() => null),
-      ]);
+      const cardResponse = await getCardApi(cardId);
+      setCard(mapCardDetail(cardResponse, null, user?.tenantId));
+      setIsLoading(false);
 
-      setFundingDetails(fundingResponse);
-      setFulfillmentStatus(
-        cardResponse.productType === 'PHYSICAL'
-          ? await getCardFulfillmentStatus(cardId).catch(() => null)
-          : null
-      );
-      setCard(mapCardDetail(cardResponse, fundingResponse, user?.tenantId));
+      void getCardFundingDetails(cardId)
+        .then((fundingResponse) => {
+          setFundingDetails(fundingResponse);
+          setCard((current) =>
+            current
+              ? {
+                  ...current,
+                  currency: fundingResponse.fundingInstructions.currency || current.currency,
+                }
+              : current
+          );
+        })
+        .catch(() => {
+          setFundingDetails(null);
+        })
+        .finally(() => {
+          setIsFundingLoading(false);
+        });
+
+      if (cardResponse.productType === 'PHYSICAL') {
+        setIsFulfillmentLoading(true);
+        void getCardFulfillmentStatus(cardId)
+          .then((fulfillmentResponse) => {
+            setFulfillmentStatus(fulfillmentResponse);
+          })
+          .catch(() => {
+            setFulfillmentStatus(null);
+          })
+          .finally(() => {
+            setIsFulfillmentLoading(false);
+          });
+      } else {
+        setFulfillmentStatus(null);
+      }
     } catch (err) {
       setCard(null);
       setFundingDetails(null);
       setFulfillmentStatus(null);
+      setIsFundingLoading(false);
+      setIsFulfillmentLoading(false);
       setError(toErrorMessage(err));
     } finally {
       setIsLoading(false);
@@ -322,7 +358,16 @@ export function useCard(cardId: string | undefined) {
     fetch();
   }, [fetch]);
 
-  return { card, fundingDetails, fulfillmentStatus, isLoading, error, refetch: fetch };
+  return {
+    card,
+    fundingDetails,
+    fulfillmentStatus,
+    isLoading,
+    isFundingLoading,
+    isFulfillmentLoading,
+    error,
+    refetch: fetch,
+  };
 }
 
 export function useCreateCard() {

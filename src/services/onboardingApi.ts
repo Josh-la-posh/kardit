@@ -58,9 +58,9 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
   if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
   const res = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
+    ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     body: JSON.stringify(body),
-    ...init,
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
@@ -75,9 +75,9 @@ async function putJson<TResponse>(path: string, body: unknown, init?: RequestIni
   if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
   const res = await fetch(`${baseUrl}${path}`, {
     method: 'PUT',
+    ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     body: JSON.stringify(body),
-    ...init,
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
@@ -472,5 +472,13 @@ export async function provisionOnboardingCase(
   caseId: string,
   request: ProvisionOnboardingCaseRequest
 ): Promise<ProvisionOnboardingCaseResponse> {
-  return postJson<ProvisionOnboardingCaseResponse>(`/admin/onboarding/cases/${encodeURIComponent(caseId)}/provision`, request);
+  return postJson<ProvisionOnboardingCaseResponse>(
+    `/admin/onboarding/cases/${encodeURIComponent(caseId)}/provision`,
+    request,
+    {
+      headers: {
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+    }
+  );
 }
