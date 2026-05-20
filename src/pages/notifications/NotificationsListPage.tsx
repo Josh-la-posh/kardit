@@ -1,20 +1,21 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/AppLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Bell, AlertTriangle, AlertCircle, Info, CheckSquare, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { AppLayout } from '@/components/AppLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
+import { AlertCircle, AlertTriangle, Bell, CheckSquare, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isBankReadOnlyUser } from '@/lib/permissions';
 
 const severityIcons = { INFO: Info, WARNING: AlertTriangle, ERROR: AlertCircle };
-const severityColors = { INFO: 'text-info', WARNING: 'text-warning', ERROR: 'text-destructive' };
+const severityColors = {
+  INFO: 'text-[var(--cs-green-700)]',
+  WARNING: 'text-[var(--warning-text)]',
+  ERROR: 'text-[var(--cs-red-700)]',
+};
 
 export default function NotificationsListPage() {
   const navigate = useNavigate();
@@ -25,13 +26,17 @@ export default function NotificationsListPage() {
   const [readFilter, setReadFilter] = useState('ALL');
 
   const filtered = useMemo(() => {
-    return notifications.filter(n => {
+    return notifications.filter((n) => {
       if (severityFilter !== 'ALL' && n.severity !== severityFilter) return false;
       if (readFilter === 'UNREAD' && n.isRead) return false;
       if (readFilter === 'READ' && !n.isRead) return false;
       return true;
     });
   }, [notifications, severityFilter, readFilter]);
+
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.isRead).length, [notifications]);
+  const warningCount = useMemo(() => notifications.filter((n) => n.severity === 'WARNING').length, [notifications]);
+  const errorCount = useMemo(() => notifications.filter((n) => n.severity === 'ERROR').length, [notifications]);
 
   const handleMarkAll = () => {
     if (isReadOnly) return;
@@ -42,69 +47,112 @@ export default function NotificationsListPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader title="Notifications" subtitle="View all notifications" actions={
-            <Button variant="outline" size="sm" onClick={handleMarkAll} disabled={isReadOnly}>
-              <CheckSquare className="h-4 w-4 mr-1" /> Mark all read
-            </Button>
-          } />
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Notifications</h1>
+                <p className="page-sub">View all notifications and quickly triage unread items.</p>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={handleMarkAll} disabled={isReadOnly}>
+                <CheckSquare className="h-4 w-4" /> Mark all read
+              </button>
+            </header>
 
-          <div className="kardit-card p-4 mb-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Severity" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Severities</SelectItem>
-                  <SelectItem value="INFO">Info</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={readFilter} onValueChange={setReadFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Read status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All</SelectItem>
-                  <SelectItem value="UNREAD">Unread</SelectItem>
-                  <SelectItem value="READ">Read</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Total" value={String(notifications.length)} sub="All notifications" />
+              <Kpi label="Unread" value={String(unreadCount)} sub="Need your attention" />
+              <Kpi label="Warnings" value={String(warningCount)} sub="Potential issues" />
+              <Kpi label="Errors" value={String(errorCount)} sub="High priority events" />
+            </section>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground text-sm">No notifications match filters.</div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {filtered.map(n => {
-                  const Icon = severityIcons[n.severity];
-                  return (
-                    <li
-                      key={n.id}
-                      onClick={() => navigate(`/notifications/${n.id}`)}
-                      className={cn('px-4 py-4 cursor-pointer transition-colors hover:bg-muted/40', !n.isRead && 'bg-muted/20')}
-                    >
-                      <div className="flex gap-3 items-start">
-                        <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', severityColors[n.severity])} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className={cn('text-sm', !n.isRead && 'font-medium')}>{n.title}</p>
-                            {!n.isRead && <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{n.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}</p>
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="bch-label" htmlFor="severityFilter">Severity</label>
+                  <select
+                    id="severityFilter"
+                    className="bch-select"
+                    value={severityFilter}
+                    onChange={(e) => setSeverityFilter(e.target.value)}
+                  >
+                    <option value="ALL">All Severities</option>
+                    <option value="INFO">Info</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Error</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="bch-label" htmlFor="readFilter">Read status</label>
+                  <select
+                    id="readFilter"
+                    className="bch-select"
+                    value={readFilter}
+                    onChange={(e) => setReadFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="UNREAD">Unread</option>
+                    <option value="READ">Read</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section className="bch-card" style={{ overflow: 'hidden', marginTop: 14 }}>
+              <div className="card-head">
+                <div className="card-head-title">Notification feed</div>
+              </div>
+
+              {isLoading ? (
+                <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+                  <Loader2 className="spin" style={{ width: 24, height: 24 }} />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="empty-list" style={{ padding: 24 }}>
+                  <Bell />
+                  <div className="empty-list-title">No notifications match filters</div>
+                  <div className="empty-list-sub">Adjust severity or read status to broaden the list.</div>
+                </div>
+              ) : (
+                <ul className="recent" style={{ border: 'none', borderRadius: 0 }}>
+                  {filtered.map((n) => {
+                    const Icon = severityIcons[n.severity];
+                    return (
+                      <li
+                        key={n.id}
+                        onClick={() => navigate(`/notifications/${n.id}`)}
+                        className={cn('recent-row cursor-pointer hover:bg-[var(--bg)]', !n.isRead && 'bg-[var(--bg)]')}
+                      >
+                        <div className={cn('recent-row__icon', severityColors[n.severity])} style={{ background: 'var(--surface)', border: '1px solid var(--cs-line)' }}>
+                          <Icon />
                         </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                        <div className="recent-row__body">
+                          <div className="recent-row__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span className={cn(!n.isRead && 'font-semibold')}>{n.title}</span>
+                            {!n.isRead && <span style={{ width: 6, height: 6, borderRadius: '999px', background: 'var(--cs-green-700)' }} />}
+                          </div>
+                          <div className="recent-row__meta" style={{ marginTop: 4 }}>{n.message}</div>
+                        </div>
+                        <div className="recent-row__time">{formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}</div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

@@ -1,12 +1,13 @@
-import React from 'react';
+﻿import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import { useAuth } from '@/hooks/useAuth';
 import { useBankDashboardData } from '@/hooks/useBankPortal';
+import type { BankAffiliateSummary, BankAuditLogItem, BankReportItem } from '@/types/bankPortalContracts';
 import { FileText, Loader2, RefreshCw } from 'lucide-react';
 
 function getTotalPages(total: number, pageSize: number) {
@@ -37,189 +38,215 @@ export default function BankDashboardPage() {
   const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
   const reportTotalPages = getTotalPages(reportTotal, reportPageSize);
 
+  const affiliatesPreview = useMemo(() => affiliates.slice(0, 5), [affiliates]);
+
+  const auditColumns = useMemo(
+    () => [
+      {
+        key: 'eventType',
+        header: 'Event',
+        className: 'text-sm font-medium text-foreground',
+        render: (log: BankAuditLogItem) => log.eventType || '-',
+      },
+      {
+        key: 'resourceType',
+        header: 'Resource Type',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) => log.resourceType || '-',
+      },
+      {
+        key: 'actorUserId',
+        header: 'Actor',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) => log.actorUserId || '-',
+      },
+      {
+        key: 'occurredAt',
+        header: 'Occurred',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) =>
+          log.occurredAt ? format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm') : '-',
+      },
+    ],
+    []
+  );
+
+  const affiliateColumns = useMemo(
+    () => [
+      {
+        key: 'affiliateName',
+        header: 'Affiliate',
+        className: 'text-sm',
+        render: (affiliate: BankAffiliateSummary) => (
+          <p className="font-medium text-foreground">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
+        ),
+      },
+      {
+        key: 'totalCards',
+        header: 'Total Cards',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => formatNumber(affiliate.totalCards),
+      },
+      {
+        key: 'activeCards',
+        header: 'Active Cards',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => formatNumber(affiliate.activeCards),
+      },
+      {
+        key: 'totalFundingVolume',
+        header: 'Funding',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => formatNumber(affiliate.totalFundingVolume),
+      },
+    ],
+    []
+  );
+
+  const reportColumns = useMemo(
+    () => [
+      {
+        key: 'reportType',
+        header: 'Report Type',
+        className: 'text-sm font-medium text-foreground',
+        render: (report: BankReportItem) => report.reportType,
+      },
+      {
+        key: 'generatedAt',
+        header: 'Generated',
+        className: 'text-sm text-muted-foreground',
+        render: (report: BankReportItem) => format(new Date(report.generatedAt), 'MMM d, yyyy HH:mm'),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        className: 'text-sm text-muted-foreground',
+        render: (report: BankReportItem) => (
+          <span className="inline-flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            {report.status}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={`${user?.tenantName || 'Bank'} Portal`}
-            subtitle={''}
-            actions={
-              <Button variant="outline" size="sm" onClick={() => refresh({ auditPage, reportPage })} disabled={isLoading}>
-                <RefreshCw className="mr-1 h-4 w-4" /> Refresh
-              </Button>
-            }
-          />
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="kardit-card p-6 text-sm text-muted-foreground">{error || 'Dashboard data unavailable'}</div>
-          ) : (
-            <>
-              <div className="mb-3 text-xs text-muted-foreground">
-                Generated {generatedAt ? format(new Date(generatedAt), 'MMM d, yyyy HH:mm') : '-'}
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">{user?.tenantName || 'Bank'} Portal</h1>
+                <p className="page-sub">Overview of audit activity, affiliates, and operational reports.</p>
               </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => refresh({ auditPage, reportPage })} disabled={isLoading}>
+                <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
+              </button>
+            </header>
 
-              {/* <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <StatCard title="Cards Issued" value={formatNumber(metrics.totalCardsIssued)} icon={CreditCard} subtitle={`${formatNumber(metrics.activeCards)} active`} />
-                <StatCard title="Funding Volume" value={formatNumber(metrics.totalFundingVolume)} icon={TrendingUp} subtitle={`Unload ${formatNumber(metrics.totalUnloadVolume)}`} />
-                <StatCard title="Transactions" value={formatNumber(metrics.totalTransactionVolume)} icon={ScrollText} subtitle={`${formatNumber(metrics.failedCmsRequests)} failed CMS`} />
-                <StatCard title="Pending Approvals" value={formatNumber(metrics.pendingApprovals)} icon={Building2} subtitle={`${formatNumber(metrics.frozenCards)} frozen, ${formatNumber(metrics.terminatedCards)} terminated`} />
-              </div> */}
-
-              <div className="grid gap-6">
-                <div className="kardit-card overflow-hidden">
-                  <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <h2 className="font-semibold">Recent Audit Logs</h2>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/bank/audit-logs')}>
-                      View more
-                    </Button>
-                  </div>
-                  {auditError ? (
-                    <div className="px-6 py-8 text-sm text-muted-foreground">{auditError}</div>
-                  ) : auditLogs.length === 0 ? (
-                    <div className="px-6 py-8 text-sm text-muted-foreground">No audit logs returned.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Event</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Resource Type</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actor</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Occurred</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {auditLogs.map((log) => (
-                            <tr key={log.auditLogId} className="hover:bg-muted/30">
-                              <td className="px-4 py-3 text-sm font-medium">{log.eventType}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{log.resourceType || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{log.actorUserId || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm')}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-              <div className="mb-6 grid gap-6 lg:grid-cols-2 mt-10">
-                <div className="kardit-card overflow-hidden">
-                  <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <div>
-                      <h2 className="font-semibold">Attached Affiliates</h2>
-                      <p className="text-sm text-muted-foreground">Portfolio affiliates attached to this bank.</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliates')}>
-                      View more
-                    </Button>
-                  </div>
-                  {affiliatesError ? (
-                    <div className="px-6 py-10 text-sm text-muted-foreground">{affiliatesError}</div>
-                  ) : affiliates.length === 0 ? (
-                    <div className="px-6 py-10 text-sm text-muted-foreground">No affiliates attached yet.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Cards</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Cards</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Funding</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {affiliates.slice(0, 5).map((affiliate) => (
-                            <tr
-                              key={affiliate.affiliateId}
-                              className="cursor-pointer hover:bg-muted/30"
-                              onClick={() => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
-                            >
-                              <td className="px-4 py-3 text-sm">
-                                <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{formatNumber(affiliate.activeCards)}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {formatNumber(affiliate.totalCards)}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{formatNumber(affiliate.totalFundingVolume)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+            ) : error ? (
+              <section className="bch-card p-6 text-sm text-muted-foreground">{error || 'Dashboard data unavailable'}</section>
+            ) : (
+              <>
+                <section className="kpis" style={{ marginTop: 14 }}>
+                  <Kpi label="Generated" value={generatedAt ? format(new Date(generatedAt), 'MMM d, HH:mm') : '-'} sub="Latest snapshot time" />
+                  <Kpi label="Audit events" value={String(auditLogs.length)} sub="Current dashboard page" />
+                  <Kpi label="Affiliates" value={String(affiliates.length)} sub="Attached to this bank" />
+                  <Kpi label="Reports" value={String(reportTotal)} sub="Total generated reports" />
+                </section>
 
-                <div className="kardit-card overflow-hidden">
-                  <div className="border-b border-border px-6 py-4">
-                    <h2 className="font-semibold">Recent Reports</h2>
+                <section className="section-head" style={{ marginTop: 20 }}>
+                  <div>
+                    <div className="section-title">Recent Audit Logs</div>
+                    <div className="section-sub">Latest bank activity entries</div>
                   </div>
-                  {reportsError ? (
-                    <div className="px-6 py-8 text-sm text-muted-foreground">{reportsError}</div>
-                  ) : reports.length === 0 ? (
-                    <div className="px-6 py-8 text-sm text-muted-foreground">No reports returned.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Report Type</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Generated</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {reports.map((report) => (
-                            <tr key={report.reportId} className="hover:bg-muted/30">
-                              <td className="px-4 py-3 text-sm font-medium">{report.reportType}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {format(new Date(report.generatedAt), 'MMM d, yyyy HH:mm')}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                <span className="inline-flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  {report.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between border-t border-border px-6 py-4">
-                    <p className="text-sm text-muted-foreground">
-                      Page {reportPage} of {reportTotalPages} • {reportTotal} total report{reportTotal === 1 ? '' : 's'}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" disabled={isLoading || reportPage <= 1} onClick={() => goToReportPage(reportPage - 1)}>
-                        Previous
+                  <Button variant="outline" size="sm" onClick={() => navigate('/bank/audit-logs')}>
+                    View more
+                  </Button>
+                </section>
+                <PaginatedTable<BankAuditLogItem>
+                  className="!rounded-[var(--cs-radius-lg)] !border-[var(--cs-line)] !shadow-[var(--cs-shadow-sm)]"
+                  columns={auditColumns}
+                  rows={auditLogs}
+                  error={auditError}
+                  emptyMessage="No audit logs returned."
+                  rowKey={(log, index) => log.auditLogId || `${log.eventType}-${index}`}
+                  page={1}
+                  pageSize={Math.max(auditLogs.length, 1)}
+                  total={Math.max(auditLogs.length, 1)}
+                  onPageChange={() => {}}
+                />
+
+                <div className="grid gap-6 lg:grid-cols-2" style={{ marginTop: 24 }}>
+                  <div>
+                    <section className="section-head">
+                      <div>
+                        <div className="section-title">Attached Affiliates</div>
+                        <div className="section-sub">Portfolio affiliates attached to this bank.</div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliates')}>
+                        View more
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isLoading || reportPage >= reportTotalPages}
-                        onClick={() => goToReportPage(reportPage + 1)}
-                      >
-                        Next
-                      </Button>
-                    </div>
+                    </section>
+                    <PaginatedTable<BankAffiliateSummary>
+                      className="!rounded-[var(--cs-radius-lg)] !border-[var(--cs-line)] !shadow-[var(--cs-shadow-sm)]"
+                      columns={affiliateColumns}
+                      rows={affiliatesPreview}
+                      error={affiliatesError}
+                      emptyMessage="No affiliates attached yet."
+                      rowKey={(affiliate) => affiliate.affiliateId}
+                      onRowClick={(affiliate) => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
+                      page={1}
+                      pageSize={Math.max(affiliatesPreview.length, 1)}
+                      total={Math.max(affiliatesPreview.length, 1)}
+                      onPageChange={() => {}}
+                    />
+                  </div>
+
+                  <div>
+                    <section className="section-head">
+                      <div>
+                        <div className="section-title">Recent Reports</div>
+                        <div className="section-sub">Generated reports in this bank scope</div>
+                      </div>
+                    </section>
+                    <PaginatedTable<BankReportItem>
+                      className="!rounded-[var(--cs-radius-lg)] !border-[var(--cs-line)] !shadow-[var(--cs-shadow-sm)]"
+                      columns={reportColumns}
+                      rows={reports}
+                      error={reportsError}
+                      emptyMessage="No reports returned."
+                      rowKey={(report) => report.reportId}
+                      page={reportPage}
+                      pageSize={reportPageSize}
+                      total={reportTotal}
+                      onPageChange={goToReportPage}
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">Page {reportPage} of {reportTotalPages}</div>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

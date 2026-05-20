@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useReportDefinitions, useRunReport } from '@/hooks/useReports';
@@ -52,45 +51,61 @@ export default function ReportDetailPage() {
     return (
       <ProtectedRoute>
         <AppLayout>
-          <div className="animate-fade-in">
-            <PageHeader
-              title={group.name}
-              subtitle={group.description}
-              actions={<Button variant="outline" size="sm" onClick={() => navigate('/reports')}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {groupDefinitions.map((definition) => (
-                <button
-                  key={definition.id}
-                  onClick={() => navigate(`/reports/${definition.id}`)}
-                  className="kardit-card p-5 text-left hover:border-primary/50 transition-colors group"
-                >
-                  <FileText className="h-5 w-5 text-primary mb-2" />
-                  <h3 className="text-sm font-semibold mb-1">{definition.name}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">{definition.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
+          <main className="scr-main">
+            <div className="container">
+              <header className="page-head">
+                <div>
+                  <h1 className="page-title">{group.name}</h1>
+                  <p className="page-sub">{group.description}</p>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/reports')}>
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+              </header>
+
+              <div className="action-grid" style={{ marginTop: 14 }}>
+                {groupDefinitions.map((definition) => (
+                  <button
+                    key={definition.id}
+                    onClick={() => navigate(`/reports/${definition.id}`)}
+                    className="action-card"
+                    type="button"
+                    style={{ textAlign: 'left' }}
+                  >
+                    <div className="action-icon"><FileText /></div>
+                    <div className="action-title">{definition.name}</div>
+                    <div className="action-meta">{definition.description}</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {definition.allowedFormats.map((format) => (
-                        <span key={format} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
-                          {format}
-                        </span>
+                        <span key={format} className="ujr-tag">{format}</span>
                       ))}
                     </div>
-                    <span className="text-xs text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-                      Open <ArrowRight className="h-3 w-3" />
-                    </span>
-                  </div>
-                </button>
-              ))}
+                    <div className="action-cta">Open <ArrowRight className="h-3 w-3" /></div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          </main>
         </AppLayout>
       </ProtectedRoute>
     );
   }
 
   if (!def) {
-    return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Report not found.</div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <main className="scr-main">
+            <div className="container">
+              <section className="bch-card" style={{ padding: 24 }}>
+                <div className="empty-list-title">Report not found</div>
+                <div className="empty-list-sub">The report definition could not be resolved.</div>
+              </section>
+            </div>
+          </main>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
 
   const handleGenerate = () => {
@@ -140,178 +155,173 @@ export default function ReportDetailPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title={def.name}
-            subtitle={def.description}
-            actions={<Button variant="outline" size="sm" onClick={() => navigate(`/reports/${def.groupId}`)}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>}
-          />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Filters</h3>
-
-              {needsCardId && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Card ID</label>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={cardId}
-                    onChange={(e) => setCardId(e.target.value)}
-                    placeholder="CARD-2026-000551"
-                  />
-                </div>
-              )}
-
-              {needsCustomerRefId && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Customer Ref ID</label>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={customerRefId}
-                    onChange={(e) => setCustomerRefId(e.target.value)}
-                    placeholder="CUST-ACME-00091"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Page</label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={page}
-                    onChange={(e) => setPage(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Page Size</label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={pageSize}
-                    onChange={(e) => setPageSize(e.target.value)}
-                  >
-                    {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
-                  </select>
-                </div>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">{def.name}</h1>
+                <p className="page-sub">{def.description}</p>
               </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/reports/${def.groupId}`)}>
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+            </header>
 
-              {supportsDateRange && (
-                <>
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Report Code" value={def.code} sub="Definition identifier" />
+              <Kpi label="Formats" value={def.allowedFormats.join(', ')} sub="Supported export types" />
+              <Kpi label="Group" value={def.groupId.toUpperCase()} sub="Report collection" />
+              <Kpi label="Run Status" value={instance?.status || 'IDLE'} sub="Current execution state" />
+            </section> */}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ marginTop: 14 }}>
+              <section className="bch-card card-pad space-y-4">
+                <div className="section-head" style={{ marginTop: 0, marginBottom: 8 }}>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Date From</label>
-                    <input type="date" className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                    <div className="section-title">Filters</div>
+                    <div className="section-sub">Configure report payload</div>
                   </div>
+                </div>
+
+                {needsCardId && (
+                  <Field label="Card ID">
+                    <input className="bch-input" value={cardId} onChange={(e) => setCardId(e.target.value)} placeholder="CARD-2026-000551" />
+                  </Field>
+                )}
+
+                {needsCustomerRefId && (
+                  <Field label="Customer Ref ID">
+                    <input className="bch-input" value={customerRefId} onChange={(e) => setCustomerRefId(e.target.value)} placeholder="CUST-ACME-00091" />
+                  </Field>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Page">
+                    <input type="number" min="1" className="bch-input" value={page} onChange={(e) => setPage(e.target.value)} />
+                  </Field>
+                  <Field label="Page Size">
+                    <select className="bch-select" value={pageSize} onChange={(e) => setPageSize(e.target.value)}>
+                      {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+                    </select>
+                  </Field>
+                </div>
+
+                {supportsDateRange && (
+                  <>
+                    <Field label="Date From">
+                      <input type="date" className="bch-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                    </Field>
+                    <Field label="Date To">
+                      <input type="date" className="bch-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                    </Field>
+                  </>
+                )}
+
+                {reportDefinitionId === 'card-issuance' && (
+                  <Field label="Product Type">
+                    <select className="bch-select" value={productType} onChange={(e) => setProductType(e.target.value)}>
+                      <option value="">All</option>
+                      <option value="PHYSICAL">PHYSICAL</option>
+                      <option value="VIRTUAL">VIRTUAL</option>
+                    </select>
+                  </Field>
+                )}
+
+                {reportDefinitionId === 'card-fulfillment' && (
+                  <Field label="Fulfillment Status">
+                    <input className="bch-input" value={status} onChange={(e) => setStatus(e.target.value)} placeholder="DISPATCHED" />
+                  </Field>
+                )}
+
+                {supportsOperationType && (
+                  <Field label="Operation Type">
+                    <input className="bch-input" value={operationType} onChange={(e) => setOperationType(e.target.value)} placeholder="LOAD" />
+                  </Field>
+                )}
+
+                {reportDefinitionId === 'cms-traces' && (
+                  <Field label="Card ID">
+                    <input className="bch-input" value={cardId} onChange={(e) => setCardId(e.target.value)} placeholder="CARD-2026-000551" />
+                  </Field>
+                )}
+
+                <button onClick={handleGenerate} disabled={disableGenerate} className="btn btn-primary w-full">
+                  {(instance?.status === 'QUEUED' || instance?.status === 'RUNNING') && <Loader2 className="h-4 w-4 spin" />}
+                  <Play className="h-4 w-4" /> Generate Report
+                </button>
+              </section>
+
+              <section className="lg:col-span-2 bch-card card-pad">
+                <div className="section-head" style={{ marginTop: 0 }}>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Date To</label>
-                    <input type="date" className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                    <div className="section-title">Results</div>
+                    <div className="section-sub">Preview generated report data</div>
                   </div>
-                </>
-              )}
-
-              {reportDefinitionId === 'card-issuance' && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Product Type</label>
-                  <select className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" value={productType} onChange={(e) => setProductType(e.target.value)}>
-                    <option value="">All</option>
-                    <option value="PHYSICAL">PHYSICAL</option>
-                    <option value="VIRTUAL">VIRTUAL</option>
-                  </select>
+                  {instance && <StatusChip status={statusMap[instance.status] || 'INACTIVE'} label={instance.status} />}
                 </div>
-              )}
 
-              {reportDefinitionId === 'card-fulfillment' && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Fulfillment Status</label>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    placeholder="DISPATCHED"
-                  />
-                </div>
-              )}
+                {!instance && <p className="section-sub">Set your filters and generate a report.</p>}
+                {instance?.status === 'QUEUED' && <p className="section-sub">Report queued...</p>}
+                {instance?.status === 'RUNNING' && (
+                  <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 spin" /><span className="section-sub">Generating report...</span></div>
+                )}
+                {instance?.status === 'FAILED' && <p style={{ color: 'var(--cs-red-700)', fontSize: 13 }}>{instance.errorMessage || 'Report failed.'}</p>}
 
-              {supportsOperationType && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Operation Type</label>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={operationType}
-                    onChange={(e) => setOperationType(e.target.value)}
-                    placeholder="LOAD"
-                  />
-                </div>
-              )}
-
-              {reportDefinitionId === 'cms-traces' && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Card ID</label>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={cardId}
-                    onChange={(e) => setCardId(e.target.value)}
-                    placeholder="CARD-2026-000551"
-                  />
-                </div>
-              )}
-
-              <Button onClick={handleGenerate} disabled={disableGenerate} className="w-full">
-                {(instance?.status === 'QUEUED' || instance?.status === 'RUNNING') && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                <Play className="h-4 w-4 mr-1" /> Generate Report
-              </Button>
-            </div>
-
-            <div className="lg:col-span-2 kardit-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Results</h3>
-                {instance && <StatusChip status={statusMap[instance.status] || 'INACTIVE'} label={instance.status} />}
-              </div>
-
-              {!instance && <p className="text-sm text-muted-foreground">Set your filters and generate a report.</p>}
-              {instance?.status === 'QUEUED' && <p className="text-sm text-muted-foreground">Report queued...</p>}
-              {instance?.status === 'RUNNING' && (
-                <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin text-primary" /><span className="text-sm">Generating report...</span></div>
-              )}
-              {instance?.status === 'FAILED' && (
-                <p className="text-sm text-destructive">{instance.errorMessage || 'Report failed.'}</p>
-              )}
-
-              {instance?.status === 'COMPLETED' && instance.previewColumns && instance.previewRows && (
-                <>
-                  <div className="overflow-x-auto mb-4">
-                    <table className="w-full">
-                      <thead><tr className="border-b border-border bg-muted/50">
-                        {instance.previewColumns.map((column) => (
-                          <th key={column} className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">{column}</th>
-                        ))}
-                      </tr></thead>
-                      <tbody className="divide-y divide-border">
-                        {instance.previewRows.map((row, index) => (
-                          <tr key={index} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                            {row.map((cell, cellIndex) => (
-                              <td key={cellIndex} className="px-4 py-2 text-sm">{cell ?? '-'}</td>
+                {instance?.status === 'COMPLETED' && instance.previewColumns && instance.previewRows && (
+                  <>
+                    <div className="overflow-x-auto mb-4">
+                      <table className="data">
+                        <thead>
+                          <tr>
+                            {instance.previewColumns.map((column) => (
+                              <th key={column}>{column}</th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex gap-2">
-                    {def.allowedFormats.map((format) => (
-                      <Button key={format} variant="outline" size="sm" onClick={() => handleExport(format)}>
-                        <Download className="h-4 w-4 mr-1" /> Export {format}
-                      </Button>
-                    ))}
-                  </div>
-                </>
-              )}
+                        </thead>
+                        <tbody>
+                          {instance.previewRows.map((row, index) => (
+                            <tr key={index}>
+                              {row.map((cell, cellIndex) => (
+                                <td key={cellIndex}>{cell ?? '-'}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {def.allowedFormats.map((format) => (
+                        <Button key={format} variant="outline" size="sm" onClick={() => handleExport(format)}>
+                          <Download className="h-4 w-4 mr-1" /> Export {format}
+                        </Button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
             </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="bch-label">{label}</label>
+      {children}
+    </div>
   );
 }

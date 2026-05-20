@@ -1,21 +1,20 @@
-import React from 'react';
+﻿import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useNotification, useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ArrowLeft, ExternalLink, Eye, EyeOff } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowLeft, ExternalLink, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { isBankReadOnlyUser } from '@/lib/permissions';
 
 const entityRoutes: Record<string, (id: string) => string> = {
-  Customer: id => `/customers/${id}`,
-  Card: id => `/cards/${id}`,
-  User: id => `/users/${id}`,
-  LoadBatch: id => `/loads/batches/${id}`,
+  Customer: (id) => `/customers/${id}`,
+  Card: (id) => `/cards/${id}`,
+  User: (id) => `/users/${id}`,
+  LoadBatch: (id) => `/loads/batches/${id}`,
 };
 
 export default function NotificationDetailPage() {
@@ -27,62 +26,131 @@ export default function NotificationDetailPage() {
   const isReadOnly = isBankReadOnlyUser(user);
 
   if (isLoading) {
-    return <ProtectedRoute><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <main className="scr-main">
+            <div className="container" style={{ display: 'grid', placeItems: 'center', paddingTop: 80 }}>
+              <Loader2 className="spin" style={{ width: 26, height: 26 }} />
+            </div>
+          </main>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
 
   if (!notification) {
-    return <ProtectedRoute><AppLayout><div className="text-center py-20 text-muted-foreground">Notification not found.</div></AppLayout></ProtectedRoute>;
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <main className="scr-main">
+            <div className="container">
+              <section className="bch-card" style={{ padding: 24 }}>
+                <div className="empty-list-title">Notification not found</div>
+                <div className="empty-list-sub">This notification may have been removed.</div>
+                <div style={{ marginTop: 12 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('/notifications')}>
+                    <ArrowLeft className="h-4 w-4" /> Back to notifications
+                  </button>
+                </div>
+              </section>
+            </div>
+          </main>
+        </AppLayout>
+      </ProtectedRoute>
+    );
   }
 
   const statusMap: Record<string, StatusType> = { INFO: 'INFO', WARNING: 'WARNING', ERROR: 'ERROR' };
-  const relatedRoute = notification.relatedEntityType && notification.relatedEntityId && entityRoutes[notification.relatedEntityType]
-    ? entityRoutes[notification.relatedEntityType](notification.relatedEntityId)
-    : null;
+  const relatedRoute =
+    notification.relatedEntityType && notification.relatedEntityId && entityRoutes[notification.relatedEntityType]
+      ? entityRoutes[notification.relatedEntityType](notification.relatedEntityId)
+      : null;
 
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="animate-fade-in max-w-2xl">
-          <PageHeader title={notification.title} actions={
-            <div className="flex items-center gap-2">
+        <main className="scr-main">
+          <div className="container container--narrow">
+            <header className="page-head">
+              <div>
+                <button className="back-link" onClick={() => navigate('/notifications')}>
+                  <ArrowLeft /> Back to notifications
+                </button>
+                <h1 className="page-title">{notification.title}</h1>
+                <p className="page-sub">Review notification details and take action.</p>
+              </div>
               <StatusChip status={statusMap[notification.severity]} />
-              <Button variant="outline" size="sm" onClick={() => navigate('/notifications')}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-            </div>
-          } />
+            </header>
 
-          <div className="kardit-card p-6 space-y-4">
-            <div className="prose prose-invert max-w-none">
-              <p className="text-sm text-foreground leading-relaxed">{notification.message}</p>
-            </div>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Severity" value={notification.severity} sub="Classification" />
+              <Kpi label="Status" value={notification.isRead ? 'Read' : 'Unread'} sub="Current read state" />
+              <Kpi label="Created" value={format(new Date(notification.createdAt), 'MMM d, HH:mm')} sub="Event timestamp" />
+              <Kpi
+                label="Related"
+                value={notification.relatedEntityType || '-'}
+                sub={notification.relatedEntityId ? `ID: ${notification.relatedEntityId}` : 'No linked entity'}
+              />
+            </section>
 
-            <div className="flex flex-col gap-2 text-sm text-muted-foreground pt-2 border-t border-border">
-              <p>Created: {format(new Date(notification.createdAt), 'PPP p')}</p>
-              {notification.readAt && <p>Read: {format(new Date(notification.readAt), 'PPP p')}</p>}
-              <p>Status: {notification.isRead ? 'Read' : 'Unread'}</p>
-            </div>
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="section-head" style={{ marginTop: 0 }}>
+                <div>
+                  <div className="section-title">Message</div>
+                  <div className="section-sub">Notification body and metadata</div>
+                </div>
+              </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isReadOnly}
-                onClick={() => {
-                  if (isReadOnly) return;
-                  toggleRead(notification.id);
-                  navigate('/notifications');
-                }}
-              >
-                {notification.isRead ? <><EyeOff className="h-4 w-4 mr-1" /> Mark as unread</> : <><Eye className="h-4 w-4 mr-1" /> Mark as read</>}
-              </Button>
-              {relatedRoute && (
-                <Button variant="outline" size="sm" onClick={() => navigate(relatedRoute)}>
-                  <ExternalLink className="h-4 w-4 mr-1" /> Go to related item
-                </Button>
-              )}
-            </div>
+              <div style={{ color: 'var(--cs-ink-400)', fontSize: 14, lineHeight: 1.65 }}>{notification.message}</div>
+
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--cs-line)', display: 'grid', gap: 6 }}>
+                <div className="section-sub">Created: {format(new Date(notification.createdAt), 'PPP p')}</div>
+                {notification.readAt && <div className="section-sub">Read: {format(new Date(notification.readAt), 'PPP p')}</div>}
+                <div className="section-sub">Status: {notification.isRead ? 'Read' : 'Unread'}</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={isReadOnly}
+                  onClick={() => {
+                    if (isReadOnly) return;
+                    toggleRead(notification.id);
+                    navigate('/notifications');
+                  }}
+                >
+                  {notification.isRead ? (
+                    <>
+                      <EyeOff className="h-4 w-4" /> Mark as unread
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4" /> Mark as read
+                    </>
+                  )}
+                </button>
+
+                {relatedRoute && (
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate(relatedRoute)}>
+                    <ExternalLink className="h-4 w-4" /> Go to related item
+                  </button>
+                )}
+              </div>
+            </section>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }
