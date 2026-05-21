@@ -67,108 +67,118 @@ export default function OnboardingCasesListPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Onboarding cases"
-            subtitle={subtitle}
-            actions={<Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>}
-          />
-
-          <div className="kardit-card mb-4 p-4">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_140px]">
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
               <div>
-                <p className="text-sm font-medium">Filters</p>
-                <p className="text-xs text-muted-foreground">Filter onboarding cases by review status and page size.</p>
+                <h1 className="page-title">Onboarding cases</h1>
+                <p className="page-sub">
+                  Search and view onboarding cases in your tenant. Click any row to open the
+                  case details.
+                </p>
+                <div className=''>
+                  <Button variant="outline" size="sm" onClick={refresh}>
+                    Refresh
+                  </Button>
+                </div>
               </div>
-              <Select value={statusFilter} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status === 'ALL' ? 'All Statuses' : status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={String(selectedPageSize)} onValueChange={handlePageSizeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Page size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pageSizeOptions.map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {size} / page
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            </header>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : cases.length === 0 ? (
-              <div className="p-10 text-center text-sm text-muted-foreground">No cases yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Submitted</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th> */}
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Case ID</th> */}
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {cases.map((c, i) => (
-                      <tr
-                        key={c.caseId}
-                        onClick={() => navigate(`/super-admin/onboarding/cases/${c.caseId}`)}
-                        className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                      >
-                        <td className="px-4 py-3 text-sm whitespace-nowrap">{format(new Date(c.submittedAt), 'MMM d, yyyy HH:mm')}</td>
-                        <td className="px-4 py-3 text-sm max-w-[260px] truncate">{c.organization?.legalName || 'Affiliate'}</td>
-                        {/* // <td className="px-4 py-3 text-sm max-w-[220px] truncate text-muted-foreground">{c.contact?.contactEmail || '—'}</td> */}
-                        {/* <td className="px-4 py-3 text-sm font-mono text-muted-foreground max-w-[240px] truncate">{c.caseId}</td> */}
-                        <td className="px-4 py-3 text-sm"><StatusChip status={statusToChip[c.status] || 'INACTIVE'} label={c.status} /></td>
-                      </tr>
+            <div className="kardit-card mb-4 p-4">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_140px]">
+                <div>
+                  <p className="text-sm font-medium">Filters</p>
+                  <p className="text-xs text-muted-foreground">Filter onboarding cases by review status and page size.</p>
+                </div>
+                <Select value={statusFilter} onValueChange={handleStatusChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status === 'ALL' ? 'All Statuses' : status}
+                      </SelectItem>
                     ))}
-                  </tbody>
-                </table>
+                  </SelectContent>
+                </Select>
+                <Select value={String(selectedPageSize)} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Page size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-            <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} • {total} total case{total === 1 ? '' : 's'}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || currentPage <= 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            </div>
+
+            <div className="kardit-card overflow-hidden">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : error ? (
+                <div className="p-6 text-sm text-muted-foreground">{error}</div>
+              ) : cases.length === 0 ? (
+                <div className="p-10 text-center text-sm text-muted-foreground">No cases yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Submitted</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
+                        {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th> */}
+                        {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Case ID</th> */}
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {cases.map((c, i) => (
+                        <tr
+                          key={c.caseId}
+                          onClick={() => navigate(`/super-admin/onboarding/cases/${c.caseId}`)}
+                          className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
+                        >
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">{format(new Date(c.submittedAt), 'MMM d, yyyy HH:mm')}</td>
+                          <td className="px-4 py-3 text-sm max-w-[260px] truncate">{c.organization?.legalName || 'Affiliate'}</td>
+                          {/* // <td className="px-4 py-3 text-sm max-w-[220px] truncate text-muted-foreground">{c.contact?.contactEmail || '—'}</td> */}
+                          {/* <td className="px-4 py-3 text-sm font-mono text-muted-foreground max-w-[240px] truncate">{c.caseId}</td> */}
+                          <td className="px-4 py-3 text-sm"><StatusChip status={statusToChip[c.status] || 'INACTIVE'} label={c.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="table-pager border-t border-border flex items-center justify-between px-4 py-3">
+              <div className="table-pager__meta">
+                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+              </div>
+              <div className="table-pager__actions">
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1 || isLoading}
                 >
                   Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || currentPage >= totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                </button>
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || isLoading}
                 >
                   Next
-                </Button>
+                </button>
               </div>
             </div>
+            </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );

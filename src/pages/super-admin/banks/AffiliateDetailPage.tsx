@@ -212,11 +212,15 @@ export default function AffiliateDetailPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={affiliateName}
-            subtitle={`Transactions and portfolio summary for ${affiliateName}`}
-            actions={
+        <main className='scr-main'>
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">{affiliateName}</h1>
+                <p className="page-sub">
+                  {`Transactions and portfolio summary for ${affiliateName}`}
+                </p>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusChip status={affiliateStatusToChip[affiliateStatus] || 'INACTIVE'} label={affiliateStatus} />
                 <Button
@@ -230,241 +234,241 @@ export default function AffiliateDetailPage() {
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bankName}
                 </Button>
               </div>
-            }
-          />
+            </header>
 
-          <div className="mb-6 text-sm text-muted-foreground">
-            <span
-              className="hover:text-foreground cursor-pointer transition-colors"
-              onClick={() => navigate('/super-admin/banks')}
-            >
-              Banks
-            </span>
-            <span className="mx-2">/</span>
-            <span
-              className="hover:text-foreground cursor-pointer transition-colors"
-              onClick={() => navigate(`/super-admin/banks/${bankId}`)}
-            >
-              {bankName}
-            </span>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">{affiliateName}</span>
-          </div>
-
-          <div className="kardit-card p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Registration Number</p>
-                <p className="font-medium">{registrationNumber}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Country</p>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{affiliateCountry}</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Person</p>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{contactName}</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Email</p>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{contactEmail}</span>
-                </div>
-              </div>
-            </div>
-            {(contactPhone || provisionedAt) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4 pt-4 border-t border-border">
-                {contactPhone && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Phone</p>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{contactPhone}</span>
-                    </div>
-                  </div>
-                )}
-                {provisionedAt && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Provisioned On</p>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{format(new Date(provisionedAt), 'MMM d, yyyy')}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
-                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">-</p>
-                  <p className="text-xs text-muted-foreground">Total Customers</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">-</p>
-                  <p className="text-xs text-muted-foreground">Active Customers</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
-                  <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">-</p>
-                  <p className="text-xs text-muted-foreground">Pending Customers</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : totalCards.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Cards Issued</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
-                  <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {affiliateTxLoading ? '...' : formatMoney(affiliateVolume?.volumes?.totalFundingVolume)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Affiliate Funding</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
-                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Active Cards</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
-                  <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Frozen Cards</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
-                  <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Terminated Cards</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="kardit-card overflow-hidden mb-4">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Affiliate Transactions</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Latest transactions scoped to this affiliate.</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/transactions?affiliateId=${encodeURIComponent(affiliateId || '')}`)}
+            <div className="mb-6 text-sm text-muted-foreground">
+              <span
+                className="hover:text-foreground cursor-pointer transition-colors"
+                onClick={() => navigate('/super-admin/banks')}
               >
-                View All
-              </Button>
+                Banks
+              </span>
+              <span className="mx-2">/</span>
+              <span
+                className="hover:text-foreground cursor-pointer transition-colors"
+                onClick={() => navigate(`/super-admin/banks/${bankId}`)}
+              >
+                {bankName}
+              </span>
+              <span className="mx-2">/</span>
+              <span className="text-foreground">{affiliateName}</span>
             </div>
-            {affiliateTxLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+
+            <div className="kardit-card p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Registration Number</p>
+                  <p className="font-medium">{registrationNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Country</p>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{affiliateCountry}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Person</p>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{contactName}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Email</p>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">{contactEmail}</span>
+                  </div>
+                </div>
               </div>
-            ) : affiliateTransactions.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">No affiliate transactions found.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {affiliateTransactions.map((transaction, index) => (
-                      <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                        <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
-                        <td className="px-4 py-3 text-sm font-mono">{transaction.customerId}</td>
-                        <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
-                        <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
-                        <td className="px-4 py-3 text-right text-sm font-mono">
-                          {formatMoney(transaction.amount, transaction.currency)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
-                        </td>
+              {(contactPhone || provisionedAt) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4 pt-4 border-t border-border">
+                  {contactPhone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact Phone</p>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{contactPhone}</span>
+                      </div>
+                    </div>
+                  )}
+                  {provisionedAt && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Provisioned On</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{format(new Date(provisionedAt), 'MMM d, yyyy')}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                    <Users className="h-5 w-5 text-[hsl(var(--success))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">-</p>
+                    <p className="text-xs text-muted-foreground">Total Customers</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">-</p>
+                    <p className="text-xs text-muted-foreground">Active Customers</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                    <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">-</p>
+                    <p className="text-xs text-muted-foreground">Pending Customers</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <CreditCard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : totalCards.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Cards Issued</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                    <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {affiliateTxLoading ? '...' : formatMoney(affiliateVolume?.volumes?.totalFundingVolume)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Affiliate Funding</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                    <Users className="h-5 w-5 text-[hsl(var(--success))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Active Cards</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
+                    <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Frozen Cards</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
+                    <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Terminated Cards</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="kardit-card overflow-hidden mb-4">
+              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Affiliate Transactions</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">Latest transactions scoped to this affiliate.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/transactions?affiliateId=${encodeURIComponent(affiliateId || '')}`)}
+                >
+                  View All
+                </Button>
+              </div>
+              {affiliateTxLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : affiliateTransactions.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">No affiliate transactions found.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {affiliateTransactions.map((transaction, index) => (
+                        <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
+                          <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{transaction.customerId}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td>
+                          <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
+                          <td className="px-4 py-3 text-right text-sm font-mono">
+                            {formatMoney(transaction.amount, transaction.currency)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
