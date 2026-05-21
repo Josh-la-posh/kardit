@@ -1,26 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, MapPin, Phone, User } from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Activity, ArrowLeft, CreditCard, List, Loader2, Wallet } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { StatusChip } from '@/components/ui/status-chip';
-import type { StatusType } from '@/components/ui/status-chip';
-import { store } from '@/stores/mockStore';
-import { getCustomerTransactions } from '@/services/transactionApi';
-import type { CustomerTransactionsResponse } from '@/types/transactionContracts';
+import { StatusChip, type StatusType } from '@/components/ui/status-chip';
+import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
+import { useCustomer, useCustomerTransactions } from '@/hooks/useCustomers';
+import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
 
-const customerStatusToChip: Record<string, StatusType> = {
-  ACTIVE: 'SUCCESS',
-  PENDING: 'PENDING',
-  REJECTED: 'FAILED',
-  BLOCKED: 'WARNING',
-};
-
-function formatMoney(value: number | undefined, currency = 'NGN') {
-  if (value === undefined) return '-';
+function formatMoney(value: number, currency: string) {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency,
@@ -35,6 +24,19 @@ function toTransactionStatus(status: string): StatusType {
   return 'INFO';
 }
 
+interface LocationState {
+  bank?: BankQueryItem;
+  affiliate?: AffiliateQueryItem;
+}
+
+function findBankById(items: BankQueryItem[], bankId: string) {
+  return items.find((item) => item.bankId === bankId) || null;
+}
+
+function findAffiliateById(items: AffiliateQueryItem[], affiliateId: string) {
+  return items.find((item) => item.affiliateId === affiliateId) || null;
+}
+
 export default function AffiliateCustomerDetailPage() {
   const { bankId, affiliateId, customerId } = useParams<{
     bankId: string;
@@ -42,70 +44,135 @@ export default function AffiliateCustomerDetailPage() {
     customerId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as LocationState | null;
 
-  const bank = bankId ? store.getPlatformBank(bankId) : null;
-  const affiliate = affiliateId ? store.getPlatformAffiliate(affiliateId) : null;
-  const customers = useMemo(() => (affiliateId ? store.getAffiliateCustomers(affiliateId) : []), [affiliateId]);
-  const customer = useMemo(
-    () => customers.find((item) => item.customerId === customerId || item.id === customerId) || null,
-    [customerId, customers]
+  const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
+    routeState?.bank?.bankId === bankId ? routeState.bank : null
   );
+  const [affiliateSummary, setAffiliateSummary] = useState<AffiliateQueryItem | null>(
+    routeState?.affiliate?.affiliateId === affiliateId ? routeState.affiliate : null
+  );
+  const [summaryLoading, setSummaryLoading] = useState(Boolean(bankId && affiliateId));
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  const [transactions, setTransactions] = useState<CustomerTransactionsResponse['data']>([]);
-  const [transactionsTotal, setTransactionsTotal] = useState(0);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const { customer, cards, isLoading: customerLoading, error: customerError } = useCustomer(customerId);
+  const {
+    transactions,
+    total: transactionsTotal,
+    isLoading: transactionsLoading,
+    error: transactionsError,
+  } = useCustomerTransactions(customerId);
 
-  useEffect(() => {
-    if (!customer?.customerId) {
-      setTransactions([]);
-      setTransactionsTotal(0);
-      setTransactionsLoading(false);
+  const loadSummaries = useCallback(async () => {
+    if (!bankId || !affiliateId) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError('Affiliate not found');
+      setSummaryLoading(false);
       return;
     }
 
-    let active = true;
-    setTransactionsLoading(true);
-    setTransactionsError(null);
+    setSummaryLoading(true);
+    setSummaryError(null);
 
-    getCustomerTransactions(customer.customerId)
-      .then((response) => {
-        if (!active) return;
-        setTransactions(response.data);
-        setTransactionsTotal(response.total);
-      })
-      .catch((error) => {
-        if (!active) return;
-        setTransactions([]);
-        setTransactionsTotal(0);
-        setTransactionsError(error instanceof Error ? error.message : 'Unable to load customer transactions');
-      })
-      .finally(() => {
-        if (active) setTransactionsLoading(false);
-      });
+    try {
+      const [bankSearchResponse, affiliateSearchResponse] = await Promise.all([
+        queryBanks({
+          filters: {
+            search: bankId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+        queryAffiliates({
+          filters: {
+            bankId,
+            search: affiliateId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+      ]);
 
-    return () => {
-      active = false;
-    };
-  }, [customer?.customerId]);
+      let nextBank = findBankById(bankSearchResponse?.data || [], bankId);
+      let nextAffiliate = findAffiliateById(affiliateSearchResponse?.data || [], affiliateId);
 
-  const storeCards = useMemo(() => {
-    if (!customer) return [];
-    return store.getCardsByCustomer(customer.id, customer.tenantId);
-  }, [customer]);
+      if (!nextBank) {
+        const fallbackBankResponse = await queryBanks({
+          filters: {},
+          page: 1,
+          pageSize: 100,
+        });
+        nextBank = findBankById(fallbackBankResponse.data, bankId);
+      }
 
-  const transactionCardIds = useMemo(
-    () => [...new Set(transactions.map((transaction) => transaction.cardId).filter(Boolean))],
-    [transactions]
-  );
+      if (!nextAffiliate) {
+        const fallbackAffiliateResponse = await queryAffiliates({
+          filters: {
+            bankId,
+          },
+          page: 1,
+          pageSize: 100,
+        });
+        nextAffiliate = findAffiliateById(fallbackAffiliateResponse.data, affiliateId);
+      }
 
-  if (!bank || !affiliate || !customer) {
+      setBankSummary(nextBank);
+      setAffiliateSummary(nextAffiliate);
+
+      if (!nextBank || !nextAffiliate) {
+        setSummaryError(!nextBank ? 'Bank not found' : 'Affiliate not found');
+      }
+    } catch (e) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError(e instanceof Error ? e.message : 'Failed to load customer details');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [affiliateId, bankId]);
+
+  useEffect(() => {
+    loadSummaries();
+  }, [loadSummaries]);
+
+  const customerStatus = customer?.status || 'ACTIVE';
+  const cardCount = cards.length;
+
+  if (summaryLoading) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
-          <div className="text-center py-20 text-muted-foreground">
-            {!bank ? 'Bank not found' : !affiliate ? 'Affiliate not found' : 'Customer not found'}
-          </div>
+          <main className="scr-main">
+            <div className="container">
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Loading customer profile...</div>
+              </div>
+            </div>
+          </main>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!bankSummary || !affiliateSummary) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
+        <AppLayout navVariant="service-provider">
+          <main className="scr-main">
+            <div className="container">
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Customer not available</div>
+                <div className="empty-list-sub">
+                  {summaryError || (!bankSummary ? 'Bank not found' : 'Affiliate not found')}
+                </div>
+                <Link to={`/super-admin/banks/${bankId || ''}/affiliates/${affiliateId || ''}/customers`} className="btn btn-primary">
+                  <ArrowLeft /> Back to customers
+                </Link>
+              </div>
+            </div>
+          </main>
         </AppLayout>
       </ProtectedRoute>
     );
@@ -114,219 +181,246 @@ export default function AffiliateCustomerDetailPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={`${customer.firstName} ${customer.lastName}`}
-            subtitle={customer.customerId}
-            actions={
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusChip status={customerStatusToChip[customer.status] || 'INACTIVE'} label={customer.status} />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back to Customers
-                </Button>
-              </div>
-            }
-          />
+        <main className="scr-main">
+          <div className="container">
+            <Link to={`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`} className="back-link">
+              <ArrowLeft /> Back to customers
+            </Link>
 
-          <div className="mb-6 text-sm text-muted-foreground">
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate('/super-admin/banks')}>
-              Banks
-            </span>
-            <span className="mx-2">/</span>
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
-              {bank.name}
-            </span>
-            <span className="mx-2">/</span>
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}>
-              {affiliate.name}
-            </span>
-            <span className="mx-2">/</span>
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}>
-              Customers
-            </span>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">{customer.customerId}</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="kardit-card space-y-4 p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Customer Detail</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{customer.firstName} {customer.lastName}</span>
-                </div>
-                {customer.email && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customer.email}</span>
-                  </div>
-                )}
-                {customer.phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customer.phone}</span>
-                  </div>
-                )}
-                {customer.dateOfBirth && (
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{format(new Date(customer.dateOfBirth), 'PPP')}</span>
-                  </div>
-                )}
-                {customer.nationality && (
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customer.nationality}</span>
-                  </div>
-                )}
-                {customer.address && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {[customer.address.line1, customer.address.city, customer.address.state, customer.address.country].filter(Boolean).join(', ')}
-                    </span>
-                  </div>
-                )}
+            {customerLoading ? (
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Loading customer profile...</div>
               </div>
-            </div>
-
-            <div className="kardit-card space-y-4 p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Identity</h3>
-              <div className="space-y-2 rounded-md border border-border bg-muted/40 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-muted-foreground">Emboss Name</span>
-                  <span className="text-sm font-medium text-right">{customer.embossName || '-'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-muted-foreground">ID Type</span>
-                  <span className="text-sm font-medium">{customer.idType || '-'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-muted-foreground">ID Number</span>
-                  <span className="text-sm font-medium">{customer.idNumber || '-'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-muted-foreground">Created</span>
-                  <span className="text-sm font-medium">{format(new Date(customer.createdAt), 'MMM d, yyyy')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="kardit-card mt-4 overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-border px-6 py-4">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Card Details</h3>
-            </div>
-            {storeCards.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Masked PAN</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Issuing Bank</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Balance</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {storeCards.map((card, index) => (
-                      <tr key={card.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                        <td className="px-4 py-3 text-sm font-mono">{card.maskedPan}</td>
-                        <td className="px-4 py-3 text-sm">{card.productName}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuingBankName}</td>
-                        <td className="px-4 py-3 text-right text-sm font-mono">{formatMoney(card.currentBalance, card.currency)}</td>
-                        <td className="px-4 py-3"><StatusChip status={card.status as StatusType} /></td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(card.createdAt), 'MMM d, yyyy')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : transactionCardIds.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th> */}
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Source</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {transactionCardIds.map((cardId, index) => (
-                      <tr key={cardId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                        {/* <td className="px-4 py-3 text-sm font-mono">{cardId}</td> */}
-                        <td className="px-4 py-3 text-sm text-muted-foreground">Linked transaction history</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            ) : customerError || !customer ? (
+              <NotFound
+                refValue={customerId}
+                message={customerError}
+                backHref={`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`}
+              />
             ) : (
-              <div className="p-6 text-center text-sm text-muted-foreground">No card details found for this customer.</div>
+              <>
+                <section className="profile-hero">
+                  <div className="profile-avatar">{getInitials(customer.fullName)}</div>
+                  <div className="profile-meta">
+                    <div className="profile-name">{customer.fullName}</div>
+                    <div className="profile-meta-row">
+                      <span className="profile-ref">{customer.customerRefId}</span>
+                      <StatusBadge status={customerStatus} />
+                      <KycBadge level={customer.kycLevel || 'LEVEL_2'} />
+                      <span>{bankSummary.bankName}</span>
+                      <span>{affiliateSummary.legalName}</span>
+                    </div>
+                  </div>
+                  <div className="profile-actions">
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}
+                    >
+                      <ArrowLeft /> Back
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}
+                    >
+                      <CreditCard /> View affiliate
+                    </button>
+                  </div>
+                </section>
+
+                <div className="profile-two-col">
+                  <div className="panel-card">
+                    <div className="panel-head"><div className="panel-title">Identity</div></div>
+                    <div className="panel-body">
+                      <dl className="profile-specs">
+                        <div><dt>Full name</dt><dd>{customer.fullName}</dd></div>
+                        <div><dt>Reference</dt><dd className="mono">{customer.customerRefId}</dd></div>
+                        <div><dt>Date of birth</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
+                        <div><dt>Status</dt><dd><StatusBadge status={customerStatus} /></dd></div>
+                        <div><dt>Mobile</dt><dd className="mono">{customer.phone || '-'}</dd></div>
+                        <div><dt>Email</dt><dd>{customer.email || <span className="muted">not provided</span>}</dd></div>
+                        <div>
+                          <dt>Address</dt>
+                          <dd>
+                            {customer.address
+                              ? [customer.address.line1, customer.address.city, customer.address.state, customer.address.country].filter(Boolean).join(', ')
+                              : <span className="muted">not provided</span>}
+                          </dd>
+                        </div>
+                        <div><dt>Affiliate</dt><dd>{affiliateSummary.legalName}</dd></div>
+                      </dl>
+                    </div>
+                  </div>
+
+                  <div className="panel-card">
+                    <div className="panel-head"><div className="panel-title">KYC details</div></div>
+                    <div className="panel-body">
+                      <dl className="profile-specs">
+                        <div><dt>KYC level</dt><dd><KycBadge level={customer.kycLevel || 'LEVEL_2'} /></dd></div>
+                        <div><dt>ID type</dt><dd>{customer.idType || <span className="muted">not provided</span>}</dd></div>
+                        <div><dt>ID number</dt><dd className="mono">{customer.idNumber || <span className="muted">not provided</span>}</dd></div>
+                        <div><dt>Verified at</dt><dd>{customer.verifiedAt ? formatDate(customer.verifiedAt) : <span className="muted">pending</span>}</dd></div>
+                        <div><dt>Bank</dt><dd>{bankSummary.bankName}</dd></div>
+                        <div><dt>Tenant</dt><dd className="mono">{affiliateSummary.tenantId}</dd></div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cards-list-card">
+                  <div className="cards-list-head">
+                    <div>
+                      <span className="cards-list-title">Cards</span>
+                      <span className="cards-list-count">{cardCount} linked</span>
+                    </div>
+                  </div>
+                  <div className="cards-list-body">
+                    {cardCount === 0 ? (
+                      <div className="cards-empty">No cards linked to this customer yet.</div>
+                    ) : (
+                      cards.map((card) => <CardRow key={card.id} card={card} />)
+                    )}
+                  </div>
+                </div>
+
+                <div className="cards-list-card" style={{ marginTop: 18 }}>
+                  <div className="cards-list-head">
+                    <div>
+                      <span className="cards-list-title">Transactions</span>
+                      <span className="cards-list-count">{transactionsTotal} linked</span>
+                    </div>
+                  </div>
+                  <div className="cards-list-body">
+                    {transactionsLoading ? (
+                      <div className="empty-list">
+                        <Loader2 className="spin" />
+                        <div className="empty-list-title">Loading transactions...</div>
+                      </div>
+                    ) : transactionsError ? (
+                      <div className="empty-list">
+                        <div className="empty-list-title">Unable to load transactions</div>
+                        <div className="empty-list-sub">{transactionsError}</div>
+                      </div>
+                    ) : transactions.length === 0 ? (
+                      <div className="cards-empty">No transactions found for this customer.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="data customers">
+                          <thead>
+                            <tr>
+                              <th style={{ width: 180 }}>Transaction ID</th>
+                              <th>Type</th>
+                              <th>Merchant</th>
+                              <th>Amount</th>
+                              <th>Status</th>
+                              <th>Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {transactions.map((transaction) => (
+                              <tr key={transaction.transactionId}>
+                                <td className="id">{transaction.transactionId}</td>
+                                <td>{transaction.transactionType}</td>
+                                <td>{transaction.merchantName || '-'}</td>
+                                <td className="mono">{formatMoney(transaction.amount, transaction.currency)}</td>
+                                <td><InlineStatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} /></td>
+                                <td className="meta">{format(new Date(transaction.transactionDate), 'dd MMM yyyy HH:mm')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
-
-          <div className="kardit-card mt-4 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Transactions</h3>
-              </div>
-              <span className="text-sm text-muted-foreground">{transactionsTotal} total</span>
-            </div>
-            {transactionsLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : transactionsError ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">{transactionsError}</div>
-            ) : transactions.length === 0 ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">No transactions found for this customer.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th> */}
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {transactions.map((transaction, index) => (
-                      <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                        <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
-                        {/* <td className="px-4 py-3 text-sm font-mono">{transaction.cardId}</td> */}
-                        <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
-                        <td className="px-4 py-3 text-right text-sm font-mono">{formatMoney(transaction.amount, transaction.currency)}</td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
+}
+
+function CardRow({ card }: { card: ReturnType<typeof useCustomer>['cards'][number] }) {
+  const cardType = card.productCode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL';
+  const status = card.status as 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING';
+  const thumbCls = status === 'FROZEN' ? 'frozen' : cardType === 'PHYSICAL' ? 'physical' : '';
+
+  return (
+    <div className="card-row">
+      <div className={`card-thumb ${thumbCls}`}>VERVE</div>
+      <div className="card-body">
+        <div className="card-head-row">
+          <span className="card-id">{card.id}</span>
+          <CardStatusBadge status={status} />
+          <span className={`kyc-pill lvl-${cardType === 'VIRTUAL' ? '2' : '3'}`}>{cardType}</span>
+        </div>
+        <div className="card-product">{card.productName} · {card.issuingBankName}</div>
+        <div className="card-meta">
+          <span className="card-pan">{card.maskedPan}</span> · created {formatDate(card.createdAt)}
+        </div>
+      </div>
+      <div className="card-actions">
+        <button type="button" className="btn btn-ghost btn-sm">
+          <Wallet /> Balance
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm">
+          <List /> Txns
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CardStatusBadge({ status }: { status: 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' }) {
+  return <span className={`badge status-${status.toLowerCase()}`}>{status}</span>;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`badge status-${status.toLowerCase()}`}>{status}</span>;
+}
+
+function KycBadge({ level }: { level: string }) {
+  const value = level.replace('LEVEL_', '');
+  return <span className={`kyc-pill lvl-${value}`}>Tier {value}</span>;
+}
+
+function InlineStatusChip({ status, label }: { status: StatusType; label: string }) {
+  return <StatusChip status={status} label={label} className="align-middle" />;
+}
+
+function NotFound({ refValue, message, backHref }: { refValue: string | undefined; message?: string | null; backHref: string }) {
+  return (
+    <div className="empty-list profile-empty-card">
+      <div className="empty-list-title">Customer not found</div>
+      <div className="empty-list-sub">
+        {message ? (
+          message
+        ) : refValue ? (
+          <>No customer in this affiliate scope with reference <span className="mono profile-ref-inline">{refValue}</span>.</>
+        ) : (
+          'No customer reference was provided.'
+        )}
+      </div>
+      <Link to={backHref} className="btn btn-primary">
+        <ArrowLeft /> Back to customers
+      </Link>
+    </div>
+  );
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }

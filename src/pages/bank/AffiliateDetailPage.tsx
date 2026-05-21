@@ -74,7 +74,7 @@ export default function AffiliateDetailPages() {
           fromDate: fromDate || undefined,
           toDate: toDate || undefined,
         },
-        page: 1,
+        pageNumber: 1,
         pageSize: 25,
       });
       setTransactions(response.data);

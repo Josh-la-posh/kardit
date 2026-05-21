@@ -129,7 +129,7 @@ export default function TransactionsPage() {
     try {
       const response = await queryTransactions({
         filters,
-        page: nextPage,
+        pageNumber: nextPage,
         pageSize: DEFAULT_PAGE_SIZE,
       });
       setTransactions(response.data);
@@ -351,6 +351,7 @@ export default function TransactionsPage() {
                       <tr className="border-b border-border bg-muted/50">
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
@@ -371,6 +372,7 @@ export default function TransactionsPage() {
                         >
                           <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{transaction.transactionId}</td>
                           <td className="px-4 py-3 text-sm font-medium">{formatMoney(transaction.amount, transaction.currency)}</td>
                           <td className="px-4 py-3 text-sm">
                             <Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge>

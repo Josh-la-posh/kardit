@@ -49,6 +49,8 @@ export default function OnboardingCaseDetailPage() {
       await decide(caseId, { decision, reason: reason || undefined, reviewerNote: note || undefined });
       toast.success('Decision saved');
       await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save decision');
     } finally {
       setWorking(false);
     }
@@ -76,6 +78,8 @@ export default function OnboardingCaseDetailPage() {
       toast.success('Provisioned');
       navigate(`/super-admin/onboarding/cases/${caseId}?provisioned=1`);
       await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to provision onboarding case');
     } finally {
       setWorking(false);
     }

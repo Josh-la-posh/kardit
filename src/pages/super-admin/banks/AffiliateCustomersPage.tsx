@@ -1,57 +1,194 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ArrowLeft, Eye, Search, User, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ChevronRight, RefreshCw, Search, SearchX, X } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { StatusChip } from '@/components/ui/status-chip';
-import type { StatusType } from '@/components/ui/status-chip';
-import { store } from '@/stores/mockStore';
+import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
+import { useAuth } from '@/hooks/useAuth';
+import { useCustomers } from '@/hooks/useCustomers';
+import type { CustomerListItem } from '@/hooks/useCustomers';
+import type { CustomerSearchRequestContext } from '@/types/customerContracts';
+import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
 
-const customerStatusToChip: Record<string, StatusType> = {
-  ACTIVE: 'SUCCESS',
-  PENDING: 'PENDING',
-  REJECTED: 'FAILED',
-  BLOCKED: 'WARNING',
-};
+type KycFilter = 'all' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
+type StatusFilter = 'all' | 'DRAFT' | 'ACTIVE' | 'FROZEN' | 'PENDING';
+
+interface LocationState {
+  bank?: BankQueryItem;
+  affiliate?: AffiliateQueryItem;
+}
+
+function findBankById(items: BankQueryItem[], bankId: string) {
+  return items.find((item) => item.bankId === bankId) || null;
+}
+
+function findAffiliateById(items: AffiliateQueryItem[], affiliateId: string) {
+  return items.find((item) => item.affiliateId === affiliateId) || null;
+}
 
 export default function AffiliateCustomersPage() {
   const { bankId, affiliateId } = useParams<{ bankId: string; affiliateId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const routeState = location.state as LocationState | null;
 
-  const bank = bankId ? store.getPlatformBank(bankId) : null;
-  const affiliate = affiliateId ? store.getPlatformAffiliate(affiliateId) : null;
-  const customers = useMemo(() => (affiliateId ? store.getAffiliateCustomers(affiliateId) : []), [affiliateId]);
+  const [query, setQuery] = useState('');
+  const [kyc, setKyc] = useState<KycFilter>('all');
+  const [status, setStatus] = useState<StatusFilter>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
+    routeState?.bank?.bankId === bankId ? routeState.bank : null
+  );
+  const [affiliateSummary, setAffiliateSummary] = useState<AffiliateQueryItem | null>(
+    routeState?.affiliate?.affiliateId === affiliateId ? routeState.affiliate : null
+  );
+  const [summaryLoading, setSummaryLoading] = useState(Boolean(bankId && affiliateId));
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  const statuses = useMemo(() => [...new Set(customers.map((c) => c.status))], [customers]);
+  const loadSummaries = useCallback(async () => {
+    if (!bankId || !affiliateId) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError('Affiliate not found');
+      setSummaryLoading(false);
+      return;
+    }
+
+    setSummaryLoading(true);
+    setSummaryError(null);
+
+    try {
+      const [bankSearchResponse, affiliateSearchResponse] = await Promise.all([
+        queryBanks({
+          filters: {
+            search: bankId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+        queryAffiliates({
+          filters: {
+            bankId,
+            search: affiliateId,
+          },
+          page: 1,
+          pageSize: 25,
+        }).catch(() => null),
+      ]);
+
+      let nextBank = findBankById(bankSearchResponse?.data || [], bankId);
+      let nextAffiliate = findAffiliateById(affiliateSearchResponse?.data || [], affiliateId);
+
+      if (!nextBank) {
+        const fallbackBankResponse = await queryBanks({
+          filters: {},
+          page: 1,
+          pageSize: 100,
+        });
+        nextBank = findBankById(fallbackBankResponse.data, bankId);
+      }
+
+      if (!nextAffiliate) {
+        const fallbackAffiliateResponse = await queryAffiliates({
+          filters: {
+            bankId,
+          },
+          page: 1,
+          pageSize: 100,
+        });
+        nextAffiliate = findAffiliateById(fallbackAffiliateResponse.data, affiliateId);
+      }
+
+      setBankSummary(nextBank);
+      setAffiliateSummary(nextAffiliate);
+
+      if (!nextBank || !nextAffiliate) {
+        setSummaryError(!nextBank ? 'Bank not found' : 'Affiliate not found');
+      }
+    } catch (e) {
+      setBankSummary(null);
+      setAffiliateSummary(null);
+      setSummaryError(e instanceof Error ? e.message : 'Failed to load affiliate customers');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [affiliateId, bankId]);
+
+  useEffect(() => {
+    loadSummaries();
+  }, [loadSummaries]);
+
+  const customerRequestContext = useMemo<CustomerSearchRequestContext | null>(() => {
+    if (!user?.id || !affiliateSummary?.tenantId) return null;
+    return {
+      actorUserId: user.id,
+      userType: 'AFFILIATE',
+      tenantId: affiliateSummary.tenantId,
+      scopeType: 'AFFILIATE_TENANT',
+    };
+  }, [affiliateSummary?.tenantId, user?.id]);
+
+  const { customers, total, isLoading, error, refetch } = useCustomers(query, {
+    requestContext: customerRequestContext,
+    page,
+    pageSize,
+    disableStoreEnrichment: true,
+    enabled: Boolean(customerRequestContext),
+  });
+
   const filtered = useMemo(() => {
     return customers.filter((customer) => {
-      const q = search.toLowerCase();
-      const fullName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
-      const matchesSearch =
-        !q ||
-        fullName.includes(q) ||
-        customer.email.toLowerCase().includes(q) ||
-        customer.customerId.toLowerCase().includes(q) ||
-        (customer.phone || '').includes(q);
-      const matchesStatus = statusFilter === 'ALL' || customer.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      if (kyc !== 'all' && customer.kycLevel !== kyc) return false;
+      if (status !== 'all' && customer.status !== status) return false;
+      return true;
     });
-  }, [customers, search, statusFilter]);
+  }, [customers, kyc, status]);
 
-  if (!bank || !affiliate) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  function clearFilters() {
+    setQuery('');
+    setKyc('all');
+    setStatus('all');
+    setPage(1);
+  }
+
+  if (summaryLoading) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
         <AppLayout navVariant="service-provider">
-          <div className="text-center py-20 text-muted-foreground">
-            {!bank ? 'Bank not found' : 'Affiliate not found'}
-          </div>
+          <main className="scr-main">
+            <div className="container">
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Loading affiliate customers...</div>
+              </div>
+            </div>
+          </main>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!bankSummary || !affiliateSummary) {
+    return (
+      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
+        <AppLayout navVariant="service-provider">
+          <main className="scr-main">
+            <div className="container">
+              <div className="empty-list profile-empty-card">
+                <div className="empty-list-title">Affiliate customers unavailable</div>
+                <div className="empty-list-sub">
+                  {summaryError || (!bankSummary ? 'Bank not found' : 'Affiliate not found')}
+                </div>
+                <button className="btn btn-secondary" onClick={() => navigate(`/super-admin/banks/${bankId || ''}`)}>
+                  Back to bank
+                </button>
+              </div>
+            </div>
+          </main>
         </AppLayout>
       </ProtectedRoute>
     );
@@ -60,123 +197,247 @@ export default function AffiliateCustomersPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={`${affiliate.name} Customers`}
-            subtitle={`${filtered.length} of ${customers.length} customers`}
-            actions={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back to Affiliate
-              </Button>
-            }
-          />
+        <main className="scr-main">
+          <div className="container">
+            <Link to={`/super-admin/banks/${bankId}/affiliates/${affiliateId}`} className="back-link">
+              Back to affiliate
+            </Link>
 
-          <div className="mb-6 text-sm text-muted-foreground">
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate('/super-admin/banks')}>
-              Banks
-            </span>
-            <span className="mx-2">/</span>
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
-              {bank.name}
-            </span>
-            <span className="mx-2">/</span>
-            <span className="hover:text-foreground cursor-pointer transition-colors" onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}>
-              {affiliate.name}
-            </span>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">Customers</span>
-          </div>
-
-          <div className="kardit-card p-4 mb-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Search by name, email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">{affiliateSummary.legalName} Customers</h1>
+                <p className="page-sub">
+                  Search and view customers captured under this affiliate in the super-admin bank portfolio.
+                </p>
+                <div className="result-meta" style={{ marginTop: 10 }}>
+                  <span
+                    className="cursor-pointer transition-colors hover:text-foreground"
+                    onClick={() => navigate('/super-admin/banks')}
+                  >
+                    Banks
+                  </span>
+                  <span className="mx-2">/</span>
+                  <span
+                    className="cursor-pointer transition-colors hover:text-foreground"
+                    onClick={() => navigate(`/super-admin/banks/${bankId}`)}
+                  >
+                    {bankSummary.bankName}
+                  </span>
+                  <span className="mx-2">/</span>
+                  <span
+                    className="cursor-pointer transition-colors hover:text-foreground"
+                    onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}
+                  >
+                    {affiliateSummary.legalName}
+                  </span>
+                  <span className="mx-2">/</span>
+                  <span>Customers</span>
+                </div>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-muted border-border">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Statuses</SelectItem>
-                  {statuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button className="btn btn-secondary" onClick={() => refetch()} disabled={isLoading}>
+                  <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
+                </button>
+              </div>
+            </header>
+
+            <section className="card" style={{ padding: '18px 22px' }}>
+              <div className="list-toolbar">
+                <div className="search-input-wrap">
+                  <Search className="search-icn" />
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Search by name, phone, customer ref, or ID number"
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14 }}>
+                <div>
+                  <FilterLabel>KYC level</FilterLabel>
+                  <div className="filter-chips">
+                    <Chip active={kyc === 'all'} onClick={() => { setKyc('all'); setPage(1); }}>All</Chip>
+                    <Chip active={kyc === 'LEVEL_3'} onClick={() => { setKyc('LEVEL_3'); setPage(1); }}>Tier 3</Chip>
+                    <Chip active={kyc === 'LEVEL_2'} onClick={() => { setKyc('LEVEL_2'); setPage(1); }}>Tier 2</Chip>
+                    <Chip active={kyc === 'LEVEL_1'} onClick={() => { setKyc('LEVEL_1'); setPage(1); }}>Tier 1</Chip>
+                  </div>
+                </div>
+                <div>
+                  <FilterLabel>Status</FilterLabel>
+                  <div className="filter-chips">
+                    <Chip active={status === 'all'} onClick={() => { setStatus('all'); setPage(1); }}>All</Chip>
+                    <Chip active={status === 'DRAFT'} onClick={() => { setStatus('DRAFT'); setPage(1); }}>Draft</Chip>
+                    <Chip active={status === 'ACTIVE'} onClick={() => { setStatus('ACTIVE'); setPage(1); }}>Active</Chip>
+                    <Chip active={status === 'FROZEN'} onClick={() => { setStatus('FROZEN'); setPage(1); }}>Frozen</Chip>
+                    <Chip active={status === 'PENDING'} onClick={() => { setStatus('PENDING'); setPage(1); }}>Pending</Chip>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="result-meta">
+              Showing <strong>{filtered.length}</strong> of <strong>{total}</strong> customers
+            </div>
+
+            <section className="card" style={{ padding: 0 }}>
+              <table className="data customers">
+                <thead>
+                  <tr>
+                    <th style={{ width: 170 }}>Reference</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>KYC</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th className="right" style={{ width: 50 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <RefreshCw className="spin" />
+                          <div className="empty-list-title">Loading customers...</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <SearchX />
+                          <div className="empty-list-title">Unable to load customers</div>
+                          <div className="empty-list-sub">{error}</div>
+                          <button className="btn btn-secondary" onClick={() => refetch()}>
+                            <RefreshCw /> Try again
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-list">
+                          <SearchX />
+                          <div className="empty-list-title">No customers match those filters</div>
+                          <div className="empty-list-sub">
+                            Try changing or clearing the filters above.
+                            <br />
+                            Search runs against name, phone, reference, and ID number.
+                          </div>
+                          <button className="btn btn-secondary" onClick={clearFilters}>
+                            <X /> Clear filters
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((customer) => (
+                      <CustomerRow
+                        key={customer.customerRefId}
+                        customer={customer}
+                        onOpen={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers/${encodeURIComponent(customer.customerRefId)}`)}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </section>
+
+            <div className="table-pager">
+              <div className="table-pager__meta">
+                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+              </div>
+              <div className="table-pager__actions">
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  disabled={page <= 1 || isLoading}
+                >
+                  Previous
+                </button>
+                <button
+                  className="btn btn-secondary table-pager__btn"
+                  onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                  disabled={page >= totalPages || isLoading}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-
-          <div className="kardit-card overflow-hidden">
-            {filtered.length === 0 ? (
-              <div className="p-12 text-center">
-                <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">No customers found for this affiliate.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer ID</th> */}
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Email</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((customer, index) => (
-                      <tr key={customer.id} className={`transition-colors hover:bg-muted/40 ${index % 2 === 1 ? 'bg-muted/20' : ''}`}>
-                        {/* <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{customer.customerId}</td> */}
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-full bg-muted">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{customer.firstName} {customer.lastName}</p>
-                              {customer.embossName && <p className="text-xs text-muted-foreground">{customer.embossName}</p>}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.email}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{customer.phone || '-'}</td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={customerStatusToChip[customer.status] || 'INACTIVE'} label={customer.status} />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(customer.createdAt), 'MMM d, yyyy')}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers/${customer.customerId}`)}
-                          >
-                            <Eye className="h-3 w-3 mr-1" /> View Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
+}
+
+function CustomerRow({ customer, onOpen }: { customer: CustomerListItem; onOpen: () => void }) {
+  return (
+    <tr onClick={onOpen} className="row-clickable">
+      <td className="id">{customer.customerRefId}</td>
+      <td>
+        <div className="customer-name">
+          <div className="avatar-sm">{getInitials(customer.fullName)}</div>
+          <div>
+            <div className="customer-name__title">{customer.fullName}</div>
+            <div className="customer-name__sub">{customer.email || customer.phone}</div>
+          </div>
+        </div>
+      </td>
+      <td className="mono customer-phone">{customer.phone || '-'}</td>
+      <td><KycBadge level={customer.kycLevel} /></td>
+      <td><StatusBadge status={customer.status} /></td>
+      <td className="meta">{formatShortDate(customer.createdAt)}</td>
+      <td className="right">
+        <button type="button" className="icon-button" aria-label="View profile" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+          <ChevronRight />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button className={active ? 'filter-chip is-active' : 'filter-chip'} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function FilterLabel({ children }: { children: React.ReactNode }) {
+  return <div className="filter-label">{children}</div>;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`badge status-${status.toLowerCase()}`}>{status}</span>;
+}
+
+function KycBadge({ level }: { level: string }) {
+  const normalized = level || 'LEVEL_2';
+  const value = normalized.replace('LEVEL_', '');
+  return <span className={`kyc-pill lvl-${value}`}>Tier {value}</span>;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }

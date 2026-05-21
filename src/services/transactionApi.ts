@@ -216,7 +216,7 @@ export function queryTransactions(request: TransactionQueryRequest): Promise<Tra
         records?: TransactionQueryResponse['data'];
         transactions?: TransactionQueryResponse['data'];
       };
-      return normalizeListResponse(value, request.page, request.pageSize) as TransactionQueryResponse;
+      return normalizeListResponse(value, request.pageNumber, request.pageSize) as TransactionQueryResponse;
     });
 }
 

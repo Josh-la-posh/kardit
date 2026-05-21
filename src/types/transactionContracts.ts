@@ -24,7 +24,7 @@ export interface TransactionQueryFilters {
 
 export interface TransactionQueryRequest {
   filters: TransactionQueryFilters;
-  page: number;
+  pageNumber: number;
   pageSize: number;
 }
 
