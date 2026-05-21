@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { Switch } from '@/components/ui/switch'
+import Logo from '@/components/Logo'
 
 interface MarketingHeaderProps {
   authUrl?: string
@@ -43,9 +44,7 @@ export default function MarketingHeader({
             href="/"
             aria-label="Kardit home"
           >
-            <span>
-              Kard<span className="text-[var(--cs-green-700)]">i</span>t
-            </span>
+            <Logo />
           </a>
           {(showAffiliatePortal || pathLabel) && (
             <div className="hidden items-center gap-2 text-[13px] text-[var(--cs-ink-200)] md:flex">

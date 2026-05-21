@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MarketingHeader from '@/components/MarketingHeader';
 import { ArrowRight, Clock3, Loader2 } from 'lucide-react';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
 import { TextField } from '@/components/ui/text-field';
@@ -72,11 +71,8 @@ export default function OnboardingStartPage() {
 
   return (
     <div className="min-h-screen bg-[var(--cs-paper)] text-[var(--cs-fg)]">
-      <div className="flex min-h-screen flex-col">
-        <MarketingHeader showStartEnrollment={false} />
-
-        <main className="relative flex-1 overflow-auto">
-          <div className="relative mx-auto max-w-[1280px] px-8 py-16">
+      <main className="relative overflow-auto">
+        <div className="relative mx-auto max-w-[1280px] px-8 py-16">
             <div className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--cs-green-700)]">
               Affiliate Onboarding
             </div>
@@ -213,9 +209,8 @@ export default function OnboardingStartPage() {
               </a>{' '}
               or call +234-803-394-4566.
             </div>
-          </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

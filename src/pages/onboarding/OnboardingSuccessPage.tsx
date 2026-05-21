@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
-import MarketingHeader from '@/components/MarketingHeader';
 
 export default function OnboardingSuccessPage() {
   const { caseId } = useParams<{ caseId: string }>();
@@ -18,8 +17,6 @@ export default function OnboardingSuccessPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--cs-paper)]">
-      <MarketingHeader showStartEnrollment={false} showAffiliatePortal />
-
       <div className="mx-auto w-full max-w-[780px] animate-fade-in px-4 py-10 text-center md:px-8 md:py-14">
         <div className="mx-auto grid h-22 w-22 place-items-center rounded-full border-4 border-[var(--cs-green-300)] bg-[var(--cs-green-100)] text-[var(--cs-green-700)] md:h-24 md:w-24">
           <Check className="h-10 w-10" />

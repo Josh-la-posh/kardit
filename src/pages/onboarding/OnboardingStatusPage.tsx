@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { useOnboardingCase } from '@/hooks/useOnboarding';
 import { Download, Check, MessageSquare, RefreshCcw, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import MarketingHeader from '@/components/MarketingHeader';
 
 function formatDateTime(value?: string) {
   if (!value) return '--';
@@ -56,8 +55,6 @@ export default function OnboardingStatusPage() {
 
   return (
     <div className="min-h-screen bg-[var(--cs-paper)]">
-      <MarketingHeader showStartEnrollment={false} pathLabel="Application Status" />
-
       <main className="mx-auto w-full max-w-[860px] px-4 py-6 md:px-6 md:py-8">
         {isLoading ? (
           <div className="flex items-center justify-center rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] py-16">

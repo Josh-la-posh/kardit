@@ -117,6 +117,7 @@ import SrsPage from "./pages/SrsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 import Page from "./pages/LandingPage/page";
+import PublicLayout from "./layouts/PublicLayout";
 
 const queryClient = new QueryClient();
 
@@ -129,23 +130,25 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Page/>} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
+            {/* Public/Auth Routes */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Page/>} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/change-password" element={<ChangePasswordPage />} />
 
-            {/* Affiliate onboarding (no login) */}
-            <Route path="/onboarding/start" element={<OnboardingStartPage />} />
-            <Route path="/onboarding/organization" element={<OnboardingOrganizationPage />} />
-            <Route path="/onboarding/:draftId/organization" element={<OnboardingOrganizationPage />} />
-            <Route path="/onboarding/:draftId/documents" element={<OnboardingDocumentsPage />} />
-            <Route path="/onboarding/:draftId/issuing-banks" element={<OnboardingIssuingBanksPage />} />
-            <Route path="/onboarding/:draftId/review" element={<OnboardingReviewSubmitPage />} />
-            <Route path="/onboarding/success/:caseId" element={<OnboardingSuccessPage />} />
-            <Route path="/onboarding/status/:caseId" element={<OnboardingStatusPage />} />
-            <Route path="/onboarding/notifications/:caseId" element={<OnboardingNotificationsPage />} />
+              {/* Affiliate onboarding (no login) */}
+              <Route path="/onboarding/start" element={<OnboardingStartPage />} />
+              <Route path="/onboarding/organization" element={<OnboardingOrganizationPage />} />
+              <Route path="/onboarding/:draftId/organization" element={<OnboardingOrganizationPage />} />
+              <Route path="/onboarding/:draftId/documents" element={<OnboardingDocumentsPage />} />
+              <Route path="/onboarding/:draftId/issuing-banks" element={<OnboardingIssuingBanksPage />} />
+              <Route path="/onboarding/:draftId/review" element={<OnboardingReviewSubmitPage />} />
+              <Route path="/onboarding/success/:caseId" element={<OnboardingSuccessPage />} />
+              <Route path="/onboarding/status/:caseId" element={<OnboardingStatusPage />} />
+              <Route path="/onboarding/notifications/:caseId" element={<OnboardingNotificationsPage />} />
+            </Route>
             
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
