@@ -42,9 +42,10 @@ export function PaginatedTable<T extends Record<string, unknown>>({
   const totalPages = Math.max(1, Math.ceil((total || 0) / Math.max(1, pageSize)));
   const canGoPrev = page > 1;
   const canGoNext = page < totalPages;
+  const shouldShowPager = total > pageSize;
 
   return (
-    <section className={cn('overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_18px_50px_-32px_rgba(0,0,0,0.42)]', className)}>
+    <section className={cn('overflow-hidden rounded-[var(--cs-radius-lg)] border border-[var(--cs-line)] bg-[var(--surface)] shadow-[var(--cs-shadow-sm)]', className)}>
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -57,26 +58,26 @@ export function PaginatedTable<T extends Record<string, unknown>>({
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
-              <tr className="border-b border-border/80 bg-background/40">
+              <tr className="border-b border-[var(--cs-line)] bg-[var(--bg)]">
                 {columns.map((column) => (
                   <th
                     key={String(column.key)}
-                    className={cn('px-4 md:px-6 py-4 text-left text-[9px] sm:text-xs lg:text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground')}
+                    className={cn('px-4 md:px-6 py-3 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--cs-ink-100)]')}
                   >
                     {column.header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/80">
+            <tbody className="divide-y divide-[var(--cs-line)]">
               {rows.map((row, rowIndex) => (
                 <tr
                   key={rowKey(row, rowIndex)}
                   onClick={() => onRowClick?.(row, rowIndex)}
-                  className={cn('transition-colors hover:bg-background/40', onRowClick && 'cursor-pointer')}
+                  className={cn('transition-colors hover:bg-[var(--bg)]', onRowClick && 'cursor-pointer')}
                 >
                   {columns.map((column) => (
-                    <td key={String(column.key)} className={cn('px-4 md:px-6 py-5 align-middle', column.className)}>
+                    <td key={String(column.key)} className={cn('px-4 md:px-6 py-[14px] text-[13px] text-[var(--cs-ink-400)] align-middle', column.className)}>
                       {column.render ? column.render(row, rowIndex) : String(row[column.key as keyof T] ?? '')}
                     </td>
                   ))}
@@ -87,20 +88,22 @@ export function PaginatedTable<T extends Record<string, unknown>>({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border/80 px-6 py-4">
-        <p className="text-[9px] md:text-sm xl:text-base text-muted-foreground">
-          Page <span className="font-semibold text-foreground">{page}</span> of{' '}
-          <span className="font-semibold text-foreground">{totalPages}</span>
-        </p>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => canGoPrev && onPageChange(page - 1)} disabled={!canGoPrev || isLoading}>
-            Previous
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => canGoNext && onPageChange(page + 1)} disabled={!canGoNext || isLoading}>
-            Next
-          </Button>
+      {shouldShowPager && (
+        <div className="flex items-center justify-between border-t border-[var(--cs-line)] px-6 py-4">
+          <p className="text-sm text-[var(--cs-ink-100)]">
+            Page <span className="font-semibold text-[var(--cs-ink-700)]">{page}</span> of{' '}
+            <span className="font-semibold text-[var(--cs-ink-700)]">{totalPages}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => canGoPrev && onPageChange(page - 1)} disabled={!canGoPrev || isLoading}>
+              Previous
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => canGoNext && onPageChange(page + 1)} disabled={!canGoNext || isLoading}>
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

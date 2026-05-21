@@ -1,19 +1,20 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import { useBankAffiliates } from '@/hooks/useBankPortal';
-import { Building2, Eye, Loader2, RefreshCw, Search } from 'lucide-react';
+import type { BankAffiliateSummary } from '@/types/bankPortalContracts';
+import { Eye, RefreshCw, Search } from 'lucide-react';
 
 export default function BankAffiliatesListPage() {
   const navigate = useNavigate();
-  const { bankId, affiliates, isLoading, error, refresh } = useBankAffiliates();
+  const { affiliates, isLoading, error, refresh } = useBankAffiliates();
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    const query = search.toLowerCase();
+    const query = search.toLowerCase().trim();
     const items = Array.isArray(affiliates) ? affiliates : [];
     return items.filter((affiliate) => {
       if (!query) return true;
@@ -28,86 +29,143 @@ export default function BankAffiliatesListPage() {
     });
   }, [affiliates, search]);
 
+  const totalFunding = useMemo(
+    () => filtered.reduce((sum, affiliate) => sum + (affiliate.totalFundingVolume || 0), 0),
+    [filtered]
+  );
+  const totalCards = useMemo(
+    () => filtered.reduce((sum, affiliate) => sum + (affiliate.totalCards || 0), 0),
+    [filtered]
+  );
+  const totalActiveCards = useMemo(
+    () => filtered.reduce((sum, affiliate) => sum + (affiliate.activeCards || 0), 0),
+    [filtered]
+  );
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'affiliateName',
+        header: 'Affiliate',
+        className: 'text-sm',
+        render: (affiliate: BankAffiliateSummary) => (
+          <div>
+            <p className="font-medium text-foreground">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
+            <p className="text-xs text-muted-foreground">{affiliate.affiliateId}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'tenantId',
+        header: 'Tenant ID',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => affiliate.tenantId || '-',
+      },
+      {
+        key: 'totalCards',
+        header: 'Total Cards',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => affiliate.totalCards.toLocaleString(),
+      },
+      {
+        key: 'activeCards',
+        header: 'Active Cards',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => affiliate.activeCards.toLocaleString(),
+      },
+      {
+        key: 'totalFundingVolume',
+        header: 'Funding Volume',
+        className: 'text-sm text-muted-foreground',
+        render: (affiliate: BankAffiliateSummary) => affiliate.totalFundingVolume.toLocaleString(),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        className: 'text-sm',
+        render: (affiliate: BankAffiliateSummary) => (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/bank/affiliates/${affiliate.affiliateId}`);
+            }}
+          >
+            <Eye className="mr-1 h-3 w-3" /> View
+          </Button>
+        ),
+      },
+    ],
+    [navigate]
+  );
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Affiliates"
-            subtitle=''
-            actions={
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliate-partnership-requests')}>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Affiliates</h1>
+                <p className="page-sub">Portfolio affiliates attached to this bank.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/bank/affiliate-partnership-requests')}>
                   Pending Requests
-                </Button>
-                <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-                  <RefreshCw className="mr-1 h-4 w-4" /> Refresh
-                </Button>
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={isLoading}>
+                  <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
+                </button>
               </div>
-            }
-          />
+            </header>
 
-          <div className="kardit-card mb-4 p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Search by affiliate name, ID, or tenant ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Affiliates" value={String(filtered.length)} sub="Within current filter" />
+              <Kpi label="Total cards" value={totalCards.toLocaleString()} sub="Across listed affiliates" />
+              <Kpi label="Active cards" value={totalActiveCards.toLocaleString()} sub="Currently active" />
+              <Kpi label="Funding" value={totalFunding.toLocaleString()} sub="Aggregate funding volume" />
+            </section>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Search by affiliate name, ID, or tenant ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center">
-                <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No affiliates found for this bank.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tptal Cards</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Cards</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Funding Volume</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((affiliate) => (
-                      <tr key={affiliate.affiliateId} className="hover:bg-muted/30">
-                        <td className="px-4 py-3 text-sm">
-                          <p className="font-medium">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.activeCards}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {affiliate.totalCards}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.totalFundingVolume.toLocaleString()}</td>
-                        <td className="px-4 py-3">
-                          <Button variant="outline" size="sm" onClick={() => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}>
-                            <Eye className="mr-1 h-3 w-3" /> View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            </section>
+
+            <PaginatedTable<BankAffiliateSummary>
+              className="mt-4"
+              columns={columns}
+              rows={filtered}
+              isLoading={isLoading}
+              error={error}
+              emptyMessage="No affiliates found for this bank."
+              rowKey={(affiliate) => affiliate.affiliateId}
+              onRowClick={(affiliate) => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
+              page={1}
+              pageSize={Math.max(filtered.length, 1)}
+              total={Math.max(filtered.length, 1)}
+              onPageChange={() => {}}
+            />
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

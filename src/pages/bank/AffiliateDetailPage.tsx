@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Activity, ChevronLeft, Loader2, ShieldAlert, StopCircle, Users } from 'lucide-react';
+import { PaginatedTable } from '@/components/ui/paginated-table';
+import { StatusChip } from '@/components/ui/status-chip';
+import { Activity, ArrowLeft, Loader2, ShieldAlert, StopCircle, Users } from 'lucide-react';
 import { useBankAffiliateCards, useBankAffiliates } from '@/hooks/useBankPortal';
 import { queryTransactions } from '@/services/transactionApi';
 import type { TransactionListItem, TransactionStatus, TransactionType } from '@/types/transactionContracts';
@@ -30,6 +30,12 @@ function toTransactionStatus(status: string) {
   if (status === 'REFUSED' || status === 'CANCELLED') return 'DECLINED';
   if (status === 'PENDING') return 'PENDING';
   return 'INFO';
+}
+
+function toIsoDateBoundary(value: string, endOfDay = false) {
+  if (!value) return undefined;
+  const time = endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z';
+  return new Date(`${value}${time}`).toISOString();
 }
 
 export default function AffiliateDetailPages() {
@@ -68,11 +74,15 @@ export default function AffiliateDetailPages() {
       const response = await queryTransactions({
         filters: {
           bankId: bankId || undefined,
+          cardId: undefined,
           affiliateId,
+          customerId: undefined,
           status: transactionStatus === 'ALL' ? undefined : [transactionStatus],
           transactionType: transactionType === 'ALL' ? undefined : [transactionType],
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
+          fromDate: toIsoDateBoundary(fromDate),
+          toDate: toIsoDateBoundary(toDate, true),
+          reference: undefined,
+          merchantName: undefined,
         },
         pageNumber: 1,
         pageSize: 25,
@@ -129,6 +139,62 @@ export default function AffiliateDetailPages() {
     }
   };
 
+  const transactionColumns = useMemo(
+    () => [
+      {
+        key: 'transactionId',
+        header: 'Transaction ID',
+        className: 'font-mono text-[13px] text-[var(--cs-green-700)]',
+        render: (transaction: TransactionListItem) => transaction.transactionId,
+      },
+      {
+        key: 'cardId',
+        header: 'Card ID',
+        className: 'font-mono text-[13px] text-[var(--cs-ink-200)]',
+        render: (transaction: TransactionListItem) => transaction.cardId,
+      },
+      {
+        key: 'customerRef',
+        header: 'Customer Ref',
+        className: 'font-mono text-[13px] text-[var(--cs-ink-200)]',
+        render: (transaction: TransactionListItem) => transaction.customerId,
+      },
+      {
+        key: 'type',
+        header: 'Type',
+        className: 'text-[13px] text-[var(--cs-ink-400)]',
+        render: (transaction: TransactionListItem) => transaction.transactionType,
+      },
+      {
+        key: 'amount',
+        header: 'Amount',
+        className: 'text-[13px] font-mono text-right text-[var(--cs-ink-400)]',
+        render: (transaction: TransactionListItem) => formatMoney(transaction.amount, transaction.currency),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        className: 'text-[13px]',
+        render: (transaction: TransactionListItem) => (
+          <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
+        ),
+      },
+      {
+        key: 'merchant',
+        header: 'Merchant',
+        className: 'text-[13px] text-[var(--cs-ink-200)]',
+        render: (transaction: TransactionListItem) => transaction.merchantName || '-',
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        className: 'text-[13px] text-[var(--cs-ink-200)]',
+        render: (transaction: TransactionListItem) => format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm'),
+      },
+    ],
+    []
+  );
+
   const actionTitle = actionType === 'suspend' ? 'Suspend Affiliate' : 'Block Affiliate';
   const actionDescription =
     actionType === 'suspend'
@@ -138,163 +204,121 @@ export default function AffiliateDetailPages() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
-        <div className="animate-fade-in space-y-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/bank/affiliates')} className="gap-2">
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <PageHeader
-              title={affiliate?.affiliateName || 'Affiliate'}
-              subtitle=''
-              showBack={false}
-              actions={
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => navigate(`${basePath}/customers`)}>
-                    <Users className="h-4 w-4" /> View Customers
-                  </Button>
-                  <Button variant="outline" className="text-[hsl(var(--warning))]" onClick={() => openActionDialog('suspend')}>
-                    <StopCircle className="h-4 w-4" /> Suspend Affiliate
-                  </Button>
-                  <Button variant="destructive" onClick={() => openActionDialog('block')}>
-                    <ShieldAlert className="h-4 w-4" /> Block Affiliate
-                  </Button>
-                </div>
-              }
-            />
-          </div>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <button className="back-link" onClick={() => navigate('/bank/affiliates')}>
+                  <ArrowLeft /> Back to affiliates
+                </button>
+                <h1 className="page-title">{affiliate?.affiliateName || 'Affiliate'}</h1>
+                <p className="page-sub">Affiliate portfolio details, controls, and recent transaction activity.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate(`${basePath}/customers`)}>
+                  <Users className="h-4 w-4" /> View Customers
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => openActionDialog('suspend')}>
+                  <StopCircle className="h-4 w-4" /> Suspend
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={() => openActionDialog('block')}>
+                  <ShieldAlert className="h-4 w-4" /> Block
+                </button>
+              </div>
+            </header>
 
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="mb-4 text-lg font-semibold">Affiliate Summary</h3>
-            {affiliate ? (
-              <div className="grid gap-4 md:grid-cols-3">
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Funding Volume" value={affiliate ? formatMoney(affiliate.totalFundingVolume) : '-'} sub="Affiliate cumulative funding" />
+              <Kpi label="Total Cards" value={affiliate ? affiliate.totalCards.toLocaleString() : '-'} sub="Issued cards" />
+              <Kpi label="Active Cards" value={affiliate ? affiliate.activeCards.toLocaleString() : '-'} sub="Currently active cards" />
+              <Kpi label="Transactions" value={transactionTotal.toLocaleString()} sub="Matches current filter" />
+            </section>
+
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="section-head" style={{ marginTop: 0 }}>
                 <div>
-                  <p className="text-sm text-muted-foreground">Funding Volume</p>
-                  <p className="font-semibold">{formatMoney(affiliate.totalFundingVolume)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Cards</p>
-                  <p className="font-semibold">{affiliate.totalCards.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Cards</p>
-                  <p className="font-semibold">{affiliate.activeCards.toLocaleString()}</p>
+                  <div className="section-title">Transaction Filters</div>
+                  <div className="section-sub">Filter affiliate activity by status, type, and date range.</div>
                 </div>
               </div>
+              <div className="grid gap-4 md:grid-cols-5">
+                <div>
+                  <Label htmlFor="transactionStatus">Status</Label>
+                  <select
+                    id="transactionStatus"
+                    value={transactionStatus}
+                    onChange={(e) => setTransactionStatus(e.target.value as TransactionStatus | 'ALL')}
+                    className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
+                  >
+                    <option value="ALL">All</option>
+                    <option value="AUTHORIZED">Authorized</option>
+                    <option value="REFUSED">Refused</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="PENDING">Pending</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="transactionType">Type</Label>
+                  <select
+                    id="transactionType"
+                    value={transactionType}
+                    onChange={(e) => setTransactionType(e.target.value as TransactionType | 'ALL')}
+                    className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
+                  >
+                    <option value="ALL">All</option>
+                    <option value="POS">POS</option>
+                    <option value="ATM_WITHDRAWAL">ATM Withdrawal</option>
+                    <option value="LOAD">Load</option>
+                    <option value="UNLOAD">Unload</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="fromDate">From Date</Label>
+                  <Input id="fromDate" className="mt-2" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="toDate">To Date</Label>
+                  <Input id="toDate" className="mt-2" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                </div>
+                <div className="flex items-end">
+                  <button className="btn btn-primary w-full" onClick={applyFilters}>Apply Filters</button>
+                </div>
+              </div>
+            </section>
+
+            <section className="section-head" style={{ marginTop: 20 }}>
+              <div>
+                <div className="section-title">Transactions</div>
+                <div className="section-sub">Recent transactions scoped to this affiliate.</div>
+              </div>
+              <div className="section-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Activity className="h-4 w-4" /> {transactionTotal} result(s)
+              </div>
+            </section>
+
+            {transactionsLoading ? (
+              <section className="bch-card" style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+                <Loader2 className="spin" style={{ width: 24, height: 24 }} />
+              </section>
+            ) : transactionsError ? (
+              <section className="bch-card" style={{ padding: 24 }}>
+                <div className="empty-list-sub">{transactionsError}</div>
+              </section>
             ) : (
-              <p className="text-sm text-muted-foreground">Affiliate summary unavailable.</p>
+              <PaginatedTable<TransactionListItem>
+                columns={transactionColumns}
+                rows={transactions}
+                emptyMessage="No transactions found for this affiliate."
+                rowKey={(tx) => tx.transactionId}
+                page={1}
+                pageSize={Math.max(transactions.length, 1)}
+                total={transactions.length}
+                onPageChange={() => {}}
+              />
             )}
-          </Card>
-
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="mb-4 text-lg font-semibold">Transaction Filters</h3>
-            <div className="grid gap-4 md:grid-cols-5">
-              <div>
-                <Label htmlFor="transactionStatus">Status</Label>
-                <select
-                  id="transactionStatus"
-                  value={transactionStatus}
-                  onChange={(e) => setTransactionStatus(e.target.value as TransactionStatus | 'ALL')}
-                  className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All</option>
-                  <option value="AUTHORIZED">Authorized</option>
-                  <option value="REFUSED">Refused</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="PENDING">Pending</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="transactionType">Type</Label>
-                <select
-                  id="transactionType"
-                  value={transactionType}
-                  onChange={(e) => setTransactionType(e.target.value as TransactionType | 'ALL')}
-                  className="mt-2 flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
-                >
-                  <option value="ALL">All</option>
-                  <option value="POS">POS</option>
-                  <option value="ATM_WITHDRAWAL">ATM Withdrawal</option>
-                  <option value="LOAD">Load</option>
-                  <option value="UNLOAD">Unload</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="fromDate">From Date</Label>
-                <Input id="fromDate" className="mt-2" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="toDate">To Date</Label>
-                <Input id="toDate" className="mt-2" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              </div>
-              <div className="flex items-end">
-                <Button className="w-full" onClick={applyFilters}>Apply Filters</Button>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <div className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-2xl font-bold">Transactions</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">{transactionTotal} result(s)</p>
-              </div>
-
-              {transactionsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : transactionsError ? (
-                <div className="text-sm text-muted-foreground">{transactionsError}</div>
-              ) : transactions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>No transactions found for this affiliate.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer Ref</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {transactions.map((transaction, index) => (
-                        <tr key={transaction.transactionId} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                          <td className="px-4 py-3 text-sm font-mono text-primary">{transaction.transactionId}</td>
-                          <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{transaction.cardId}</td>
-                          <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{transaction.customerId}</td>
-                          <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
-                          <td className="px-4 py-3 text-right text-sm font-mono">
-                            {formatMoney(transaction.amount, transaction.currency)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusChip status={toTransactionStatus(transaction.status)} label={transaction.status} />
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {format(new Date(transaction.transactionDate), 'MMM d, yyyy HH:mm')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
+          </div>
+        </main>
 
         <Dialog open={actionType !== null} onOpenChange={(open) => !open && setActionType(null)}>
           <DialogContent>
@@ -332,5 +356,15 @@ export default function AffiliateDetailPages() {
         </Dialog>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Loader2, RefreshCcw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,7 +101,7 @@ export default function TransactionsPage() {
   }, [user]);
 
   const defaultBankId = user?.stakeholderType === 'BANK' ? user.bankId || user.tenantId : '';
-  
+
   const filters = useMemo<TransactionQueryFilters>(() => {
     const next: TransactionQueryFilters = {
       affiliateId: user?.stakeholderType === 'AFFILIATE' ? affiliateId || undefined : affiliateIdFilter.trim() || undefined,
@@ -135,9 +134,7 @@ export default function TransactionsPage() {
       setTransactions(response.data);
       setPage(response.page);
       setTotal(response.total);
-      if (response.data.length === 0) {
-        setSelectedTransaction(null);
-      }
+      if (response.data.length === 0) setSelectedTransaction(null);
     } catch (err) {
       setTransactions([]);
       setTotal(0);
@@ -158,13 +155,11 @@ export default function TransactionsPage() {
       setIsSummaryLoading(false);
       return;
     }
-
     if (user?.stakeholderType === 'BANK' && !defaultBankId) {
       setFundingVolume(0);
       setIsSummaryLoading(false);
       return;
     }
-
     if (user?.stakeholderType === 'SERVICE_PROVIDER') {
       setFundingVolume(0);
       setIsSummaryLoading(false);
@@ -173,10 +168,9 @@ export default function TransactionsPage() {
 
     let active = true;
     setIsSummaryLoading(true);
-    const request =
-      user?.stakeholderType === 'BANK'
-        ? getBankTransactionVolume(defaultBankId)
-        : getAffiliateTransactionVolume(affiliateId);
+    const request = user?.stakeholderType === 'BANK'
+      ? getBankTransactionVolume(defaultBankId)
+      : getAffiliateTransactionVolume(affiliateId);
 
     request
       .then((response) => {
@@ -209,10 +203,7 @@ export default function TransactionsPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const response = await exportTransactions({
-        filters,
-        exportFormat: 'CSV',
-      });
+      const response = await exportTransactions({ filters, exportFormat: 'CSV' });
       toast.success(`Export requested: ${response.exportId}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Unable to request export');
@@ -237,252 +228,176 @@ export default function TransactionsPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Transactions"
-            subtitle=''
-            actions={
-              <>
-                <Button variant="outline" onClick={() => fetchTransactions(1)} disabled={isLoading}>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Transactions</h1>
+                <p className="page-sub">Search, filter, and inspect transaction metadata across your scope.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => fetchTransactions(1)} disabled={isLoading}>
                   <RefreshCcw className="h-4 w-4" /> Refresh
-                </Button>
-                <Button onClick={handleExport} disabled={isExporting}>
-                  {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? <Loader2 className="h-4 w-4 spin" /> : <Download className="h-4 w-4" />}
                   Export CSV
-                </Button>
-              </>
-            }
-          />
-
-          <div className="grid gap-4 lg:grid-cols-3 mb-6">
-            <div className="kardit-card p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Funding Volume</p>
-              {isSummaryLoading ? (
-                <Loader2 className="mt-3 h-5 w-5 animate-spin text-primary" />
-              ) : (
-                <p className="mt-2 text-2xl font-bold text-primary">
-                  {formatMoney(fundingVolume, 'NGN')}
-                </p>
-              )}
-            </div>
-            <div className="kardit-card p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Current Result Set</p>
-              <p className="mt-2 text-2xl font-bold text-foreground">{total}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Across the current transaction filters</p>
-            </div>
-            <div className="kardit-card p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Date Window</p>
-              <p className="mt-2 text-sm font-medium text-foreground">
-                {fromDate || 'Any start'} to {toDate || 'Any end'}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">Use filters to narrow down investigations quickly</p>
-            </div>
-          </div>
-
-          <div className="kardit-card p-4 mb-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <div className="relative xl:col-span-2">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Reference"
-                  value={searchReference}
-                  onChange={(e) => setSearchReference(e.target.value)}
-                />
+                </button>
               </div>
-              <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
-              <Input placeholder="Customer ID" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
-              <Input placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
-              <Input placeholder="Bank ID" value={bankId} onChange={(e) => setBankId(e.target.value)} />
-              {user?.stakeholderType !== 'AFFILIATE' && (
-                <Input placeholder="Affiliate ID" value={affiliateIdFilter} onChange={(e) => setAffiliateIdFilter(e.target.value)} />
-              )}
-              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              <Select value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType | 'ALL')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Transaction type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {transactionTypeOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option === 'ALL' ? 'All Types' : option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={status} onValueChange={(value) => setStatus(value as TransactionStatus | 'ALL')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {transactionStatusOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option === 'ALL' ? 'All Statuses' : option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
-              <p className="text-xs text-muted-foreground self-center">
-                {user?.stakeholderType === 'SERVICE_PROVIDER'
-                  ? 'Global users can filter by bank or affiliate as needed.'
-                  : 'Your organization scope is applied automatically.'}
-              </p>
-            </div>
-          </div>
+            </header>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-            <div className="kardit-card overflow-hidden">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Funding Volume" value={isSummaryLoading ? '...' : formatMoney(fundingVolume, 'NGN')} sub="Current actor scope" />
+              <Kpi label="Result Set" value={String(total)} sub="Matches current filters" />
+              <Kpi label="Date Window" value={`${fromDate || 'Any'} - ${toDate || 'Any'}`} sub="From and to date filter" />
+              <Kpi label="Page" value={`${page}/${totalPages}`} sub={`${DEFAULT_PAGE_SIZE} rows per page`} />
+            </section>
+
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <div className="relative xl:col-span-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
                 </div>
-              ) : error ? (
-                <div className="p-12 text-center text-sm text-muted-foreground">{error}</div>
-              ) : transactions.length === 0 ? (
-                <div className="p-12 text-center text-sm text-muted-foreground">No transactions match the current filters.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Merchant</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Transaction ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {transactions.map((transaction, index) => (
-                        <tr
-                          key={transaction.transactionId}
-                          onClick={() => handleRowClick(transaction.transactionId)}
-                          className={`cursor-pointer transition-colors hover:bg-muted/40 ${
-                            selectedTransaction?.transactionId === transaction.transactionId
-                              ? 'bg-primary/5'
-                              : index % 2 === 1
-                                ? 'bg-muted/20'
-                                : ''
-                          }`}
-                        >
-                          <td className="px-4 py-3 text-sm">{transaction.transactionType}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{transaction.merchantName || '-'}</td>
-                          <td className="px-4 py-3 text-sm font-mono">{transaction.transactionId}</td>
-                          <td className="px-4 py-3 text-sm font-medium">{formatMoney(transaction.amount, transaction.currency)}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{formatDateTime(transaction.transactionDate)}</td>
+                <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
+                <Input placeholder="Customer ID" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
+                <Input placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
+                <Input placeholder="Bank ID" value={bankId} onChange={(e) => setBankId(e.target.value)} />
+                {user?.stakeholderType !== 'AFFILIATE' && (
+                  <Input placeholder="Affiliate ID" value={affiliateIdFilter} onChange={(e) => setAffiliateIdFilter(e.target.value)} />
+                )}
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                <Select value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType | 'ALL')}>
+                  <SelectTrigger><SelectValue placeholder="Transaction type" /></SelectTrigger>
+                  <SelectContent>
+                    {transactionTypeOptions.map((option) => (
+                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'All Types' : option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={status} onValueChange={(value) => setStatus(value as TransactionStatus | 'ALL')}>
+                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    {transactionStatusOptions.map((option) => (
+                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'All Statuses' : option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
+                <p className="text-xs text-muted-foreground self-center">
+                  {user?.stakeholderType === 'SERVICE_PROVIDER'
+                    ? 'Global users can filter by bank or affiliate as needed.'
+                    : 'Your organization scope is applied automatically.'}
+                </p>
+              </div>
+            </section>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]" style={{ marginTop: 14 }}>
+              <section className="bch-card" style={{ overflow: 'hidden' }}>
+                {isLoading ? (
+                  <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+                    <Loader2 className="spin" style={{ width: 24, height: 24 }} />
+                  </div>
+                ) : error ? (
+                  <div className="empty-list-sub" style={{ padding: 24 }}>{error}</div>
+                ) : transactions.length === 0 ? (
+                  <div className="empty-list" style={{ padding: 24 }}>No transactions match the current filters.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="data">
+                      <thead>
+                        <tr>
+                          <th>Type</th>
+                          <th>Merchant</th>
+                          <th>Transaction ID</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Date</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody>
+                        {transactions.map((transaction) => (
+                          <tr key={transaction.transactionId} onClick={() => handleRowClick(transaction.transactionId)} style={{ cursor: 'pointer' }}>
+                            <td>{transaction.transactionType}</td>
+                            <td className="meta">{transaction.merchantName || '-'}</td>
+                            <td>{transaction.transactionId}</td>
+                            <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount, transaction.currency)}</td>
+                            <td><Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge></td>
+                            <td className="meta">{formatDateTime(transaction.transactionDate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
-              <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                <p className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1 || isLoading} onClick={() => fetchTransactions(page - 1)}>
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages || isLoading} onClick={() => fetchTransactions(page + 1)}>
-                    Next
-                  </Button>
+                <div className="flex items-center justify-between border-t border-[var(--cs-line)] px-4 py-3">
+                  <p className="text-sm text-[var(--cs-ink-100)]">Page {page} of {totalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1 || isLoading} onClick={() => fetchTransactions(page - 1)}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages || isLoading} onClick={() => fetchTransactions(page + 1)}>
+                      Next
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div className="kardit-card p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">Transaction Detail</h2>
-                  <p className="text-sm text-muted-foreground">Select a transaction to inspect its metadata.</p>
-                </div>
-                {isFetchingDetail && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-              </div>
-
-              {!selectedTransaction ? (
-                <div className="mt-8 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-                  Pick a row from the table to load transaction details.
-                </div>
-              ) : (
-                <div className="mt-6 space-y-4">
+              <section className="bch-card card-pad">
+                <div className="section-head" style={{ marginTop: 0 }}>
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Transaction ID</p>
-                    <p className="mt-1 font-mono text-sm text-foreground">{selectedTransaction.transactionId}</p>
+                    <div className="section-title">Transaction Detail</div>
+                    <div className="section-sub">Select a transaction to inspect its metadata.</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
-                      <Badge className="mt-2 w-fit" variant={getStatusBadgeVariant(selectedTransaction.status)}>
-                        {selectedTransaction.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Type</p>
-                      <p className="mt-1 text-sm text-foreground">{selectedTransaction.transactionType}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Amount</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">
-                        {formatMoney(selectedTransaction.amount, selectedTransaction.currency)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Merchant</p>
-                      <p className="mt-1 text-sm text-foreground">{selectedTransaction.merchantName || '-'}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Customer ID</p>
-                      <p className="mt-1 font-mono text-sm text-foreground">{selectedTransaction.customerId}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Card ID</p>
-                      <p className="mt-1 font-mono text-sm text-foreground">{selectedTransaction.cardId}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Authorization Code</p>
-                      <p className="mt-1 text-sm text-foreground">{selectedTransaction.authorizationCode || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Merchant MCC</p>
-                      <p className="mt-1 text-sm text-foreground">{selectedTransaction.merchantCategoryCode || '-'}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Source Reference</p>
-                    <p className="mt-1 font-mono text-sm text-foreground">{selectedTransaction.sourceRef || '-'}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Transaction Date</p>
-                      <p className="mt-1 text-sm text-foreground">{formatDateTime(selectedTransaction.transactionDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Created At</p>
-                      <p className="mt-1 text-sm text-foreground">{formatDateTime(selectedTransaction.createdAt)}</p>
-                    </div>
-                  </div>
+                  {isFetchingDetail && <Loader2 className="h-4 w-4 spin" />}
                 </div>
-              )}
+
+                {!selectedTransaction ? (
+                  <div className="notice info">Pick a row from the table to load transaction details.</div>
+                ) : (
+                  <div className="space-y-4">
+                    <Detail label="Transaction ID" mono value={selectedTransaction.transactionId} />
+                    <Detail label="Status" value={<Badge variant={getStatusBadgeVariant(selectedTransaction.status)}>{selectedTransaction.status}</Badge>} />
+                    <Detail label="Type" value={selectedTransaction.transactionType} />
+                    <Detail label="Amount" value={formatMoney(selectedTransaction.amount, selectedTransaction.currency)} />
+                    <Detail label="Merchant" value={selectedTransaction.merchantName || '-'} />
+                    <Detail label="Customer ID" mono value={selectedTransaction.customerId} />
+                    <Detail label="Card ID" mono value={selectedTransaction.cardId} />
+                    <Detail label="Authorization Code" value={selectedTransaction.authorizationCode || '-'} />
+                    <Detail label="Merchant MCC" value={selectedTransaction.merchantCategoryCode || '-'} />
+                    <Detail label="Source Reference" mono value={selectedTransaction.sourceRef || '-'} />
+                    <Detail label="Transaction Date" value={formatDateTime(selectedTransaction.transactionDate)} />
+                    <Detail label="Created At" value={formatDateTime(selectedTransaction.createdAt)} />
+                  </div>
+                )}
+              </section>
             </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
+  );
+}
+
+function Detail({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-[0.08em] text-[var(--cs-ink-100)]">{label}</div>
+      <div className={mono ? 'mt-1 text-sm font-mono text-[var(--cs-ink-700)]' : 'mt-1 text-sm text-[var(--cs-ink-400)]'}>{value}</div>
+    </div>
   );
 }

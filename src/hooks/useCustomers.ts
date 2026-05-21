@@ -308,7 +308,7 @@ export function useCreateCustomer() {
     data: CreateCustomerDraftInput
   ): Promise<CreateCustomerDraftResult> => {
     const tenantId = user?.tenantId || 'tenant_unknown';
-    const affiliateId = user?.tenantId || 'affiliate_unknown';
+    const affiliateId = user?.affiliateId || user?.tenantId || 'affiliate_unknown';
     const requestId =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? `REQ-CUST-DRAFT-${crypto.randomUUID()}`
@@ -336,7 +336,7 @@ export function useCreateCustomer() {
           kyc: {
             idType: data.kyc.idType,
             idNumber: data.kyc.idNumber,
-            kycLevel: data.kyc.kycLevel || 'LEVEL_2',
+            kycLevel: data.kyc.kycLevel || 'LEVEL_1',
             verifiedAt: data.kyc.verifiedAt,
           },
         },

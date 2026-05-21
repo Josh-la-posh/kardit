@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+﻿import React, { useMemo, useState } from 'react';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBankAuditLogs } from '@/hooks/useBankPortal';
+import type { BankAuditLogItem } from '@/types/bankPortalContracts';
+import { format } from 'date-fns';
 
 function getTotalPages(total: number, pageSize: number) {
   return Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
@@ -23,6 +24,42 @@ export default function BankAuditLogsPage() {
 
   const totalPages = getTotalPages(total, pageSize);
   const eventTypes = useMemo(() => [...new Set(logs.map((log) => log.eventType).filter(Boolean))], [logs]);
+  const columns = useMemo(
+    () => [
+      {
+        key: 'eventType',
+        header: 'Event',
+        className: 'text-sm font-medium text-foreground',
+        render: (log: BankAuditLogItem) => log.eventType || '-',
+      },
+      {
+        key: 'resourceType',
+        header: 'Resource Type',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) => log.resourceType || '-',
+      },
+      {
+        key: 'resourceId',
+        header: 'Resource ID',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) => log.resourceId || '-',
+      },
+      {
+        key: 'actorUserId',
+        header: 'Actor',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) => log.actorUserId || '-',
+      },
+      {
+        key: 'occurredAt',
+        header: 'Occurred',
+        className: 'text-sm text-muted-foreground',
+        render: (log: BankAuditLogItem) =>
+          log.occurredAt ? format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm') : '-',
+      },
+    ],
+    []
+  );
 
   const applyFilters = () => {
     void refresh({
@@ -46,141 +83,116 @@ export default function BankAuditLogsPage() {
     setFromDate('');
     setToDate('');
     void refresh({ page: 1, filters: {} });
-  }
+  };
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Audit Logs"
-            subtitle="Review bank activity logs with filters and pagination."
-            actions={
-              <Button variant="outline" size="sm" onClick={() => refresh()} disabled={isLoading}>
-                <RefreshCw className="mr-1 h-4 w-4" /> Refresh
-              </Button>
-            }
-          />
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Audit Logs</h1>
+                <p className="page-sub">Review bank activity logs with filters and pagination.</p>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => refresh()} disabled={isLoading}>
+                <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
+              </button>
+            </header>
 
-          <div className="kardit-card p-4 mb-4">
-            <div className="grid gap-3 md:grid-cols-5">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Filter by actor user ID..."
-                  value={actorUserId}
-                  onChange={(e) => setActorUserId(e.target.value)}
-                />
-              </div>
-              <Select value={eventType || 'ALL'} onValueChange={setEventType}>
-                <SelectTrigger className="bg-muted border-border">
-                  <SelectValue placeholder="Event type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Events</SelectItem>
-                  {eventTypes.map((event) => (
-                    <SelectItem key={event} value={event}>
-                      {event}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input
-                type="date"
-                className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-              <input
-                type="date"
-                className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                placeholder='End Date'
-              />
-              <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-                <SelectTrigger className="w-28 bg-muted border-border">
-                  <SelectValue placeholder="Page size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pageSizeOptions.map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {size} / page
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className='flex justify-end gap-3 mt-4'>
-                <Button className="bg-primary hover:bg-primary/90" onClick={applyFilters} disabled={isLoading}>
-                Apply Filters
-              </Button>
-              <Button variant="outline" onClick={handleResetFilters} disabled={isLoading}>
-                Reset Filters
-              </Button>
-              </div>
-          </div>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Total logs" value={String(total)} sub="Current query scope" />
+              <Kpi label="Current page" value={`${page}/${totalPages}`} sub={`${pageSize} rows per page`} />
+              <Kpi label="Event types" value={String(eventTypes.length)} sub="Distinct events on this page" />
+              <Kpi label="Filtered actor" value={actorUserId.trim() ? 'Yes' : 'No'} sub="Actor ID filter applied" />
+            </section>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : logs.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">No audit logs returned.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Event</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Resource Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Resource ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actor</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Occurred</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {logs.map((log, index) => (
-                      <tr key={log.auditLogId || `${log.eventType}-${index}`} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-                        <td className="px-4 py-3 text-sm font-medium">{log.eventType}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{log.resourceType || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{log.resourceId || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{log.actorUserId || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {log.occurredAt ? format(new Date(log.occurredAt), 'MMM d, yyyy HH:mm') : '-'}
-                        </td>
-                      </tr>
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="grid gap-3 md:grid-cols-5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Filter by actor user ID..."
+                    value={actorUserId}
+                    onChange={(e) => setActorUserId(e.target.value)}
+                  />
+                </div>
+                <Select value={eventType || 'ALL'} onValueChange={setEventType}>
+                  <SelectTrigger className="bg-muted border-border">
+                    <SelectValue placeholder="Event type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Events</SelectItem>
+                    {eventTypes.map((event) => (
+                      <SelectItem key={event} value={event}>
+                        {event}
+                      </SelectItem>
                     ))}
-                  </tbody>
-                </table>
+                  </SelectContent>
+                </Select>
+                <input
+                  type="date"
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  placeholder="End Date"
+                />
+                <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="w-28 bg-muted border-border">
+                    <SelectValue placeholder="Page size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <div className="flex justify-end gap-3 mt-4">
+                <Button className="bg-primary hover:bg-primary/90" onClick={applyFilters} disabled={isLoading}>
+                  Apply Filters
+                </Button>
+                <Button variant="outline" onClick={handleResetFilters} disabled={isLoading}>
+                  Reset Filters
+                </Button>
+              </div>
+            </section>
 
-            <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} - {total} total log{total === 1 ? '' : 's'}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={isLoading || page <= 1} onClick={() => setPage(Math.max(1, page - 1))}>
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || page >= totalPages}
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            <PaginatedTable<BankAuditLogItem>
+              className="mt-4"
+              columns={columns}
+              rows={logs}
+              isLoading={isLoading}
+              error={error}
+              emptyMessage="No audit logs returned."
+              rowKey={(log, index) => log.auditLogId || `${log.eventType}-${index}`}
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+            />
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

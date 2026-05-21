@@ -2,40 +2,75 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { useReportDefinitions } from '@/hooks/useReports';
 import { ArrowRight, FileText } from 'lucide-react';
 
 export default function ReportsLandingPage() {
   const navigate = useNavigate();
   const { groups, definitionsByGroup } = useReportDefinitions();
+  const totalReports = groups.reduce((n, group) => n + (definitionsByGroup[group.id]?.length || 0), 0);
 
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader title="Reports" subtitle="Choose a report area, then generate the specific report you need." />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {groups.map((group) => (
-              <button
-                key={group.id}
-                onClick={() => navigate(`/reports/${group.id}`)}
-                className="kardit-card p-6 text-left hover:border-primary/50 transition-colors group"
-              >
-                <FileText className="h-6 w-6 text-primary mb-3" />
-                <h3 className="text-base font-semibold mb-2">{group.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{group.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{definitionsByGroup[group.id]?.length || 0} reports</span>
-                  <span className="text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Open <ArrowRight className="h-3 w-3" />
-                  </span>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Reports</h1>
+                <p className="page-sub">Choose a report area, then generate the specific report you need.</p>
+              </div>
+            </header>
+
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Report groups" value={String(groups.length)} sub="Cards, operations, and customers" />
+              <Kpi label="Available reports" value={String(totalReports)} sub="Definitions ready to run" />
+              <Kpi label="Export formats" value="CSV, XLSX" sub="All reports support file download" />
+              <Kpi label="Access scope" value="Role-based" sub="Data visibility follows user scope" />
+            </section> */}
+
+            <section>
+              {/* <div className="section-head">
+                <div>
+                  <div className="section-title">Report areas</div>
+                  <div className="section-sub">Select a domain to continue</div>
                 </div>
-              </button>
-            ))}
+              </div> */}
+
+              <div className="action-grid">
+                {groups.map((group) => (
+                  <button
+                    key={group.id}
+                    onClick={() => navigate(`/reports/${group.id}`)}
+                    className="action-card"
+                    style={{ textAlign: 'left' }}
+                    type="button"
+                  >
+                    <div className="action-icon">
+                      <FileText />
+                    </div>
+                    <div className="action-title">{group.name}</div>
+                    <div className="action-meta">{group.description}</div>
+                    <div className="action-cta">
+                      Open {definitionsByGroup[group.id]?.length || 0} reports <ArrowRight />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }
