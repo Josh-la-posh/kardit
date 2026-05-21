@@ -54,6 +54,9 @@ export default function BankDetailPage() {
     search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
   });
+    const [page, setPage] = useState(1)
+    const pageSize = 20
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const loadBankSummary = useCallback(async () => {
     if (!bankId) {
@@ -161,257 +164,284 @@ export default function BankDetailPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={bankName}
-            subtitle={`Affiliates under ${bankName}`}
-            actions={
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">{bankName}</h1>
+                <p className="page-sub">
+                  {`Affiliates under ${bankName}`}
+                </p>
+              </div>
               <div className="flex items-center gap-2">
-                {bankStatus && <StatusChip status={statusToChip[bankStatus] || 'INACTIVE'} label={bankStatus} />}
-                <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
+                  {bankStatus && <StatusChip status={statusToChip[bankStatus] || 'INACTIVE'} label={bankStatus} />}
+                  <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
+                  </Button>
+                </div>
+            </header>
+
+            <div className="kardit-card p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank ID</p>
+                  <p className="font-medium">{bankId}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank Code</p>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{bankCode}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Supported Currencies</p>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{supportedCurrencies.length ? supportedCurrencies.join(', ') : '-'}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Created</p>
+                  <p className="font-medium">{createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{totals.totalAffiliates}</p>
+                    <p className="text-xs text-muted-foreground">Affiliates Returned</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <CreditCard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.totalCardsIssued?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Cards Issued</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
+                    <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Frozen Cards</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
+                    <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Terminated Cards</p>
+                  </div>
+                </div>
+              </div>
+              {/*<div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                    <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{totals.suspendedAffiliates}</p>
+                    <p className="text-xs text-muted-foreground">Suspended Affiliates</p>
+                  </div>
+                </div>
+              </div> */}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
+                    <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">
+                      {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalTransactionVolume)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Transaction Volume</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                    <TrendingUp className="h-5 w-5 text-[hsl(var(--success))]" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">
+                      {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalFundingVolume)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Funding Volume</p>
+                  </div>
+                </div>
+              </div>
+              <div className="kardit-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
+                    <Users className="h-5 w-5 text-[hsl(var(--success))]" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">
+                      {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Active Cards</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="kardit-card p-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Search by affiliate name, tenant, or registration number..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48 bg-muted border-border">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Statuses</SelectItem>
+                    <SelectItem value="APPROVED">APPROVED</SelectItem>
+                    <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                    <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
                 </Button>
               </div>
-            }
-          />
+            </div>
 
-          <div className="kardit-card p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank ID</p>
-                <p className="font-medium">{bankId}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank Code</p>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{bankCode}</span>
+            <div className="kardit-card overflow-hidden">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Supported Currencies</p>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{supportedCurrencies.length ? supportedCurrencies.join(', ') : '-'}</span>
+              ) : error ? (
+                <div className="p-6 text-sm text-muted-foreground">{error}</div>
+              ) : affiliates.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">No affiliates found for this bank</p>
                 </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Created</p>
-                <p className="font-medium">{createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : '-'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Building2 className="h-5 w-5 text-primary" />
-                </div>
+              ) : (
                 <div>
-                  <p className="text-2xl font-bold">{totals.totalAffiliates}</p>
-                  <p className="text-xs text-muted-foreground">Affiliates Returned</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.totalCardsIssued?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Cards Issued</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--info)/0.12)]">
-                  <Snowflake className="h-5 w-5 text-[hsl(var(--info))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Frozen Cards</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--destructive)/0.12)]">
-                  <OctagonMinus className="h-5 w-5 text-[hsl(var(--destructive))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Terminated Cards</p>
-                </div>
-              </div>
-            </div>
-            {/*<div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
-                  <Users className="h-5 w-5 text-[hsl(var(--warning))]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totals.suspendedAffiliates}</p>
-                  <p className="text-xs text-muted-foreground">Suspended Affiliates</p>
-                </div>
-              </div>
-            </div> */}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--warning)/0.12)]">
-                  <Activity className="h-5 w-5 text-[hsl(var(--warning))]" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold">
-                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalTransactionVolume)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Transaction Volume</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
-                  <TrendingUp className="h-5 w-5 text-[hsl(var(--success))]" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold">
-                    {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalFundingVolume)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Funding Volume</p>
-                </div>
-              </div>
-            </div>
-            <div className="kardit-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[hsl(var(--success)/0.12)]">
-                  <Users className="h-5 w-5 text-[hsl(var(--success))]" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold">
-                    {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Active Cards</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="kardit-card p-4 mb-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Search by affiliate name, tenant, or registration number..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-muted border-border">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Statuses</SelectItem>
-                  <SelectItem value="APPROVED">APPROVED</SelectItem>
-                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                  <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-              </Button>
-            </div>
-          </div>
-
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : affiliates.length === 0 ? (
-              <div className="p-12 text-center">
-                <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">No affiliates found for this bank</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Registration</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {affiliates.map((affiliate, i) => (
-                      <tr
-                        key={affiliate.affiliateId}
-                        className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                        onClick={() => openAffiliateDetail(affiliate)}
-                      >
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-primary/10">
-                              <Building2 className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{affiliate.legalName}</p>
-                              <p className="text-xs text-muted-foreground">{affiliate.tradingName || '-'}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.affiliateId}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {format(new Date(affiliate.createdAt), 'MMM d, yyyy')}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={statusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openAffiliateDetail(affiliate);
-                            }}
+                  <section className="card" style={{ padding: 0 }}>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50">
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Registration</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {affiliates.map((affiliate, i) => (
+                          <tr
+                            key={affiliate.affiliateId}
+                            className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
+                            onClick={() => openAffiliateDetail(affiliate)}
                           >
-                            <Eye className="h-3 w-3 mr-1" /> View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                            <td className="px-4 py-3 text-sm">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-primary/10">
+                                  <Building2 className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">{affiliate.legalName}</p>
+                                  <p className="text-xs text-muted-foreground">{affiliate.tradingName || '-'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.affiliateId}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                              {format(new Date(affiliate.createdAt), 'MMM d, yyyy')}
+                            </td>
+                            <td className="px-4 py-3">
+                              <StatusChip status={statusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openAffiliateDetail(affiliate);
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-1" /> View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </section>
+                  <div className="table-pager border-t border-border flex items-center justify-between px-4 py-3">
+                    <div className="table-pager__meta">
+                      Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                    </div>
+                    <div className="table-pager__actions">
+                      <button
+                        className="btn btn-secondary table-pager__btn"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page <= 1 || isLoading}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        className="btn btn-secondary table-pager__btn"
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages || isLoading}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
