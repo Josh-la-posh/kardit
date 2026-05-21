@@ -1,6 +1,6 @@
 export interface CustomerSearchRequestContext {
   actorUserId: string;
-  userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER';
+  userType: 'AFFILIATE' | 'BANK' ;
   tenantId: string;
   scopeType: 'AFFILIATE_TENANT' | 'BANK_PORTFOLIO' | 'GLOBAL';
 }

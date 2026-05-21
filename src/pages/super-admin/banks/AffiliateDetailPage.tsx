@@ -156,7 +156,7 @@ export default function AffiliateDetailPage() {
           bankId,
           affiliateId,
         },
-        page: 1,
+        pageNumber: 1,
         pageSize: 10,
       }).catch(() => null),
     ])
@@ -219,13 +219,13 @@ export default function AffiliateDetailPage() {
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <StatusChip status={affiliateStatusToChip[affiliateStatus] || 'INACTIVE'} label={affiliateStatus} />
-                {/* <Button
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}
                 >
                   <Users className="h-4 w-4 mr-1" /> View Customers
-                </Button> */}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bankName}
                 </Button>

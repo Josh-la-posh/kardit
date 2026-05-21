@@ -128,7 +128,7 @@ export default function TransactionsPage() {
     try {
       const response = await queryTransactions({
         filters,
-        page: nextPage,
+        pageNumber: nextPage,
         pageSize: DEFAULT_PAGE_SIZE,
       });
       setTransactions(response.data);
@@ -312,6 +312,7 @@ export default function TransactionsPage() {
                         <tr>
                           <th>Type</th>
                           <th>Merchant</th>
+                          <th>Transaction ID</th>
                           <th>Amount</th>
                           <th>Status</th>
                           <th>Date</th>
@@ -322,6 +323,7 @@ export default function TransactionsPage() {
                           <tr key={transaction.transactionId} onClick={() => handleRowClick(transaction.transactionId)} style={{ cursor: 'pointer' }}>
                             <td>{transaction.transactionType}</td>
                             <td className="meta">{transaction.merchantName || '-'}</td>
+                            <td>{transaction.transactionId}</td>
                             <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount, transaction.currency)}</td>
                             <td><Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge></td>
                             <td className="meta">{formatDateTime(transaction.transactionDate)}</td>

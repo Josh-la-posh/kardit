@@ -26,6 +26,7 @@ export function getApiErrorMessage(errorBody: unknown, fallback: string): string
 
   if (typeof errorBody === 'object') {
     const body = errorBody as Record<string, unknown>;
+    const nestedError = body.Error;
 
     const validationErrors = body.errors;
     if (validationErrors && typeof validationErrors === 'object') {
@@ -38,8 +39,19 @@ export function getApiErrorMessage(errorBody: unknown, fallback: string): string
       }
     }
 
+    if (nestedError && typeof nestedError === 'object') {
+      const errorRecord = nestedError as Record<string, unknown>;
+      if (typeof errorRecord.Message === 'string' && errorRecord.Message.trim()) return errorRecord.Message;
+      if (typeof errorRecord.Code === 'string' && errorRecord.Code.trim()) return errorRecord.Code;
+    }
+
+    if (typeof body.Message === 'string' && body.Message.trim()) return body.Message;
+    if (typeof body.error === 'string' && body.error.trim()) return body.error;
     if (typeof body.message === 'string' && body.message.trim()) return body.message;
+    if (typeof body.Error === 'string' && body.Error.trim()) return body.Error;
+    if (typeof body.Title === 'string' && body.Title.trim()) return body.Title;
     if (typeof body.title === 'string' && body.title.trim()) return body.title;
+    if (typeof body.Detail === 'string' && body.Detail.trim()) return body.Detail;
     if (typeof body.detail === 'string' && body.detail.trim()) return body.detail;
   }
 

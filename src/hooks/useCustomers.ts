@@ -91,6 +91,8 @@ interface UseCustomersOptions {
   criteria?: CustomerSearchCriteria;
   page?: number;
   pageSize?: number;
+  disableStoreEnrichment?: boolean;
+  enabled?: boolean;
 }
 
 const buildCriteria = (query: string): CustomerSearchCriteria => {
@@ -119,9 +121,17 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  const { requestContext, criteria, page = 1, pageSize = 20 } = options;
+  const { requestContext, criteria, page = 1, pageSize = 20, disableStoreEnrichment = false, enabled = true } = options;
 
   const fetch = useCallback(async () => {
+    if (!enabled) {
+      setCustomers([]);
+      setTotal(0);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -135,7 +145,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
         pagination: { page, pageSize },
       });
 
-      const storeCustomers = store.getCustomers(requestContext?.tenantId);
+      const storeCustomers = disableStoreEnrichment ? [] : store.getCustomers(requestContext?.tenantId);
 
       setCustomers(
         response.results.map((item) => {
@@ -157,7 +167,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
             phone: item.phone,
             kycLevel: item.kycLevel,
             createdAt: item.createdAt,
-            status: matchedCustomer?.status || 'PENDING',
+            status: matchedCustomer?.status || 'ACTIVE',
           };
         })
       );
@@ -169,7 +179,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, page, pageSize, query, requestContext]);
+  }, [criteria, disableStoreEnrichment, enabled, page, pageSize, query, requestContext]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
