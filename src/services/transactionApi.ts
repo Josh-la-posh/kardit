@@ -208,7 +208,7 @@ function normalizeTransactionDetailResponse(value: unknown): TransactionDetail {
 }
 
 export function queryTransactions(request: TransactionQueryRequest): Promise<TransactionQueryResponse> {
-  const normalizedPage = request.pageNumber ?? request.page ?? 1;
+  // const normalizedPage = request.pageNumber ?? request.pageSize ?? 1;
   return postJson<TransactionQueryResponse | ApiEnvelope<TransactionQueryResponse>>('/transactions/query', request)
     .then((response) => {
       const value = unwrapApiValue(response) as TransactionQueryResponse & {
