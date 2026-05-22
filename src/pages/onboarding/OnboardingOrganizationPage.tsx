@@ -253,7 +253,7 @@ export default function OnboardingOrganizationPage() {
                 <h2 className="text-xl md:text-2xl font-bold text-foreground">Organization Details</h2>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <TextField label="Legal Business Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
                 </div>
@@ -328,7 +328,7 @@ export default function OnboardingOrganizationPage() {
               <div className="mb-5">
                 <h2 className="text-xl font-bold text-foreground">Primary contact</h2>
               </div>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-col-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
                 </div>
