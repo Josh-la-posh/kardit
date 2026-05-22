@@ -77,7 +77,7 @@ export default function MarketingHeader({
           </a>
           {shouldShowEnrollment && (
             <a
-              className="rounded-xl border border-transparent bg-[var(--cs-red-700)] px-5 py-3 text-sm font-bold text-[var(--cs-white)] no-underline transition-all hover:bg-[var(--cs-red-900)]"
+              className="rounded-xl border border-transparent bg-[#c8242c] px-5 py-3 text-sm font-bold text-[var(--cs-white)] no-underline transition-all hover:bg-[var(--cs-red-900)]"
               href={enrollmentUrl}
             >
               Start enrollment

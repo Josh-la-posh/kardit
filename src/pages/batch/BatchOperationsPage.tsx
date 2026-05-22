@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { useBatches } from '@/hooks/useBatches'
+import { getBatches } from '@/services/batchApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
+import type { BatchSummary } from '@/types/batchContracts'
 import { Eye, Filter, Loader2, RefreshCw, Search, Upload } from 'lucide-react'
 
 type UiStatus = 'PROCESSING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'PENDING'
@@ -27,9 +28,34 @@ const STATUS_CLASS: Record<UiStatus, string> = {
 }
 
 export default function BatchOperationsPage() {
-  const { batches, isLoading, error, refetch } = useBatches('cards')
+  const [batches, setBatches] = useState<BatchSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | UiStatus>('ALL')
+
+  const refetch = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await getBatches({
+        page: 1,
+        pageSize: 100,
+        sortBy: 'createdAt',
+        sortDirection: 'desc',
+      })
+      setBatches(response.data || [])
+    } catch (err) {
+      setBatches([])
+      setError(err instanceof Error ? err.message : 'Could not load batches')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    refetch()
+  }, [refetch])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -38,7 +64,7 @@ export default function BatchOperationsPage() {
       if (statusFilter !== 'ALL' && st !== statusFilter) return false
       if (!q) return true
       const product = CARD_PRODUCTS.find((p) => p.id === b.productId)?.name ?? b.productId ?? ''
-      const hay = [b.batchId, b.fileName, product].join(' ').toLowerCase()
+      const hay = [b.id, b.batchType, b.submittedByRef, product].join(' ').toLowerCase()
       return hay.includes(q)
     })
   }, [batches, query, statusFilter])
@@ -84,7 +110,7 @@ export default function BatchOperationsPage() {
               <div className="card-head">
                 <div className="card-head-title">Recent batch jobs</div>
                 <div className="row-end" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <div className="search-wrap">
+                  <div className="bch-search-wrap">
                     <Search />
                     <input
                       className="bch-input bch-input-sm"
@@ -131,7 +157,7 @@ export default function BatchOperationsPage() {
                   <thead>
                     <tr>
                       <th>Batch ID</th>
-                      <th>File</th>
+                      <th>Batch type</th>
                       <th>Product</th>
                       <th>Submitted</th>
                       <th className="right">Rows</th>
@@ -144,12 +170,12 @@ export default function BatchOperationsPage() {
                       const status = normalizeStatus(b.status)
                       const product = CARD_PRODUCTS.find((p) => p.id === b.productId)?.name || b.productId || '-'
                       return (
-                        <tr key={b.batchId}>
-                          <td className="id">{b.batchId}</td>
-                          <td className="meta">{b.fileName}</td>
+                        <tr key={b.id}>
+                          <td className="id">{b.id}</td>
+                          <td className="meta">{b.batchType}</td>
                           <td className="meta">{product}</td>
-                          <td className="meta">{formatDistanceToNow(new Date(b.uploadedAt), { addSuffix: true })}</td>
-                          <td className="right tabular">{b.totalRows || b.recordsReceived}</td>
+                          <td className="meta">{formatDistanceToNow(new Date(b.createdAt), { addSuffix: true })}</td>
+                          <td className="right tabular">{b.totalRows}</td>
                           <td>
                             <span className={`badge ${STATUS_CLASS[status]}`}>
                               {status === 'PROCESSING' && <Loader2 className="spin" style={{ width: 11, height: 11 }} />}
@@ -157,7 +183,7 @@ export default function BatchOperationsPage() {
                             </span>
                           </td>
                           <td className="right">
-                            <Link to={`/batch-operations?batchId=${encodeURIComponent(b.batchId)}`} className="icon-button" style={{ marginLeft: 'auto' }}>
+                            <Link to={`/batch-operations/${encodeURIComponent(b.id)}`} className="icon-button" style={{ marginLeft: 'auto' }}>
                               <Eye />
                             </Link>
                           </td>

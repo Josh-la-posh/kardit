@@ -178,7 +178,7 @@ export default function OnboardingStartPage() {
                   )}
                   <button
                     type="button"
-                    className="w-full rounded-[10px] bg-[var(--cs-green-700)] px-3.5 py-2.5 text-[13px] font-bold text-white"
+                    className="w-full rounded-[10px] bg-[#1b7a45] px-3.5 py-2.5 text-[13px] font-bold text-white"
                     onClick={onStart}
                     disabled={isLoading}
                   >

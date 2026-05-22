@@ -89,3 +89,56 @@ export interface GetBatchResultsResponse {
   resultFile: string;
   downloadUrl: string;
 }
+
+export interface GetBatchesRequest {
+  batchType?: string;
+  status?: string;
+  productId?: string;
+  bankId?: string;
+  submittedByRef?: string;
+  tenantId?: string;
+  makerUserId?: string;
+  checkerUserId?: string;
+  submittedFrom?: string;
+  submittedTo?: string;
+  approvedFrom?: string;
+  approvedTo?: string;
+  processedFrom?: string;
+  processedTo?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: string;
+}
+
+export interface BatchSummary {
+  id: string;
+  batchType: string;
+  submittedByRef: string;
+  productId: string;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  processedRows: number;
+  failedRows: number;
+  totalBatchAmount: number | null;
+  totalProcessedAmount: number | null;
+  makerUserId: string;
+  checkerUserId: string;
+  rejectionReason: string;
+  submittedForApprovalAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  processingStartedAt: string | null;
+  processingCompletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetBatchesResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: BatchSummary[];
+}

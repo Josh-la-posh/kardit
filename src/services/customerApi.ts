@@ -136,7 +136,13 @@ export async function searchCustomers(request: SearchCustomersRequest): Promise<
 export async function createCustomerDraft(
   request: CreateCustomerDraftRequest
 ): Promise<CreateCustomerDraftResponse> {
-  return postJson<CreateCustomerDraftResponse>('/customers/draft', request);
+  return unwrapApiValue(
+    await postJson<
+      CreateCustomerDraftResponse |
+      ApiEnvelope<CreateCustomerDraftResponse> |
+      ApiStatusEnvelope<CreateCustomerDraftResponse>
+    >('/customers/draft', request)
+  );
 }
 
 export async function getCustomer(customerRefId: string): Promise<CustomerDetailResponse> {

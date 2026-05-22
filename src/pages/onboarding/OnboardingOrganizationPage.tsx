@@ -248,7 +248,7 @@ export default function OnboardingOrganizationPage() {
           </div>
         ) : (
           <form onSubmit={onNext} className="space-y-8">
-            <section className="bg-[hsl(var(--landing-panel))] p-5">
+            <section className="bg-[hsl(var(--landing-panel))] rounded-[1.5rem] p-5">
               <div className="mb-5">
                 <h2 className="text-xl md:text-2xl font-bold text-foreground">Organization Details</h2>
               </div>

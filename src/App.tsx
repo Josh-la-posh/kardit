@@ -90,6 +90,7 @@ import CreateCardPage from "./pages/cards/CreateCardPage";
 // Batch Operations
 import BatchOperationsPage from "./pages/batch/BatchOperationsPage";
 import BatchUploadPage from "./pages/batch/BatchUploadPage";
+import BatchOperationDetailPage from "./pages/batch/BatchOperationDetailPage";
 
 // Loads
 import LoadsHomePage from "./pages/loads/LoadsHomePage";
@@ -254,6 +255,7 @@ const App = () => (
             {/* Batch Operations */}
             <Route path="/batch-operations" element={<BatchOperationsPage />} />
             <Route path="/batch-operations/new" element={<BatchUploadPage />} />
+            <Route path="/batch-operations/:batchId" element={<BatchOperationDetailPage />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

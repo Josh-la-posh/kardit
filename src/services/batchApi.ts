@@ -1,5 +1,7 @@
 import { ApiError } from '@/services/authApi';
 import type {
+  GetBatchesRequest,
+  GetBatchesResponse,
   GetBatchResponse,
   GetBatchRowsRequest,
   GetBatchRowsResponse,
@@ -69,11 +71,15 @@ export function validateBatch(batchId: string, request: ValidateBatchRequest): P
 }
 
 export function submitBatch(batchId: string, request: SubmitBatchRequest): Promise<SubmitBatchResponse> {
-  return postJson<SubmitBatchResponse>(`/batches/${batchId}/submit`, request);
+  return postJson<SubmitBatchResponse>(`/Batches/${batchId}/submit`, request).catch(() =>
+    postJson<SubmitBatchResponse>(`/batches/${batchId}/submit`, request)
+  );
 }
 
 export function getBatch(batchId: string): Promise<GetBatchResponse> {
-  return getJson<GetBatchResponse>(`/batches/${batchId}`);
+  return getJson<GetBatchResponse>(`/Batches/${batchId}`).catch(() =>
+    getJson<GetBatchResponse>(`/batches/${batchId}`)
+  );
 }
 
 export function getBatchRows(batchId: string, request: GetBatchRowsRequest = {}): Promise<GetBatchRowsResponse> {
@@ -87,4 +93,28 @@ export function getBatchRows(batchId: string, request: GetBatchRowsRequest = {})
 
 export function getBatchResultsDownload(batchId: string): Promise<GetBatchResultsResponse> {
   return getJson<GetBatchResultsResponse>(`/batches/${batchId}/results/download`);
+}
+
+export function getBatches(request: GetBatchesRequest = {}): Promise<GetBatchesResponse> {
+  const query = new URLSearchParams();
+  if (request.batchType) query.set('BatchType', request.batchType);
+  if (request.status) query.set('Status', request.status);
+  if (request.productId) query.set('ProductId', request.productId);
+  if (request.bankId) query.set('BankId', request.bankId);
+  if (request.submittedByRef) query.set('SubmittedByRef', request.submittedByRef);
+  if (request.tenantId) query.set('TenantId', request.tenantId);
+  if (request.makerUserId) query.set('MakerUserId', request.makerUserId);
+  if (request.checkerUserId) query.set('CheckerUserId', request.checkerUserId);
+  if (request.submittedFrom) query.set('SubmittedFrom', request.submittedFrom);
+  if (request.submittedTo) query.set('SubmittedTo', request.submittedTo);
+  if (request.approvedFrom) query.set('ApprovedFrom', request.approvedFrom);
+  if (request.approvedTo) query.set('ApprovedTo', request.approvedTo);
+  if (request.processedFrom) query.set('ProcessedFrom', request.processedFrom);
+  if (request.processedTo) query.set('ProcessedTo', request.processedTo);
+  if (typeof request.page === 'number') query.set('Page', String(request.page));
+  if (typeof request.pageSize === 'number') query.set('PageSize', String(request.pageSize));
+  if (request.sortBy) query.set('SortBy', request.sortBy);
+  if (request.sortDirection) query.set('SortDirection', request.sortDirection);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return getJson<GetBatchesResponse>(`/Batches${suffix}`);
 }
