@@ -1,42 +1,30 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { KarditLogo } from '@/components/KarditLogo';
-import { TextField } from '@/components/ui/text-field';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { Loader2, AlertCircle, Lock } from 'lucide-react';
-
-/**
- * LoginPage - SCR-AUTH-001
- * 
- * Routes: /login
- * Demo users:
- * - demo@kardit.app / Demo123! - Normal login
- * - firstlogin@kardit.app / Demo123! - Requires password change
- * - locked@kardit.app / any - Account locked
- */
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
+import '@/styles/auth.css'
+import { TextField } from '@/components/ui/text-field'
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLocked, setIsLocked] = useState(false);
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLocked(false);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+  const [remember, setRemember] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
 
     if (!email || !password) {
-      setError('Please enter both email and password');
-      return;
+      setError('Please enter both email and password')
+      return
     }
 
-    setIsLoading(true);
+    setSubmitting(true)
 
     try {
       const result = await login({
@@ -47,142 +35,122 @@ export default function LoginPage() {
           userAgent: navigator.userAgent,
           deviceFingerprint: 'frontend-mock',
         },
-      });
+      })
 
       if (!result.success) {
-        if (result.locked) setIsLocked(true);
-        else setError(result.error || 'Login failed');
-        return;
+        setError(result.error || 'Login failed')
+        return
       }
 
-      // When requiresPasswordChange=true, the app will redirect via AuthProvider/ProtectedRoute.
-      navigate('/dashboard');
-    } catch (err) {
-      setError('An unexpected error occurred');
+      navigate('/dashboard')
+    } catch {
+      setError('An unexpected error occurred')
     } finally {
-      setIsLoading(false);
+      setSubmitting(false)
     }
-  };
-
-  // Locked account view
-  if (isLocked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="kardit-card p-8 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-              <Lock className="h-8 w-8 text-destructive" />
-            </div>
-            <h1 className="text-2xl font-semibold text-foreground mb-2">
-              Account Locked
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              Your account has been locked due to security concerns. 
-              Please contact your administrator for assistance.
-            </p>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                setIsLocked(false);
-                setEmail('');
-                setPassword('');
-              }}
-            >
-              Try Different Account
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
+  const submitText = submitting ? 'Signing in...' : 'Sign in'
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <KarditLogo size="lg" />
-        </div>
+    <main className="">
+      <section className="section section--centered">
+        <div className="container">
+          <div className="signin-wrap reveal">
+            <form className="signin-card" onSubmit={onSubmit} noValidate>
+              <div className="eyebrow eyebrow--muted">Already enrolled? Log in below.</div>
+              <h2 className="section-head__title" style={{ margin: '8px 0 24px', fontSize: 24 }}>
+                Sign in to your account
+              </h2>
 
-        {/* Login Card */}
-        <div className="kardit-card p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold text-foreground mb-1">
-              Welcome back
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Sign in to your account to continue
-            </p>
-          </div>
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="field field--full">
+                  <label htmlFor="s-email">Work email</label>
+                  <input
+                    id="s-email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="adaeze@example.com"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+                <div className="field field--full">
+                  <label htmlFor="s-pwd">Password</label>
+                  <div className="pwd-wrap">
+                    <input
+                      id="s-pwd"
+                      name="password"
+                      type={showPwd ? 'text' : 'password'}
+                      required
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={submitting}
+                    />
+                    <button
+                      type="button"
+                      className="pwd-toggle"
+                      aria-label={showPwd ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPwd((s) => !s)}
+                    >
+                      {showPwd ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-          {/* Error Banner */}
-          {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive animate-fade-in">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+              <div className="signin-row">
+                <label className="remember">
+                  <input
+                    type="checkbox"
+                    name="remember"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  <span>Keep me signed in</span>
+                </label>
+                <Link className="forgot" to="/forgot-password">
+                  Forgot password?
+                </Link>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <TextField
-              label="Email / Username"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              disabled={isLoading}
-            />
+              <button type="submit" className="btn btn--accent signin-submit" disabled={submitting}>
+                {submitText}
+              </button>
 
-            <TextField
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              disabled={isLoading}
-            />
-
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
+              {error && (
+                <div className="signin-error is-visible" role="alert" aria-live="polite">
+                  {error}
+                </div>
               )}
-            </Button>
-          </form>
+            </form>
 
-          <div className="mt-6 flex justify-between text-center">
-            <Link 
-              to="/forgot-password" 
-              className="text-sm text-secondary hover:text-secondary/80 hover:underline transition-colors"
-            >
-              Forgot password?
-            </Link>
-            <Link 
-              to="/onboarding/start" 
-              className="text-sm text-primary hover:text-secondary/80 hover:underline transition-colors"
-            >
-              Become an Affiliate?
-            </Link>
+            <div className="signin-divider">New to Kardit?</div>
+
+            <div className="enroll-card">
+              <span className="eyebrow">Become an affiliate</span>
+              <h4>Don't have an account yet?</h4>
+              <p>
+                Walk through our 9-step affiliate onboarding to register your business, submit
+                compliance documents and go live on the Kardit switch — typically reviewed within
+                two working days.
+              </p>
+              <Link className="btn btn--outline-green" to="/onboarding/start" style={{ display: 'inline-flex' }}>
+                Start enrollment{' '}
+                <span style={{ marginLeft: 8 }} aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
-
-        {/* Demo hint */}
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>Demo: demo@kardit.app / Demo123!</p>
-        </div>
-      </div>
-    </div>
-  );
+      </section>
+    </main>
+  )
 }

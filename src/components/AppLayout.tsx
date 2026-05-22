@@ -143,7 +143,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 lg:sticky lg:top-0 lg:flex-shrink-0',
+          'fixed inset-y-0 left-0 z-50 h-screen bg-[color-mix(in_srgb,var(--cs-bg-elevated)_92%,transparent)] backdrop-blur text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 lg:sticky lg:top-0 lg:flex-shrink-0',
           sidebarCollapsed ? 'w-16' : 'w-64',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
@@ -226,7 +226,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
       {/* Main Content Area */}
       <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-sidebar lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-[color-mix(in_srgb,var(--cs-bg-elevated)_92%,transparent)] backdrop-blur lg:px-6">
           {/* Left side */}
           <div className="flex items-center gap-4">
             {/* Mobile menu toggle */}

@@ -1,0 +1,23 @@
+/* SignIn-specific styles lifted from signin.html */
+.signin-wrap { max-width: 460px; margin: 0 auto; }
+.signin-card { background: var(--cs-bg-elevated); border: 1px solid var(--cs-line); border-radius: 20px; padding: 40px; box-shadow: var(--cs-shadow-md); }
+.signin-card .field input { padding: 14px 16px; font-size: 15px; }
+.signin-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 12px; flex-wrap: wrap; }
+.signin-row .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--cs-ink-100); }
+.signin-row .remember input { width: 16px; height: 16px; accent-color: var(--cs-green-700); }
+.signin-row .forgot { font-size: 13px; font-weight: 600; color: var(--cs-green-700); text-decoration: none; }
+.signin-row .forgot:hover { text-decoration: underline; }
+.signin-submit { width: 100%; margin-top: 20px; justify-content: center; padding: 14px 18px; font-size: 15px; }
+.signin-divider { display: flex; align-items: center; gap: 16px; margin: 28px 0 24px; color: var(--cs-ink-100); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+.signin-divider::before, .signin-divider::after { content: ""; flex: 1; height: 1px; background: var(--cs-line); }
+.enroll-card { background: var(--cs-mist); border: 1px solid var(--cs-line); border-radius: 16px; padding: 24px; }
+.enroll-card h4 { font-family: var(--cs-font-display); font-weight: 700; font-size: 18px; margin: 8px 0 0; color: var(--cs-ink-700); }
+.enroll-card p { font-size: 14px; margin: 8px 0 14px; color: var(--cs-ink-100); }
+.signin-error { margin-top: 18px; background: #FEEFEF; border: 1px solid #F2C7CA; border-radius: 10px; padding: 12px 14px; color: #8C1F25; font-size: 13px; line-height: 1.5; }
+.signin-error.is-visible { animation: shake 320ms cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(3px); } 30%,50%,70% { transform: translateX(-5px); } 40%,60% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .signin-error.is-visible { animation: none; } }
+.pwd-wrap { position: relative; }
+.pwd-wrap input { padding-right: 56px; }
+.pwd-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; padding: 6px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cs-ink-100); cursor: pointer; border-radius: 6px; }
+.pwd-toggle:hover { color: var(--cs-green-700); background: var(--cs-mist); }

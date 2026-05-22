@@ -45,39 +45,43 @@ export function PaginatedTable<T extends Record<string, unknown>>({
   const shouldShowPager = total > pageSize;
 
   return (
-    <section className={cn('overflow-hidden rounded-[var(--cs-radius-lg)] border border-[var(--cs-line)] bg-[var(--surface)] shadow-[var(--cs-shadow-sm)]', className)}>
+    <section className={cn('app-table overflow-hidden rounded-[var(--cs-radius-lg)] border border-[var(--cs-line)] bg-[var(--surface)] shadow-[var(--cs-shadow-sm)]', className)}>
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
+        <div className="app-table__state flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">{error}</div>
+        <div className="app-table__state py-16 text-center text-sm text-muted-foreground">{error}</div>
       ) : rows.length === 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">{emptyMessage}</div>
+        <div className="app-table__state py-16 text-center text-sm text-muted-foreground">{emptyMessage}</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="app-table__table min-w-full">
             <thead>
-              <tr className="border-b border-[var(--cs-line)] bg-[var(--bg)]">
+              <tr className="app-table__head-row border-b border-[var(--cs-line)] bg-muted/50">
                 {columns.map((column) => (
                   <th
                     key={String(column.key)}
-                    className={cn('px-4 md:px-6 py-3 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--cs-ink-100)]')}
+                    className={cn('app-table__head-cell px-4 md:px-6 py-5 text-left text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground')}
                   >
                     {column.header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--cs-line)]">
+            <tbody className="app-table__body divide-y divide-[var(--cs-line)]">
               {rows.map((row, rowIndex) => (
                 <tr
                   key={rowKey(row, rowIndex)}
                   onClick={() => onRowClick?.(row, rowIndex)}
-                  className={cn('transition-colors hover:bg-[var(--bg)]', onRowClick && 'cursor-pointer')}
+                  className={cn(
+                    'app-table__row transition-colors hover:bg-muted/50',
+                    rowIndex % 2 === 1 && 'app-table__row--alt',
+                    onRowClick && 'cursor-pointer'
+                  )}
                 >
                   {columns.map((column) => (
-                    <td key={String(column.key)} className={cn('px-4 md:px-6 py-[14px] text-[13px] text-[var(--cs-ink-400)] align-middle', column.className)}>
+                    <td key={String(column.key)} className={cn('app-table__cell px-4 md:px-6 py-4 text-sm whitespace-nowrap align-middle', column.className)}>
                       {column.render ? column.render(row, rowIndex) : String(row[column.key as keyof T] ?? '')}
                     </td>
                   ))}
@@ -89,8 +93,8 @@ export function PaginatedTable<T extends Record<string, unknown>>({
       )}
 
       {shouldShowPager && (
-        <div className="flex items-center justify-between border-t border-[var(--cs-line)] px-6 py-4">
-          <p className="text-sm text-[var(--cs-ink-100)]">
+        <div className="app-table__pager flex items-center justify-between border-t border-[var(--cs-line)] px-6 py-4">
+          <p className="app-table__pager-meta text-sm text-[var(--cs-ink-100)]">
             Page <span className="font-semibold text-[var(--cs-ink-700)]">{page}</span> of{' '}
             <span className="font-semibold text-[var(--cs-ink-700)]">{totalPages}</span>
           </p>

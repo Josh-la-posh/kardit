@@ -97,6 +97,7 @@ import SingleLoadPage from "./pages/loads/SingleLoadPage";
 import LoadReversalPage from "./pages/loads/LoadReversalPage";
 import LoadBatchesPage from "./pages/loads/LoadBatchesPage";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
+import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
 
 // Reports
 import ReportsLandingPage from "./pages/reports/ReportsLandingPage";
@@ -118,6 +119,8 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 import Page from "./pages/LandingPage/page";
 import PublicLayout from "./layouts/PublicLayout";
+import Contact from "./pages/Contact";
+import Solutions from "./pages/Solutions";
 
 const queryClient = new QueryClient();
 
@@ -137,6 +140,8 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/solutions" element={<Solutions />} />
 
               {/* Affiliate onboarding (no login) */}
               <Route path="/onboarding/start" element={<OnboardingStartPage />} />
@@ -229,6 +234,7 @@ const App = () => (
             <Route path="/loads/batches" element={<LoadBatchesPage />} />
             <Route path="/loads/batches/:batchId" element={<LoadBatchesPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/transactions/:transactionId" element={<TransactionDetailPage />} />
 
             {/* Reports */}
             <Route path="/reports" element={<ReportsLandingPage />} />

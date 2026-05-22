@@ -4,108 +4,98 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  KARDIT DESIGN SYSTEM
-  ====================
-  Dark fintech dashboard theme with tangerine orange accent.
-  All colors in HSL format for consistency.
+/*
+  KARDIT / CHAMS SWITCH DESIGN SYSTEM
+  ==================================
+  Default: Dark mode
+  Light mode: apply .light to html or body
 */
 
 @layer base {
   :root {
-    /* Kardit Dark Theme (Default) */
-    --background: 220 15% 7%;           /* #0F1115 - Very dark charcoal */
-    --foreground: 0 0% 96%;             /* #F5F5F5 - Off-white text */
+    color-scheme: dark;
 
-    --card: 220 12% 12%;                /* #1C1F26 - Dark surface */
+    /* Core */
+    --background: 220 15% 7%;
+    --foreground: 0 0% 96%;
+
+    --card: 220 12% 12%;
     --card-foreground: 0 0% 96%;
 
     --popover: 220 12% 12%;
     --popover-foreground: 0 0% 96%;
 
-    /* Primary */
-    --primary: 147.38 100% 31.37%;
+    --primary: 147 100% 31%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Subtle Teal */
-    --secondary: 200 60% 45%;           /* Teal accent */
+    --secondary: 200 60% 45%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted surfaces */
-    --muted: 220 10% 16%;               /* #262A33 - Slightly lighter dark */
-    --muted-foreground: 220 10% 60%;    /* Cool grey text */
+    --muted: 220 10% 16%;
+    --muted-foreground: 220 10% 70%;
 
-    /* Accent - same as primary for consistency */
-    --accent: 147.38 100% 31.37%;
+    --accent: 147 100% 31%;
     --accent-foreground: 0 0% 100%;
 
-    /* Status Colors */
-    --success: 142 70% 45%;             /* Green for ACTIVE */
-    --success-foreground: 0 0% 100%;
-    
-    --warning: 38 92% 50%;              /* Amber for PENDING */
-    --warning-foreground: 0 0% 10%;
-    
-    --destructive: 0 72% 50%;           /* Red for ERROR/BLOCKED */
+    --destructive: 0 72% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --info: 200 80% 55%;                /* Blue for info */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 52%;
+    --warning-foreground: 0 0% 10%;
+
+    --info: 200 80% 58%;
     --info-foreground: 0 0% 100%;
 
-    /* Borders & Inputs */
-    --border: 220 10% 20%;
-    --input: 90 12% 79%;
-    --ring: 147.38 100% 31.37%;
+    --border: 220 10% 22%;
+    --input: 220 10% 20%;
+    --ring: 147 100% 31%;
 
     --radius: 0.5rem;
 
     /* Sidebar */
     --sidebar-background: 220 15% 9%;
-    --sidebar-foreground: 220 10% 70%;
-    --sidebar-primary: 147.38 100% 31.37%;
+    --sidebar-foreground: 220 10% 75%;
+    --sidebar-primary: 147 100% 31%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 12% 14%;
     --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 220 10% 18%;
-    --sidebar-ring: 147.38 100% 31.37%;
+    --sidebar-border: 220 10% 20%;
+    --sidebar-ring: 147 100% 31%;
 
-    /* Custom Kardit tokens */
+    /* Custom surfaces */
     --surface: 220 12% 10%;
-    --surface-hover: 220 12% 14%;
-    --text-primary: 0 0% 96%;
-    --text-secondary: 220 10% 60%;
-    --text-muted: 220 10% 45%;
+    --surface-hover: 220 12% 15%;
 
-    /* Landing page palette - Dark mode */
+    --text-primary: 0 0% 96%;
+    --text-secondary: 220 10% 72%;
+    --text-muted: 220 10% 58%;
+
+    /* Landing */
     --landing-bg: 220 15% 7%;
     --landing-fg: 0 0% 96%;
-    --landing-subtle: 220 10% 60%;
+    --landing-subtle: 220 10% 70%;
     --landing-brand: 147 93% 31%;
     --landing-brand-2: 141 90% 42%;
     --landing-brand-3: 160 84% 39%;
     --landing-panel: 220 12% 12%;
-    --landing-panel-2: 218 54% 18%;
+    --landing-panel-2: 218 45% 18%;
     --landing-panel-border: 220 10% 24%;
     --landing-soft: 220 10% 16%;
     --landing-soft-2: 220 10% 20%;
     --landing-highlight: 190 95% 78%;
 
-    /* Kardit Home tokens - Dark mode */
-    --kardit-home-hero-red-1: 0 71% 35%;
-    --kardit-home-hero-red-2: 357 68% 46%;
-    --kardit-home-hero-red-3: 356 78% 56%;
-    --kardit-home-stats-stroke-1: 147 58% 40%;
-    --kardit-home-stats-stroke-2: 147 44% 82%;
-
-    /* Chams Switch tokens - Dark mode */
-    --cs-green-900: #9ed8bb;
-    --cs-green-700: #74c59b;
+    /* Chams Switch Brand - Dark */
+    --cs-green-900: #e8f6ee;
+    --cs-green-700: #9ed8bb;
     --cs-green-500: #2ba15d;
     --cs-green-300: #1f6a43;
     --cs-green-100: #153d29;
 
-    --cs-red-900: #ffb3b8;
-    --cs-red-700: #ff7c86;
+    --cs-red-900: #fceaec;
+    --cs-red-700: #ffb3b8;
     --cs-red-500: #e63946;
     --cs-red-300: #8f2c33;
     --cs-red-100: #5a1f25;
@@ -144,10 +134,11 @@
     --cs-warning: #e0a416;
     --cs-info: #4d9fd8;
 
-    /* Chams typography - Dark mode */
+    /* Typography */
     --cs-font-display: "Plus Jakarta Sans", "Lato", system-ui, sans-serif;
     --cs-font-body: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
     --cs-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
     --cs-text-xs: 12px;
     --cs-text-sm: 14px;
     --cs-text-base: 16px;
@@ -157,182 +148,18 @@
     --cs-text-2xl: 36px;
     --cs-text-3xl: 48px;
     --cs-text-4xl: 64px;
+
     --cs-leading-tight: 1.15;
     --cs-leading-snug: 1.35;
     --cs-leading-body: 1.55;
     --cs-leading-loose: 1.75;
+
     --cs-tracking-tight: -0.02em;
     --cs-tracking-normal: 0;
     --cs-tracking-wide: 0.06em;
     --cs-tracking-caps: 0.12em;
-    --cs-radius-sm: 6px;
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(147.38 100% 31.37%), hsl(147.38 100% 24%));
-    --gradient-surface: linear-gradient(180deg, hsl(220 12% 12%), hsl(220 12% 10%));
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
-    --shadow-glow: 0 0 20px hsl(147.38 100% 31.37% / 0.15);
-  }
 
-  /* Light mode override (not default, but available) */
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 10%;
-    --card: 0 0% 98%;
-    --card-foreground: 220 15% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 10%;
-    --primary: 147.38 100% 31.37%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 200 60% 40%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 10% 95%;
-    --muted-foreground: 220 10% 40%;
-    --accent: 147.38 100% 31.37%;
-    --accent-foreground: 0 0% 100%;
-    --border: 220 10% 90%;
-    --input: 220 10% 90%;
-    --ring: 147.38 100% 31.37%;
-
-    /* Status Colors for Light Mode */
-    --success: 142 70% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 45%;
-    --warning-foreground: 0 0% 10%;
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --info: 200 80% 50%;
-    --info-foreground: 0 0% 100%;
-
-    /* Sidebar for Light Mode */
-    --sidebar-background: 220 10% 96%;
-    --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 147.38 100% 31.37%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 92%;
-    --sidebar-accent-foreground: 220 15% 10%;
-    --sidebar-border: 220 10% 88%;
-    --sidebar-ring: 147.38 100% 31.37%;
-
-    /* Custom Kardit tokens for Light Mode */
-    --surface: 0 0% 98%;
-    --surface-hover: 220 10% 95%;
-    --text-primary: 220 15% 10%;
-    --text-secondary: 220 10% 40%;
-    --text-muted: 220 10% 55%;
-
-    /* Landing page palette - Light mode */
-    --landing-bg: 150 20% 97%;
-    --landing-fg: 222 47% 11%;
-    --landing-subtle: 215 16% 47%;
-    --landing-brand: 147 93% 31%;
-    --landing-brand-2: 141 90% 42%;
-    --landing-brand-3: 160 84% 39%;
-    --landing-panel: 0 0% 100%;
-    --landing-panel-2: 217 45% 20%;
-    --landing-panel-border: 220 24% 90%;
-    --landing-soft: 220 33% 96%;
-    --landing-soft-2: 220 20% 91%;
-    --landing-highlight: 190 95% 78%;
-
-    /* Kardit Home tokens - Light mode */
-    --kardit-home-hero-red-1: 0 64% 40%;
-    --kardit-home-hero-red-2: 357 70% 50%;
-    --kardit-home-hero-red-3: 356 82% 58%;
-    --kardit-home-stats-stroke-1: 147 53% 34%;
-    --kardit-home-stats-stroke-2: 147 35% 62%;
-
-  /* ---------- Brand Colors ---------- */
-  /* Sourced from the Chams Switch logo: a deep evergreen and a vivid scarlet
-     riding on a clean white base. The brand uses these two highly saturated
-     hues as accents — they are not used as flat fills for large surfaces. */
-
-  --cs-green-900: #0F4F2E;   /* deepest green — wordmark "Chams" */
-  --cs-green-700: #1B7A45;   /* primary green — "Switch" italic */
-  --cs-green-500: #2BA15D;   /* interactive green */
-  --cs-green-300: #BFE5CE;   /* tinted backgrounds */
-  --cs-green-100: #E8F6EE;   /* surface tint */
-
-  --cs-red-900:   #9A1A1A;
-  --cs-red-700:   #C8242C;   /* primary red — the swoosh */
-  --cs-red-500:   #E63946;   /* alerts, key CTAs */
-  --cs-red-300:   #F5B5B9;
-  --cs-red-100:   #FCEAEC;
-
-  /* ---------- Neutrals ---------- */
-  --cs-white:     #FFFFFF;
-  --cs-paper:     #FAFBF9;   /* page background — barely-warm white */
-  --cs-mist:      #F2F4F1;   /* subtle surface */
-  --cs-line:      #E4E7E2;   /* hairline borders */
-  --cs-line-strong: #C9CEC4;
-
-  --cs-ink-100:   #8C9189;   /* tertiary text */
-  --cs-ink-200:   #5C6359;   /* secondary text */
-  --cs-ink-400:   #2F3530;   /* body text */
-  --cs-ink-700:   #161A17;   /* headings */
-  --cs-ink-900:   #0A0C0A;   /* maximum contrast */
-
-    /* ---------- Semantic ---------- */
-  --cs-fg:           var(--cs-ink-700);
-  --cs-fg-muted:     var(--cs-ink-200);
-  --cs-fg-subtle:    var(--cs-ink-100);
-  --cs-fg-on-brand:  var(--cs-white);
-
-  --cs-bg:           var(--cs-paper);
-  --cs-bg-elevated:  var(--cs-white);
-  --cs-bg-tint:      var(--cs-mist);
-
-  --cs-border:       var(--cs-line);
-  --cs-border-strong:var(--cs-line-strong);
-
-  --cs-primary:      var(--cs-green-700);
-  --cs-primary-hover:var(--cs-green-900);
-  --cs-accent:       var(--cs-red-700);
-  --cs-accent-hover: var(--cs-red-900);
-
-  --cs-success:      var(--cs-green-500);
-  --cs-danger:       var(--cs-red-500);
-  --cs-warning:      #E0A416;
-  --cs-info:         #2978B5;
-
-  /* ---------- Typography ---------- */
-  /* The Chams Switch wordmark uses a humanist, slightly squared sans with an
-     italic flourish on "Switch". Plus Jakarta Sans (display) and Lato (body)
-     are the closest free Google Fonts equivalents.
-     ⚠ FONT SUBSTITUTION FLAG: please supply the brand's licensed display
-     face if available — the live site appears to use a custom or paid
-     foundry font. */
-
-  --cs-font-display: "Plus Jakarta Sans", "Lato", system-ui, sans-serif;
-  --cs-font-body:    "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --cs-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-
-    /* Type scale — modular 1.20 (minor third), good for content-dense fintech UI */
-    --cs-text-xs:   12px;
-    --cs-text-sm:   14px;
-    --cs-text-base: 16px;
-    --cs-text-md:   18px;
-    --cs-text-lg:   22px;
-    --cs-text-xl:   28px;
-    --cs-text-2xl:  36px;
-    --cs-text-3xl:  48px;
-    --cs-text-4xl:  64px;
-
-    --cs-leading-tight: 1.15;
-    --cs-leading-snug:  1.35;
-    --cs-leading-body:  1.55;
-    --cs-leading-loose: 1.75;
-
-    --cs-tracking-tight: -0.02em;
-    --cs-tracking-normal: 0;
-    --cs-tracking-wide:  0.06em;
-    --cs-tracking-caps:  0.12em;
-    
-    /* ---------- Spacing ---------- */
+    /* Spacing */
     --cs-space-1: 4px;
     --cs-space-2: 8px;
     --cs-space-3: 12px;
@@ -343,7 +170,7 @@
     --cs-space-8: 64px;
     --cs-space-9: 96px;
 
-    /* ---------- Radii ---------- */
+    /* Radii */
     --cs-radius-xs: 4px;
     --cs-radius-sm: 6px;
     --cs-radius-md: 10px;
@@ -351,19 +178,178 @@
     --cs-radius-xl: 24px;
     --cs-radius-pill: 999px;
 
-    /* ---------- Shadows ---------- */
-    --cs-shadow-xs: 0 1px 2px rgba(15, 79, 46, 0.06);
-    --cs-shadow-sm: 0 2px 6px rgba(15, 30, 18, 0.06), 0 1px 2px rgba(15,30,18,0.04);
-    --cs-shadow-md: 0 6px 18px rgba(15, 30, 18, 0.08), 0 2px 4px rgba(15,30,18,0.05);
-    --cs-shadow-lg: 0 18px 48px rgba(15, 30, 18, 0.12), 0 4px 12px rgba(15,30,18,0.06);
-    --cs-shadow-focus: 0 0 0 3px rgba(43, 161, 93, 0.30);
-    --cs-shadow-focus-red: 0 0 0 3px rgba(230, 57, 70, 0.25);
+    /* Gradients */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(147 100% 31%),
+      hsl(147 100% 24%)
+    );
 
-    /* Shadows for Light Mode */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-glow: 0 0 20px hsl(147.38 100% 31.37% / 0.1);
+    --gradient-surface: linear-gradient(
+      180deg,
+      hsl(220 12% 12%),
+      hsl(220 12% 10%)
+    );
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 8px hsl(0 0% 0% / 0.35);
+    --shadow-lg: 0 12px 32px hsl(0 0% 0% / 0.45);
+    --shadow-glow: 0 0 24px hsl(147 100% 31% / 0.18);
+
+    --cs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --cs-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+    --cs-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.34);
+    --cs-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.42);
+    --cs-shadow-focus: 0 0 0 3px rgba(43, 161, 93, 0.36);
+    --cs-shadow-focus-red: 0 0 0 3px rgba(230, 57, 70, 0.32);
+  }
+
+  .light {
+    color-scheme: light;
+
+    /* Core */
+    --background: 150 20% 98%;
+    --foreground: 220 15% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 10%;
+
+    --primary: 147 100% 29%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 60% 38%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 20% 94%;
+    --muted-foreground: 220 10% 35%;
+
+    --accent: 147 100% 29%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 43%;
+    --warning-foreground: 0 0% 10%;
+
+    --info: 200 80% 42%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 220 18% 88%;
+    --input: 220 18% 90%;
+    --ring: 147 100% 29%;
+
+    /* Sidebar */
+    --sidebar-background: 150 18% 96%;
+    --sidebar-foreground: 220 15% 28%;
+    --sidebar-primary: 147 100% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 16% 91%;
+    --sidebar-accent-foreground: 220 15% 10%;
+    --sidebar-border: 220 18% 86%;
+    --sidebar-ring: 147 100% 29%;
+
+    /* Custom surfaces */
+    --surface: 0 0% 100%;
+    --surface-hover: 150 16% 94%;
+
+    --text-primary: 220 15% 10%;
+    --text-secondary: 220 10% 35%;
+    --text-muted: 220 10% 48%;
+
+    /* Landing */
+    --landing-bg: 150 20% 98%;
+    --landing-fg: 222 47% 11%;
+    --landing-subtle: 215 16% 42%;
+    --landing-brand: 147 93% 29%;
+    --landing-brand-2: 141 80% 36%;
+    --landing-brand-3: 160 74% 34%;
+    --landing-panel: 0 0% 100%;
+    --landing-panel-2: 217 45% 20%;
+    --landing-panel-border: 220 24% 88%;
+    --landing-soft: 220 33% 96%;
+    --landing-soft-2: 220 20% 91%;
+    --landing-highlight: 190 90% 42%;
+
+    /* Chams Switch Brand - Light */
+    --cs-green-900: #0f4f2e;
+    --cs-green-700: #1b7a45;
+    --cs-green-500: #2ba15d;
+    --cs-green-300: #bfe5ce;
+    --cs-green-100: #e8f6ee;
+
+    --cs-red-900: #9a1a1a;
+    --cs-red-700: #c8242c;
+    --cs-red-500: #e63946;
+    --cs-red-300: #f5b5b9;
+    --cs-red-100: #fceaec;
+
+    --cs-white: #ffffff;
+    --cs-paper: #fafbf9;
+    --cs-mist: #f2f4f1;
+    --cs-line: #e4e7e2;
+    --cs-line-strong: #c9cec4;
+
+    --cs-ink-100: #8c9189;
+    --cs-ink-200: #5c6359;
+    --cs-ink-400: #2f3530;
+    --cs-ink-700: #161a17;
+    --cs-ink-900: #0a0c0a;
+
+    --cs-fg: var(--cs-ink-700);
+    --cs-fg-muted: var(--cs-ink-200);
+    --cs-fg-subtle: var(--cs-ink-100);
+    --cs-fg-on-brand: var(--cs-white);
+
+    --cs-bg: var(--cs-paper);
+    --cs-bg-elevated: var(--cs-white);
+    --cs-bg-tint: var(--cs-mist);
+
+    --cs-border: var(--cs-line);
+    --cs-border-strong: var(--cs-line-strong);
+
+    --cs-primary: var(--cs-green-700);
+    --cs-primary-hover: var(--cs-green-900);
+    --cs-accent: var(--cs-red-700);
+    --cs-accent-hover: var(--cs-red-900);
+
+    --cs-success: var(--cs-green-500);
+    --cs-danger: var(--cs-red-500);
+    --cs-warning: #d99a00;
+    --cs-info: #2978b5;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(147 100% 29%),
+      hsl(147 80% 23%)
+    );
+
+    --gradient-surface: linear-gradient(
+      180deg,
+      hsl(0 0% 100%),
+      hsl(150 16% 96%)
+    );
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 14px 40px hsl(0 0% 0% / 0.12);
+    --shadow-glow: 0 0 24px hsl(147 100% 29% / 0.12);
+
+    --cs-shadow-xs: 0 1px 2px rgba(15, 30, 18, 0.05);
+    --cs-shadow-sm: 0 2px 8px rgba(15, 30, 18, 0.07);
+    --cs-shadow-md: 0 8px 24px rgba(15, 30, 18, 0.09);
+    --cs-shadow-lg: 0 18px 48px rgba(15, 30, 18, 0.13);
+    --cs-shadow-focus: 0 0 0 3px rgba(43, 161, 93, 0.28);
+    --cs-shadow-focus-red: 0 0 0 3px rgba(230, 57, 70, 0.24);
   }
 }
 
@@ -373,15 +359,22 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
+    background: hsl(var(--background));
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv11", "ss01";
+    min-height: 100vh;
   }
 
-  /* Scrollbar styling for dark theme */
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+
+  /* Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -392,23 +385,41 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+    background: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+
+  input,
+  textarea,
+  select {
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    outline-color: hsl(var(--ring));
   }
 }
 
 @layer components {
-  /* Kardit specific component utilities */
   .kardit-card {
-    @apply bg-card rounded-lg border border-border shadow-sm;
+    @apply bg-card text-card-foreground rounded-lg border border-border shadow-sm;
   }
 
   .kardit-surface {
-    @apply bg-muted rounded-lg;
+    @apply bg-muted text-foreground rounded-lg;
   }
 
   .kardit-glow {
@@ -416,23 +427,86 @@
   }
 
   .kardit-input {
-    @apply bg-muted border-border focus:border-primary focus:ring-1 focus:ring-primary;
+    @apply bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary;
   }
 
-  /* Status badge base */
   .status-badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
   }
 
-  /* Tangerine gradient text */
+  .status-success {
+    background: hsl(var(--success) / 0.14);
+    color: hsl(var(--success));
+  }
+
+  .status-warning {
+    background: hsl(var(--warning) / 0.16);
+    color: hsl(var(--warning));
+  }
+
+  .status-danger {
+    background: hsl(var(--destructive) / 0.14);
+    color: hsl(var(--destructive));
+  }
+
+  .status-info {
+    background: hsl(var(--info) / 0.14);
+    color: hsl(var(--info));
+  }
+
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);
   }
+
+  .cs-page {
+    background: var(--cs-bg);
+    color: var(--cs-fg);
+    font-family: var(--cs-font-body);
+  }
+
+  .cs-card {
+    background: var(--cs-bg-elevated);
+    color: var(--cs-fg);
+    border: 1px solid var(--cs-border);
+    border-radius: var(--cs-radius-lg);
+    box-shadow: var(--cs-shadow-sm);
+  }
+
+  .cs-card-hover {
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .cs-card-hover:hover {
+    border-color: var(--cs-border-strong);
+    box-shadow: var(--cs-shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .cs-button-primary {
+    background: var(--cs-primary);
+    color: var(--cs-fg-on-brand);
+    border-radius: var(--cs-radius-md);
+    box-shadow: var(--cs-shadow-sm);
+  }
+
+  .cs-button-primary:hover {
+    background: var(--cs-primary-hover);
+  }
+
+  .cs-button-accent {
+    background: var(--cs-accent);
+    color: var(--cs-white);
+    border-radius: var(--cs-radius-md);
+    box-shadow: var(--cs-shadow-sm);
+  }
+
+  .cs-button-accent:hover {
+    background: var(--cs-accent-hover);
+  }
 }
 
 @layer utilities {
-  /* Animation utilities */
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
   }
@@ -445,27 +519,54 @@
     animation: scale-in 0.2s ease-out;
   }
 
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes slide-in-right {
-    from { opacity: 0; transform: translateX(16px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
   @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(147.38 100% 31.37% / 0); }
-    50% { box-shadow: 0 0 20px 4px hsl(147.38 100% 31.37% / 0.3); }
-  }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+    }
 
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+    50% {
+      box-shadow: 0 0 20px 4px hsl(var(--primary) / 0.3);
+    }
   }
 }

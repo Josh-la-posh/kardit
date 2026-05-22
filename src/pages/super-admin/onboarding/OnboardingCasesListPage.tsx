@@ -2,15 +2,15 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReviewerOnboardingCases } from '@/hooks/useOnboarding';
-import { Loader2 } from 'lucide-react';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { format } from 'date-fns';
 import type { OnboardingCaseStatus } from '@/types/onboardingContracts';
+import { PaginatedTable } from '@/components/ui/paginated-table';
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
 
 const statusToChip: Record<string, StatusType> = {
   SUBMITTED: 'PENDING',
@@ -42,17 +42,18 @@ export default function OnboardingCasesListPage() {
   const [statusFilter, setStatusFilter] = useState<OnboardingCaseStatus | 'ALL'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState(25);
+
   const { cases, total, page, pageSize, isLoading, error, refresh } = useReviewerOnboardingCases({
     status: statusFilter,
     page: currentPage,
     pageSize: selectedPageSize,
   });
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const subtitle = useMemo(() => {
     const statusText = statusFilter === 'ALL' ? 'all statuses' : statusFilter;
     return `${total} case${total === 1 ? '' : 's'} across ${statusText}`;
   }, [statusFilter, total]);
+  const currentStatusLabel = statusFilter === 'ALL' ? 'All statuses' : statusFilter;
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value as OnboardingCaseStatus | 'ALL');
@@ -64,6 +65,31 @@ export default function OnboardingCasesListPage() {
     setCurrentPage(1);
   };
 
+  const columns = useMemo(
+    () => [
+      {
+        key: 'submitted',
+        header: 'Submitted',
+        className: 'whitespace-nowrap',
+        render: (c: (typeof cases)[number]) => format(new Date(c.submittedAt), 'MMM d, yyyy HH:mm'),
+      },
+      {
+        key: 'affiliate',
+        header: 'Affiliate',
+        className: 'max-w-[260px] truncate',
+        render: (c: (typeof cases)[number]) => c.organization?.legalName || 'Affiliate',
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (c: (typeof cases)[number]) => (
+          <StatusChip status={statusToChip[c.status] || 'INACTIVE'} label={c.status} />
+        ),
+      },
+    ],
+    [cases]
+  );
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
@@ -72,23 +98,33 @@ export default function OnboardingCasesListPage() {
             <header className="page-head">
               <div>
                 <h1 className="page-title">Onboarding cases</h1>
-                <p className="page-sub">
-                  Search and view onboarding cases in your tenant. Click any row to open the
-                  case details.
-                </p>
-                <div className=''>
-                  <Button variant="outline" size="sm" onClick={refresh}>
-                    Refresh
-                  </Button>
-                </div>
+                <p className="page-sub">Search and review onboarding submissions. Click any row to open case details.</p>
+              </div>
+              <div className="row-end">
+                <Button variant="outline" size="sm" onClick={refresh}>
+                  Refresh
+                </Button>
               </div>
             </header>
 
-            <div className="kardit-card mb-4 p-4">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_140px]">
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Total cases" value={String(total)} sub="Across selected filters" />
+              <Kpi label="Current status" value={currentStatusLabel} sub="Filter applied" />
+              <Kpi label="Page" value={String(currentPage)} sub="Current pagination index" />
+              <Kpi label="Page size" value={String(selectedPageSize)} sub="Rows per page" />
+            </section>
+
+            <AppCard padded="md" style={{ marginTop: 16 }}>
+              <AppCardHeader style={{ marginBottom: 12 }}>
                 <div>
-                  <p className="text-sm font-medium">Filters</p>
-                  <p className="text-xs text-muted-foreground">Filter onboarding cases by review status and page size.</p>
+                  <AppCardTitle>Filters</AppCardTitle>
+                  <AppCardSub>{subtitle}</AppCardSub>
+                </div>
+              </AppCardHeader>
+
+              <div className="onboarding-filters">
+                <div className="result-meta" style={{ alignSelf: 'center' }}>
+                  Filter onboarding cases by review status and page size.
                 </div>
                 <Select value={statusFilter} onValueChange={handleStatusChange}>
                   <SelectTrigger>
@@ -97,7 +133,7 @@ export default function OnboardingCasesListPage() {
                   <SelectContent>
                     {statusOptions.map((status) => (
                       <SelectItem key={status} value={status}>
-                        {status === 'ALL' ? 'All Statuses' : status}
+                        {status === 'ALL' ? 'All statuses' : status}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -115,71 +151,37 @@ export default function OnboardingCasesListPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </AppCard>
 
-            <div className="kardit-card overflow-hidden">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-              ) : error ? (
-                <div className="p-6 text-sm text-muted-foreground">{error}</div>
-              ) : cases.length === 0 ? (
-                <div className="p-10 text-center text-sm text-muted-foreground">No cases yet.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Submitted</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                        {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th> */}
-                        {/* <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Case ID</th> */}
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {cases.map((c, i) => (
-                        <tr
-                          key={c.caseId}
-                          onClick={() => navigate(`/super-admin/onboarding/cases/${c.caseId}`)}
-                          className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                        >
-                          <td className="px-4 py-3 text-sm whitespace-nowrap">{format(new Date(c.submittedAt), 'MMM d, yyyy HH:mm')}</td>
-                          <td className="px-4 py-3 text-sm max-w-[260px] truncate">{c.organization?.legalName || 'Affiliate'}</td>
-                          {/* // <td className="px-4 py-3 text-sm max-w-[220px] truncate text-muted-foreground">{c.contact?.contactEmail || '—'}</td> */}
-                          {/* <td className="px-4 py-3 text-sm font-mono text-muted-foreground max-w-[240px] truncate">{c.caseId}</td> */}
-                          <td className="px-4 py-3 text-sm"><StatusChip status={statusToChip[c.status] || 'INACTIVE'} label={c.status} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <div className="table-pager border-t border-border flex items-center justify-between px-4 py-3">
-              <div className="table-pager__meta">
-                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-              </div>
-              <div className="table-pager__actions">
-                <button
-                  className="btn btn-secondary table-pager__btn"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1 || isLoading}
-                >
-                  Previous
-                </button>
-                <button
-                  className="btn btn-secondary table-pager__btn"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages || isLoading}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-            </div>
+            <AppCard style={{ marginTop: 14, overflow: 'hidden' }}>
+              <PaginatedTable
+                columns={columns}
+                rows={cases}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage="No cases yet."
+                onRowClick={(row) => navigate(`/super-admin/onboarding/cases/${row.caseId}`)}
+                rowKey={(row) => row.caseId}
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setCurrentPage}
+                className="border-0 shadow-none rounded-none"
+              />
+            </AppCard>
           </div>
         </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

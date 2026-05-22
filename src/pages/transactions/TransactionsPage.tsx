@@ -1,6 +1,6 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, Loader2, RefreshCcw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
@@ -8,6 +8,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
@@ -15,11 +17,9 @@ import {
   exportTransactions,
   getAffiliateTransactionVolume,
   getBankTransactionVolume,
-  getTransaction,
   queryTransactions,
 } from '@/services/transactionApi';
 import type {
-  TransactionDetail,
   TransactionListItem,
   TransactionQueryFilters,
   TransactionStatus,
@@ -70,6 +70,7 @@ function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destr
 
 export default function TransactionsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchReference, setSearchReference] = useState('');
   const [merchantName, setMerchantName] = useState('');
@@ -82,12 +83,10 @@ export default function TransactionsPage() {
   const [transactionType, setTransactionType] = useState<TransactionType | 'ALL'>('ALL');
   const [status, setStatus] = useState<TransactionStatus | 'ALL'>('ALL');
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
   const [fundingVolume, setFundingVolume] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -134,11 +133,9 @@ export default function TransactionsPage() {
       setTransactions(response.data);
       setPage(response.page);
       setTotal(response.total);
-      if (response.data.length === 0) setSelectedTransaction(null);
     } catch (err) {
       setTransactions([]);
       setTotal(0);
-      setSelectedTransaction(null);
       setError(err instanceof Error ? err.message : 'Unable to load transactions');
     } finally {
       setIsLoading(false);
@@ -188,18 +185,6 @@ export default function TransactionsPage() {
     };
   }, [affiliateId, defaultBankId, user?.stakeholderType]);
 
-  const handleRowClick = async (transactionId: string) => {
-    setIsFetchingDetail(true);
-    try {
-      const response = await getTransaction(transactionId);
-      setSelectedTransaction(response);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unable to load transaction detail');
-    } finally {
-      setIsFetchingDetail(false);
-    }
-  };
-
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -224,6 +209,51 @@ export default function TransactionsPage() {
     setTransactionType('ALL');
     setStatus('ALL');
   };
+
+  const transactionColumns = useMemo(
+    () => [
+      {
+        key: 'transactionType',
+        header: 'Type',
+        render: (transaction: TransactionListItem) => transaction.transactionType,
+      },
+      {
+        key: 'merchantName',
+        header: 'Merchant',
+        className: 'meta',
+        render: (transaction: TransactionListItem) => transaction.merchantName || '-',
+      },
+      {
+        key: 'transactionId',
+        header: 'Transaction ID',
+        className: 'id',
+        render: (transaction: TransactionListItem) => transaction.transactionId,
+      },
+      {
+        key: 'amount',
+        header: 'Amount',
+        render: (transaction: TransactionListItem) => (
+          <span style={{ fontWeight: 600 }}>
+            {formatMoney(transaction.amount, transaction.currency)}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (transaction: TransactionListItem) => (
+          <Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge>
+        ),
+      },
+      {
+        key: 'transactionDate',
+        header: 'Date',
+        className: 'meta',
+        render: (transaction: TransactionListItem) => formatDateTime(transaction.transactionDate),
+      },
+    ],
+    []
+  );
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
@@ -253,7 +283,13 @@ export default function TransactionsPage() {
               <Kpi label="Page" value={`${page}/${totalPages}`} sub={`${DEFAULT_PAGE_SIZE} rows per page`} />
             </section>
 
-            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+            <AppCard padded="md" style={{ marginTop: 14 }}>
+              <AppCardHeader style={{ marginBottom: 12 }}>
+                <div>
+                  <AppCardTitle>Filters</AppCardTitle>
+                  <AppCardSub>Search and narrow transaction records across your scope.</AppCardSub>
+                </div>
+              </AppCardHeader>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="relative xl:col-span-2">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -293,89 +329,24 @@ export default function TransactionsPage() {
                     : 'Your organization scope is applied automatically.'}
                 </p>
               </div>
-            </section>
+            </AppCard>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]" style={{ marginTop: 14 }}>
-              <section className="bch-card" style={{ overflow: 'hidden' }}>
-                {isLoading ? (
-                  <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
-                    <Loader2 className="spin" style={{ width: 24, height: 24 }} />
-                  </div>
-                ) : error ? (
-                  <div className="empty-list-sub" style={{ padding: 24 }}>{error}</div>
-                ) : transactions.length === 0 ? (
-                  <div className="empty-list" style={{ padding: 24 }}>No transactions match the current filters.</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="data">
-                      <thead>
-                        <tr>
-                          <th>Type</th>
-                          <th>Merchant</th>
-                          <th>Transaction ID</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th>Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {transactions.map((transaction) => (
-                          <tr key={transaction.transactionId} onClick={() => handleRowClick(transaction.transactionId)} style={{ cursor: 'pointer' }}>
-                            <td>{transaction.transactionType}</td>
-                            <td className="meta">{transaction.merchantName || '-'}</td>
-                            <td>{transaction.transactionId}</td>
-                            <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount, transaction.currency)}</td>
-                            <td><Badge variant={getStatusBadgeVariant(transaction.status)}>{transaction.status}</Badge></td>
-                            <td className="meta">{formatDateTime(transaction.transactionDate)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between border-t border-[var(--cs-line)] px-4 py-3">
-                  <p className="text-sm text-[var(--cs-ink-100)]">Page {page} of {totalPages}</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1 || isLoading} onClick={() => fetchTransactions(page - 1)}>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={page >= totalPages || isLoading} onClick={() => fetchTransactions(page + 1)}>
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </section>
-
-              <section className="bch-card card-pad">
-                <div className="section-head" style={{ marginTop: 0 }}>
-                  <div>
-                    <div className="section-title">Transaction Detail</div>
-                    <div className="section-sub">Select a transaction to inspect its metadata.</div>
-                  </div>
-                  {isFetchingDetail && <Loader2 className="h-4 w-4 spin" />}
-                </div>
-
-                {!selectedTransaction ? (
-                  <div className="notice info">Pick a row from the table to load transaction details.</div>
-                ) : (
-                  <div className="space-y-4">
-                    <Detail label="Transaction ID" mono value={selectedTransaction.transactionId} />
-                    <Detail label="Status" value={<Badge variant={getStatusBadgeVariant(selectedTransaction.status)}>{selectedTransaction.status}</Badge>} />
-                    <Detail label="Type" value={selectedTransaction.transactionType} />
-                    <Detail label="Amount" value={formatMoney(selectedTransaction.amount, selectedTransaction.currency)} />
-                    <Detail label="Merchant" value={selectedTransaction.merchantName || '-'} />
-                    <Detail label="Customer ID" mono value={selectedTransaction.customerId} />
-                    <Detail label="Card ID" mono value={selectedTransaction.cardId} />
-                    <Detail label="Authorization Code" value={selectedTransaction.authorizationCode || '-'} />
-                    <Detail label="Merchant MCC" value={selectedTransaction.merchantCategoryCode || '-'} />
-                    <Detail label="Source Reference" mono value={selectedTransaction.sourceRef || '-'} />
-                    <Detail label="Transaction Date" value={formatDateTime(selectedTransaction.transactionDate)} />
-                    <Detail label="Created At" value={formatDateTime(selectedTransaction.createdAt)} />
-                  </div>
-                )}
-              </section>
-            </div>
+            <AppCard style={{ marginTop: 14, overflow: 'hidden' }}>
+              <PaginatedTable
+                columns={transactionColumns}
+                rows={transactions}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage="No transactions match the current filters."
+                onRowClick={(row) => navigate(`/transactions/${encodeURIComponent(row.transactionId)}`)}
+                rowKey={(row) => row.transactionId}
+                page={page}
+                pageSize={DEFAULT_PAGE_SIZE}
+                total={total}
+                onPageChange={fetchTransactions}
+                className="border-0 shadow-none rounded-none"
+              />
+            </AppCard>
           </div>
         </main>
       </AppLayout>
@@ -389,15 +360,6 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: string 
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
       <div className="kpi-sub">{sub}</div>
-    </div>
-  );
-}
-
-function Detail({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
-  return (
-    <div>
-      <div className="text-xs uppercase tracking-[0.08em] text-[var(--cs-ink-100)]">{label}</div>
-      <div className={mono ? 'mt-1 text-sm font-mono text-[var(--cs-ink-700)]' : 'mt-1 text-sm text-[var(--cs-ink-400)]'}>{value}</div>
     </div>
   );
 }

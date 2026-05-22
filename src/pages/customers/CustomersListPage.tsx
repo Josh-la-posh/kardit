@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, RefreshCw, Search, SearchX, UserPlus, X } from 'lucide-react'
+import { ChevronRight, RefreshCw, Search, UserPlus, X } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card'
+import { PaginatedTable } from '@/components/ui/paginated-table'
 import { useCustomers } from '@/hooks/useCustomers'
 import type { CustomerListItem } from '@/hooks/useCustomers'
 
@@ -34,8 +36,6 @@ export default function CustomersListPage() {
     setPage(1)
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
@@ -59,11 +59,24 @@ export default function CustomersListPage() {
               </div>
             </header>
 
-            <section className="card" style={{ padding: '18px 22px' }}>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Total customers" value={String(total)} sub="Across your tenant scope" />
+              <Kpi label="Visible on page" value={String(filtered.length)} sub="After local filters" />
+              <Kpi label="Current page" value={String(page)} sub={`Page size ${pageSize}`} />
+              <Kpi label="KYC filter" value={kyc === 'all' ? 'All' : kyc.replace('LEVEL_', 'Tier ')} sub="Applied to list" />
+            </section>
+
+            <AppCard padded="md" style={{ marginTop: 14 }}>
+              <AppCardHeader style={{ marginBottom: 12 }}>
+                <div>
+                  <AppCardTitle>Filters</AppCardTitle>
+                  <AppCardSub>Search by customer data and narrow by KYC or status.</AppCardSub>
+                </div>
+              </AppCardHeader>
               <div className="list-toolbar">
                 <div className="search-input-wrap">
                   <Search className="search-icn" />
-                  <input
+                  <input 
                     type="text"
                     autoComplete="off"
                     placeholder="Search by name, phone, customer ref, BVN, or NIN"
@@ -76,16 +89,7 @@ export default function CustomersListPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14 }}>
-                <div>
-                  <FilterLabel>KYC level</FilterLabel>
-                  <div className="filter-chips">
-                    <Chip active={kyc === 'all'} onClick={() => { setKyc('all'); setPage(1) }}>All</Chip>
-                    <Chip active={kyc === 'LEVEL_3'} onClick={() => { setKyc('LEVEL_3'); setPage(1) }}>Tier 3</Chip>
-                    <Chip active={kyc === 'LEVEL_2'} onClick={() => { setKyc('LEVEL_2'); setPage(1) }}>Tier 2</Chip>
-                    <Chip active={kyc === 'LEVEL_1'} onClick={() => { setKyc('LEVEL_1'); setPage(1) }}>Tier 1</Chip>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, justifyContent: 'space-between' }}>
                 <div>
                   <FilterLabel>Status</FilterLabel>
                   <div className="filter-chips">
@@ -96,99 +100,34 @@ export default function CustomersListPage() {
                     <Chip active={status === 'PENDING'} onClick={() => { setStatus('PENDING'); setPage(1) }}>Pending</Chip>
                   </div>
                 </div>
+                <div className="mt-3 flex gap-3">
+                  <button className="btn btn-secondary btn-sm" onClick={clearFilters}>
+                    <X /> Clear filters
+                  </button>
+                </div>
               </div>
-            </section>
+            </AppCard>
 
             <div className="result-meta">
               Showing <strong>{filtered.length}</strong> of <strong>{total}</strong> customers
             </div>
 
-            <section className="card" style={{ padding: 0 }}>
-              <table className="data customers">
-                <thead>
-                  <tr>
-                    <th style={{ width: 170 }}>Reference</th>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>KYC</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th className="right" style={{ width: 50 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={7}>
-                        <div className="empty-list">
-                          <RefreshCw className="spin" />
-                          <div className="empty-list-title">Loading customers...</div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan={7}>
-                        <div className="empty-list">
-                          <SearchX />
-                          <div className="empty-list-title">Unable to load customers</div>
-                          <div className="empty-list-sub">{error}</div>
-                          <button className="btn btn-secondary" onClick={() => refetch()}>
-                            <RefreshCw /> Try again
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={7}>
-                        <div className="empty-list">
-                          <SearchX />
-                          <div className="empty-list-title">No customers match those filters</div>
-                          <div className="empty-list-sub">
-                            Try changing or clearing the filters above.
-                            <br />
-                            Search runs against name, phone, ref, BVN, and NIN.
-                          </div>
-                          <button className="btn btn-secondary" onClick={clearFilters}>
-                            <X /> Clear filters
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((c) => (
-                      <CustomerRow
-                        key={c.customerRefId}
-                        c={c}
-                        onOpen={() => navigate(`/customers/${encodeURIComponent(c.customerRefId)}`)}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </section>
-            <div className="table-pager">
-              <div className="table-pager__meta">
-                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-              </div>
-              <div className="table-pager__actions">
-                <button
-                  className="btn btn-secondary table-pager__btn"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1 || isLoading}
-                >
-                  Previous
-                </button>
-                <button
-                  className="btn btn-secondary table-pager__btn"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages || isLoading}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            <AppCard style={{ marginTop: 6, overflow: 'hidden' }}>
+              <PaginatedTable
+                columns={customerColumns}
+                rows={filtered}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage="No customers match those filters."
+                onRowClick={(row) => navigate(`/customers/${encodeURIComponent(row.customerRefId)}`)}
+                rowKey={(row) => row.customerRefId}
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                className="border-0 shadow-none rounded-none"
+              />
+            </AppCard>
 
             <div className="notice info" style={{ marginTop: 10 }}>
               <InfoIcon />
@@ -205,36 +144,64 @@ export default function CustomersListPage() {
   )
 }
 
-function CustomerRow({ c, onOpen }: { c: CustomerListItem; onOpen: () => void }) {
-  return (
-    <tr onClick={onOpen} className="row-clickable">
-      <td className="id">{c.customerRefId}</td>
-      <td>
-        <div className="customer-name">
-          <div className="avatar-sm">{getInitials(c.fullName)}</div>
-          <div>
-            <div className="customer-name__title">{c.fullName}</div>
-            <div className="customer-name__sub">{c.email || c.phone}</div>
-          </div>
+const customerColumns = [
+  {
+    key: 'customerRefId',
+    header: 'Reference',
+    className: 'id',
+    render: (c: CustomerListItem) => c.customerRefId,
+  },
+  {
+    key: 'fullName',
+    header: 'Name',
+    render: (c: CustomerListItem) => (
+      <div className="customer-name">
+        <div className="avatar-sm">{getInitials(c.fullName)}</div>
+        <div>
+          <div className="customer-name__title">{c.fullName}</div>
+          <div className="customer-name__sub">{c.email || c.phone}</div>
         </div>
-      </td>
-      <td className="mono customer-phone">{c.phone || '-'}</td>
-      <td><KycBadge level={c.kycLevel} /></td>
-      <td><StatusBadge status={c.status} /></td>
-      <td className="meta">{formatShortDate(c.createdAt)}</td>
-      <td className="right">
-        <Link
-          to={`/customers/${encodeURIComponent(c.customerRefId)}`}
-          className="icon-button"
-          aria-label="View profile"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ChevronRight />
-        </Link>
-      </td>
-    </tr>
-  )
-}
+      </div>
+    ),
+  },
+  {
+    key: 'phone',
+    header: 'Phone',
+    className: 'mono customer-phone',
+    render: (c: CustomerListItem) => c.phone || '-',
+  },
+  {
+    key: 'kycLevel',
+    header: 'KYC',
+    render: (c: CustomerListItem) => <KycBadge level={c.kycLevel} />,
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    render: (c: CustomerListItem) => <StatusBadge status={c.status} />,
+  },
+  {
+    key: 'createdAt',
+    header: 'Created',
+    className: 'meta',
+    render: (c: CustomerListItem) => formatShortDate(c.createdAt),
+  },
+  {
+    key: 'actions',
+    header: '',
+    className: 'right',
+    render: (c: CustomerListItem) => (
+      <Link
+        to={`/customers/${encodeURIComponent(c.customerRefId)}`}
+        className="icon-button"
+        aria-label="View profile"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ChevronRight />
+      </Link>
+    ),
+  },
+]
 
 function Chip({ active, onClick, children }: {
   active: boolean
@@ -250,6 +217,16 @@ function Chip({ active, onClick, children }: {
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
   return <div className="filter-label">{children}</div>
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
+  )
 }
 
 function StatusBadge({ status }: { status: string }) {

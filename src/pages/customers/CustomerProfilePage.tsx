@@ -2,6 +2,7 @@
 import { ArrowLeft, CreditCard, Edit2, List, Plus, Snowflake, Sun, UserX, Wallet } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { AppCard } from '@/components/ui/app-card'
 import { useCustomer } from '@/hooks/useCustomers'
 
 export default function CustomerProfilePage() {
@@ -68,7 +69,7 @@ function Profile({ customer, cards }: { customer: NonNullable<ReturnType<typeof 
       </section>
 
       <div className="profile-two-col">
-        <div className="panel-card">
+        <AppCard className="panel-card">
           <div className="panel-head"><div className="panel-title">Identity</div></div>
           <div className="panel-body">
             <dl className="profile-specs">
@@ -89,9 +90,9 @@ function Profile({ customer, cards }: { customer: NonNullable<ReturnType<typeof 
               </div>
             </dl>
           </div>
-        </div>
+        </AppCard>
 
-        <div className="panel-card">
+        <AppCard className="panel-card">
           <div className="panel-head"><div className="panel-title">KYC details</div></div>
           <div className="panel-body">
             <dl className="profile-specs">
@@ -103,10 +104,10 @@ function Profile({ customer, cards }: { customer: NonNullable<ReturnType<typeof 
               <div><dt>Created</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
             </dl>
           </div>
-        </div>
+        </AppCard>
       </div>
 
-      <div className="cards-list-card">
+      <AppCard className="cards-list-card">
         <div className="cards-list-head">
           <div>
             <span className="cards-list-title">Cards</span>
@@ -128,7 +129,7 @@ function Profile({ customer, cards }: { customer: NonNullable<ReturnType<typeof 
             cards.map((card) => <CardRow key={card.id} card={card} />)
           )}
         </div>
-      </div>
+      </AppCard>
     </>
   )
 }

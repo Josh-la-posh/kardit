@@ -37,15 +37,6 @@ export default function OnboardingStartPage() {
     return `/onboarding/${latestDraft.draftId}/organization`;
   }, [latestDraft]);
 
-  const resumeStepText = useMemo(() => {
-    if (!latestDraft) return '';
-    if (latestDraft.submittedCaseId) return 'Step 7 of 9 - Application Submitted';
-    if ((latestDraft.issuingBankIds || []).length > 0) return 'Step 4 of 9 - Banks';
-    if ((latestDraft.documents || []).length > 0) return 'Step 3 of 9 - Documents';
-    if (latestDraft.organization?.legalName) return 'Step 2 of 9 - Organization';
-    return 'Step 1 of 9 - Welcome';
-  }, [latestDraft]);
-
   const onStart = async () => {
     setLocalError(null);
     if (!email || !phone) {
@@ -94,7 +85,6 @@ export default function OnboardingStartPage() {
                     <div className="text-[30px] font-semibold text-[var(--cs-ink-900)]">
                       Welcome back - your application is saved.
                     </div>
-                    <div className="mt-1 text-sm text-[var(--cs-ink-400)]">{resumeStepText}</div>
                   </div>
                 </div>
                 <button

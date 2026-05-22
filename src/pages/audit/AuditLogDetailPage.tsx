@@ -1,24 +1,24 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
 import { useAuditLog } from '@/hooks/useAuditLogs';
-import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
-import { format } from 'date-fns';
 
 const entityRoutes: Record<string, (id: string) => string> = {
-  User: id => `/users/${id}`,
-  Customer: id => `/customers/${id}`,
-  Card: id => `/cards/${id}`,
-  OnboardingCase: id => `/super-admin/onboarding/cases/${id}`,
+  User: (id) => `/users/${id}`,
+  Customer: (id) => `/customers/${id}`,
+  Card: (id) => `/cards/${id}`,
+  OnboardingCase: (id) => `/super-admin/onboarding/cases/${id}`,
 };
 
 const SENSITIVE_PATTERNS = /password|secret|token|pan|card.?number/i;
 
 function redactValue(key: string, value: any): any {
-  if (typeof value === 'string' && SENSITIVE_PATTERNS.test(key)) return 'â€¢â€¢â€¢â€¢';
+  if (typeof value === 'string' && SENSITIVE_PATTERNS.test(key)) return '••••';
   return value;
 }
 
@@ -27,20 +27,17 @@ export default function AuditLogDetailPage() {
   const navigate = useNavigate();
   const { log, isLoading } = useAuditLog(id);
 
-  if (isLoading) return <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}><AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></AppLayout></ProtectedRoute>;
-  if (!log) return <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}><AppLayout><div className="text-center py-20 text-muted-foreground">Audit log entry not found.</div></AppLayout></ProtectedRoute>;
-
-  const entityRoute = log.entityType && log.entityId && entityRoutes[log.entityType]
+  const entityRoute = log?.entityType && log?.entityId && entityRoutes[log.entityType]
     ? entityRoutes[log.entityType](log.entityId)
     : null;
 
-  const renderKeyValues = (data: Record<string, any> | undefined, label: string) => {
-    if (!data) return <p className="text-sm text-muted-foreground italic">No data</p>;
+  const renderKeyValues = (data: Record<string, any> | undefined) => {
+    if (!data) return <p className="empty-list-sub">No data</p>;
     return (
-      <div className="space-y-1">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {Object.entries(data).map(([key, val]) => (
-          <div key={key} className="flex gap-2 text-sm">
-            <span className="text-muted-foreground min-w-[120px] font-mono text-xs">{key}:</span>
+          <div key={key} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+            <span className="id" style={{ minWidth: 120 }}>{key}:</span>
             <span>{String(redactValue(key, val))}</span>
           </div>
         ))}
@@ -51,40 +48,83 @@ export default function AuditLogDetailPage() {
   return (
     <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout>
-        <div className="animate-fade-in max-w-2xl">
-          <PageHeader title={log.actionType} subtitle={`${log.entityType} â€¢ ${log.entityId || 'N/A'}`} actions={
-            <Button variant="outline" size="sm" onClick={() => navigate('/audit-logs')}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-          } />
+        <main className="scr-main">
+          <div className="container container--narrow">
+            <Link to="/audit-logs" className="back-link">
+              <ArrowLeft /> Back to audit logs
+            </Link>
 
-          {/* Meta */}
-          <div className="kardit-card p-6 mb-4 space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-xs text-muted-foreground">Timestamp</p><p>{format(new Date(log.timestamp), 'PPP p')}</p></div>
-              <div><p className="text-xs text-muted-foreground">User</p><p>{log.userEmail}</p></div>
-              <div><p className="text-xs text-muted-foreground">IP Address</p><p>{log.ipAddress || 'â€”'}</p></div>
-              <div><p className="text-xs text-muted-foreground">User Agent</p><p>{log.userAgent || 'â€”'}</p></div>
-            </div>
+            {isLoading ? (
+              <AppCard padded="md" style={{ marginTop: 14 }}>
+                <div style={{ display: 'grid', placeItems: 'center', padding: 24 }}>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              </AppCard>
+            ) : !log ? (
+              <AppCard padded="md" style={{ marginTop: 14 }}>
+                <div className="empty-list">Audit log entry not found.</div>
+              </AppCard>
+            ) : (
+              <>
+                <header className="page-head">
+                  <div>
+                    <h1 className="page-title">{log.actionType}</h1>
+                    <p className="page-sub">{log.entityType} · {log.entityId || 'N/A'}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/audit-logs')}>
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                  </Button>
+                </header>
+
+                <AppCard padded="md" style={{ marginTop: 14 }}>
+                  <AppCardHeader style={{ marginBottom: 12 }}>
+                    <div>
+                      <AppCardTitle>Details</AppCardTitle>
+                      <AppCardSub>Event context and actor metadata</AppCardSub>
+                    </div>
+                  </AppCardHeader>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Timestamp</p><p>{format(new Date(log.timestamp), 'PPP p')}</p></div>
+                    <div><p className="text-xs text-muted-foreground">User</p><p>{log.userEmail}</p></div>
+                    <div><p className="text-xs text-muted-foreground">IP Address</p><p>{log.ipAddress || '—'}</p></div>
+                    <div><p className="text-xs text-muted-foreground">User Agent</p><p>{log.userAgent || '—'}</p></div>
+                  </div>
+                </AppCard>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginTop: 14 }}>
+                  <AppCard padded="md">
+                    <AppCardHeader style={{ marginBottom: 12 }}>
+                      <div>
+                        <AppCardTitle>Before</AppCardTitle>
+                        <AppCardSub>Previous values</AppCardSub>
+                      </div>
+                    </AppCardHeader>
+                    {renderKeyValues(log.oldValue)}
+                  </AppCard>
+
+                  <AppCard padded="md">
+                    <AppCardHeader style={{ marginBottom: 12 }}>
+                      <div>
+                        <AppCardTitle>After</AppCardTitle>
+                        <AppCardSub>New values</AppCardSub>
+                      </div>
+                    </AppCardHeader>
+                    {renderKeyValues(log.newValue)}
+                  </AppCard>
+                </div>
+
+                {entityRoute && (
+                  <div style={{ marginTop: 14 }}>
+                    <Button variant="outline" onClick={() => navigate(entityRoute)}>
+                      <ExternalLink className="h-4 w-4 mr-1" /> Go to {log.entityType}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-
-          {/* Changes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="kardit-card p-6">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Before</h3>
-              {renderKeyValues(log.oldValue, 'Old')}
-            </div>
-            <div className="kardit-card p-6">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">After</h3>
-              {renderKeyValues(log.newValue, 'New')}
-            </div>
-          </div>
-
-          {entityRoute && (
-            <Button variant="outline" onClick={() => navigate(entityRoute)}>
-              <ExternalLink className="h-4 w-4 mr-1" /> Go to {log.entityType}
-            </Button>
-          )}
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );

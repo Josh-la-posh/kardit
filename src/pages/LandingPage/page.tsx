@@ -1,113 +1,62 @@
-﻿import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Swoosh } from '@/components/marketting/Swoosh'
-import { TrustStrip } from '@/components/marketting/TrustStrip'
 import HowItWorks from './components/HowItWorks'
 
 export default function Page() {
   return (
     <main>
-      <section className="hero" data-swoosh>
+      <section className="hero hero--compact" data-swoosh>
         <Swoosh variant="default" />
-        <div className="container hero__inner">
+        <div className="container hero__inner hero__inner--solo">
           <div>
-            <span className="pill"><span className="dot" /> Now licensed for UnionPay cross-border</span>
+            <span className="pill"><span className="dot" /> Business Payments to China · For Importers & Corporates</span>
             <h1 className="hero__title">
-              <span className="hero__title-line">Convenient.</span>
-              <span className="hero__title-line">Simple.</span>
-              <span className="hero__title-line"><em>Secure.</em></span>
+              <span className="hero__title-line">Pay Your Chinese</span>
+              <span className="hero__title-line">Suppliers</span>
+              <span className="hero__title-line"><em>Without the Friction.</em></span>
             </h1>
             <p className="hero__lede">
-              A multichannel electronic payments switch built for issuers, acquirers, fintechs and
-              the merchants they serve. Connect every channel — ATM, POS, web, mobile, USSD — to
-              one platform.
+              A guided five-step journey from first form to going live. Complete each step to
+              unlock the next — most teams finish in under fifteen minutes.
             </p>
             <div className="hero__cta">
-              <Link className="btn btn--primary" to="/onboarding/start">Start enrollment</Link>
-              <Link className="btn btn--ghost" to="/login">Sign in →</Link>
+              <a className="btn btn--primary" href="#journey">Begin the Journey ↓</a>
+              <Link className="btn btn--ghost" to="/contact">Talk to a Partner Manager →</Link>
             </div>
-            <div className="hero__trust">Trusted by 200,000+ businesses · PCI-DSS · ISO 27001</div>
-          </div>
-
-          <div className="hero__card" data-parallax="hero-card" aria-label="Live transaction volume snapshot">
-            <div className="hero__card-header">
-              <div>
-                <div className="hero__card-label">Today · Volume</div>
-                <div className="hero__card-amount">₦4,820,140</div>
-              </div>
-              <span className="hero__card-delta">▲ 12.4%</span>
-            </div>
-            <div className="hero__card-bars" aria-hidden="true">
-              {[30, 55, 42, 75, 60, 88, 72, 95, 68].map((h, i) => (
-                <span key={i} style={{ height: `${h}%`, animationDelay: `${i * 40}ms` }} />
-              ))}
-              {[80, 92, 100].map((h, i) => (
-                <span key={`r${i}`} className="is-recent" style={{ height: `${h}%`, animationDelay: `${(i + 9) * 40}ms` }} />
-              ))}
-            </div>
-            <div className="hero__card-stats">
-              <div><div className="label">Settled</div><div className="value">94.2%</div></div>
-              <div><div className="label">Pending</div><div className="value">4.1%</div></div>
-              <div><div className="label">Declined</div><div className="value">1.7%</div></div>
+            <div className="hero__trust">
+              5 screens · Save & resume any time · Compliance-reviewed in 2 working days
             </div>
           </div>
         </div>
       </section>
 
-      <TrustStrip />
-
-      <section className="section section--paper">
+      <section className="section section--paper" id="journey">
         <div className="container">
-          <div className="section-head reveal">
+          <div className="journey-head reveal">
             <div>
-              <div className="eyebrow">Products & Solutions</div>
-              <h2 className="section-head__title">One switch. Every channel.</h2>
+              <div className="eyebrow">The Affiliate Journey</div>
+              <h2 className="section-head__title">Five steps. One at a time.</h2>
+              <p className="section-head__lede" style={{ maxWidth: 640 }}>
+                Each screen represents an actual moment in the onboarding flow — the same one your
+                team will use. Complete the primary action on a screen and the next one loads
+                automatically.
+              </p>
             </div>
-            <p className="section-head__lede">
-              From a single API to vertical-specific suites, the Kardit platform meets you where
-              your business is.
-            </p>
           </div>
 
-          <div className="grid-3">
-            <ProductCard delay={1} icon={
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
-              </svg>
-            } eyebrow="Payment Gateway" name="ChamsPay"
-               desc="Accept card, bank transfer, USSD and QR online — settled to your account next day."
-               href="/solutions#chamspay" />
-            <ProductCard delay={2} icon={
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m2 7 1-4h18l1 4" /><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
-              </svg>
-            } eyebrow="E-Commerce & Bills" name="Naira.com"
-               desc="PCI-DSS-secured platform for everyday bill payments, transfers and airtime — for consumers and merchants."
-               href="/solutions#naira" />
-            <ProductCard delay={3} icon={
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-            } eyebrow="Vertical Suites" name="MX Suite"
-               desc="Pre-built switching for Campus, Health, E-Gov, Move and Enterprise — with custom configurations."
-               href="/solutions#mx" />
-          </div>
-        </div>
-      </section>
-
-      <section className="section section--tight section--white">
-        <div className="container reveal">
-          <div className="eyebrow">Industries we serve</div>
-          <div className="chips" style={{ marginTop: 16 }}>
-            <Link className="chip" to="/industries#financial">Financial Institutions</Link>
-            <Link className="chip" to="/industries#transport">Public Transport</Link>
-            <Link className="chip" to="/industries#government">Government</Link>
-            <Link className="chip" to="/industries#education">Education</Link>
-            <Link className="chip" to="/industries#health">Healthcare</Link>
-            <Link className="chip" to="/industries#retail">Retail</Link>
-            <Link className="chip" to="/industries#telecoms">Telecoms</Link>
-            <Link className="chip" to="/industries#hr">HR & Payroll</Link>
+          <div className="journey-stage" style={{ display: 'grid', placeItems: 'center', minHeight: 320, padding: 32 }}>
+            <div style={{ textAlign: 'center', maxWidth: 520 }}>
+              <div className="eyebrow eyebrow--muted">Onboarding wizard</div>
+              <h3 className="section-head__title" style={{ marginTop: 8 }}>Ready when you are.</h3>
+              <p className="card__desc" style={{ marginTop: 12 }}>
+                Four short steps — organization details, KYB documents, issuing banks, and a final
+                review. About 15 minutes; you can save and come back.
+              </p>
+              <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <Link className="btn btn--accent" to="/onboarding/start">Start Onboarding</Link>
+                <Link className="btn btn--ghost" to="/contact">Book a Walkthrough</Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -117,37 +66,19 @@ export default function Page() {
         <div className="container">
           <div className="section-head reveal">
             <div>
-              <div className="eyebrow eyebrow--inverse">By the numbers</div>
-              <h2 className="section-head__title">A platform with proof.</h2>
+              <div className="eyebrow eyebrow--inverse">Why partner with Kardit</div>
+              <h2 className="section-head__title">Built to make your business move faster.</h2>
             </div>
           </div>
-          <div className="stats-grid">
-            <div className="reveal" data-delay="1">
-              <div className="stat__num" data-count="200000" data-suffix="+" data-format="compact">0</div>
-              <div className="stat__lab">businesses on the platform</div>
-            </div>
-            <div className="reveal" data-delay="2">
-              <div className="stat__num" data-count="6" data-suffix="+">0</div>
-              <div className="stat__lab">global card schemes connected</div>
-            </div>
-            <div className="reveal" data-delay="3">
-              <div className="stat__num" data-count="16" data-suffix="+">0</div>
-              <div className="stat__lab">years of payments experience</div>
-            </div>
-            <div className="reveal" data-delay="4">
-              <div className="stat__num">24/7</div>
-              <div className="stat__lab">real-time monitoring & support</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section section--paper">
-        <div className="container reveal">
-          <div className="pullquote">
-            We empower issuers, acquirers, fintechs and the merchants they serve with smarter,
-            simpler payments solutions — connecting every channel to a single, secure switch.
-            <span className="pullquote__attr">— Convenient, simple and secure. Always.</span>
+          <div className="partner-perks">
+            <Perk num="01" title="One platform, every channel"
+                  body="Route ATM, POS, web, mobile and USSD through a single switch. Your customers get one experience; your operations team gets one console." delay={1} />
+            <Perk num="02" title="Two-day compliance review"
+                  body="Submit a complete application and a real human gets back to you within two working days — not two weeks." delay={2} />
+            <Perk num="03" title="Local rails, global schemes"
+                  body="CBN-compliant out of the box, with VISA, Mastercard, UnionPay, JCB, RuPay and Verve already wired in." delay={3} />
+            <Perk num="04" title="A real partner manager"
+                  body="Every affiliate gets a named contact through onboarding and beyond — not a ticketing portal." delay={4} />
           </div>
         </div>
       </section>
@@ -156,15 +87,15 @@ export default function Page() {
         <div className="container reveal">
           <div className="cta-band">
             <div>
-              <h2 className="cta-band__title">Let's Talk.</h2>
+              <h2 className="cta-band__title">Questions before you apply?</h2>
               <p className="cta-band__lede">
-                We are always here for you to answer any question you may have. Tell us about your
-                business and a consultant will be in touch within one working day.
+                A partner manager can walk you through the requirements, expected timeline, and
+                what your first month live looks like — typically in under twenty minutes.
               </p>
             </div>
             <div className="cta-band__actions">
-              <Link className="btn btn--accent" to="/onboarding/start">Start enrollment</Link>
-              <Link className="btn btn--outline-green" to="/login">Sign in</Link>
+              <Link className="btn btn--accent" to="/contact">Book a Walkthrough</Link>
+              <Link className="btn btn--outline-green" to="/solutions">Explore Solutions</Link>
             </div>
           </div>
         </div>
@@ -175,21 +106,12 @@ export default function Page() {
   )
 }
 
-function ProductCard({ delay, icon, eyebrow, name, desc, href }: {
-  delay: number
-  icon: ReactNode
-  eyebrow: string
-  name: string
-  desc: string
-  href: string
-}) {
+function Perk({ num, title, body, delay }: { num: string; title: string; body: string; delay: number }) {
   return (
-    <article className="card reveal" data-delay={delay}>
-      <div className="card__icon">{icon}</div>
-      <div className="eyebrow eyebrow--muted">{eyebrow}</div>
-      <div className="card__name">{name}</div>
-      <p className="card__desc">{desc}</p>
-      <Link className="btn-arrow" to={href}>Learn more</Link>
-    </article>
+    <div className="reveal" data-delay={delay}>
+      <div className="perk-num">{num}</div>
+      <div className="perk-title">{title}</div>
+      <p className="perk-body">{body}</p>
+    </div>
   )
 }

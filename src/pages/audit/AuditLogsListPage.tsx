@@ -1,12 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
+import { Input } from '@/components/ui/input';
+import { PaginatedTable } from '@/components/ui/paginated-table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
-import { Loader2, Search } from 'lucide-react';
-import { format } from 'date-fns';
+
+const PAGE_SIZE = 20;
 
 export default function AuditLogsListPage() {
   const navigate = useNavigate();
@@ -15,12 +19,13 @@ export default function AuditLogsListPage() {
   const [userSearch, setUserSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('ALL');
   const [entityFilter, setEntityFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
 
-  const actionTypes = useMemo(() => [...new Set(logs.map(l => l.actionType))], [logs]);
-  const entityTypes = useMemo(() => [...new Set(logs.map(l => l.entityType))], [logs]);
+  const actionTypes = useMemo(() => [...new Set(logs.map((l) => l.actionType))], [logs]);
+  const entityTypes = useMemo(() => [...new Set(logs.map((l) => l.entityType))], [logs]);
 
   const filtered = useMemo(() => {
-    return logs.filter(l => {
+    return logs.filter((l) => {
       const q = userSearch.toLowerCase();
       if (q && !l.userEmail.toLowerCase().includes(q)) return false;
       if (actionFilter !== 'ALL' && l.actionType !== actionFilter) return false;
@@ -29,76 +34,145 @@ export default function AuditLogsListPage() {
     });
   }, [logs, userSearch, actionFilter, entityFilter]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pagedRows = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safePage]);
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'timestamp',
+        header: 'Timestamp',
+        className: 'whitespace-nowrap',
+        render: (log: (typeof filtered)[number]) => format(new Date(log.timestamp), 'MMM d, yyyy HH:mm'),
+      },
+      {
+        key: 'userEmail',
+        header: 'User',
+        render: (log: (typeof filtered)[number]) => log.userEmail,
+      },
+      {
+        key: 'actionType',
+        header: 'Action',
+        render: (log: (typeof filtered)[number]) => (
+          <span className="ujr-tag" style={{ fontFamily: 'var(--font-mono)' }}>{log.actionType}</span>
+        ),
+      },
+      {
+        key: 'entityType',
+        header: 'Entity',
+        render: (log: (typeof filtered)[number]) => log.entityType,
+      },
+      {
+        key: 'entityId',
+        header: 'Entity ID',
+        className: 'meta',
+        render: (log: (typeof filtered)[number]) => log.entityId || '—',
+      },
+    ],
+    [filtered]
+  );
+
   return (
     <ProtectedRoute requiredRoles={["Super Admin"]} requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout>
-        <div className="animate-fade-in">
-          <PageHeader title="Audit Logs" subtitle="Activity history" />
-
-          <div className="kardit-card p-4 mb-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Search by user email..."
-                  value={userSearch}
-                  onChange={e => setUserSearch(e.target.value)}
-                />
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Audit logs</h1>
+                <p className="page-sub">Activity history across users, entities, and actions.</p>
               </div>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-muted border-border"><SelectValue placeholder="Action" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Actions</SelectItem>
-                  {actionTypes.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={entityFilter} onValueChange={setEntityFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-muted border-border"><SelectValue placeholder="Entity" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Entities</SelectItem>
-                  {entityTypes.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            </header>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground text-sm">No audit logs match filters.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b border-border bg-muted/50">
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Timestamp</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Action</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Entity</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Entity ID</th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((log, i) => (
-                      <tr
-                        key={log.id}
-                        onClick={() => navigate(`/audit-logs/${log.id}`)}
-                        className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                      >
-                        <td className="px-4 py-3 text-sm">{format(new Date(log.timestamp), 'MMM d, yyyy HH:mm')}</td>
-                        <td className="px-4 py-3 text-sm">{log.userEmail}</td>
-                        <td className="px-4 py-3 text-sm"><span className="px-2 py-0.5 rounded bg-muted text-xs font-mono">{log.actionType}</span></td>
-                        <td className="px-4 py-3 text-sm">{log.entityType}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{log.entityId || 'â€”'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <section className="kpis" style={{ marginTop: 14 }}>
+              <Kpi label="Total logs" value={String(logs.length)} sub="All captured events" />
+              <Kpi label="Filtered" value={String(filtered.length)} sub="Matching current filters" />
+              <Kpi label="Action" value={actionFilter === 'ALL' ? 'All' : actionFilter} sub="Active action filter" />
+              <Kpi label="Entity" value={entityFilter === 'ALL' ? 'All' : entityFilter} sub="Active entity filter" />
+            </section>
+
+            <AppCard padded="md" style={{ marginTop: 14 }}>
+              <AppCardHeader style={{ marginBottom: 12 }}>
+                <div>
+                  <AppCardTitle>Filters</AppCardTitle>
+                  <AppCardSub>Search by user, then narrow by action and entity.</AppCardSub>
+                </div>
+              </AppCardHeader>
+
+              <div className="onboarding-filters">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Search by user email..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                </div>
+                <Select
+                  value={actionFilter}
+                  onValueChange={(value) => {
+                    setActionFilter(value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All actions</SelectItem>
+                    {actionTypes.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={entityFilter}
+                  onValueChange={(value) => {
+                    setEntityFilter(value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Entity" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All entities</SelectItem>
+                    {entityTypes.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+            </AppCard>
+
+            <AppCard style={{ marginTop: 14, overflow: 'hidden' }}>
+              <PaginatedTable
+                columns={columns}
+                rows={pagedRows}
+                isLoading={isLoading}
+                emptyMessage="No audit logs match filters."
+                onRowClick={(row) => navigate(`/audit-logs/${row.id}`)}
+                rowKey={(row) => row.id}
+                page={safePage}
+                pageSize={PAGE_SIZE}
+                total={filtered.length}
+                onPageChange={setPage}
+                className="border-0 shadow-none rounded-none"
+              />
+            </AppCard>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-sub">{sub}</div>
+    </div>
   );
 }

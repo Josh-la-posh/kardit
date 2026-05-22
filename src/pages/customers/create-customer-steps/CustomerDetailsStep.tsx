@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { TextField } from '@/components/ui/text-field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card'
 import { CitySelect, CountrySelect, StateSelect } from 'react-country-state-city'
 import PhoneInput from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
@@ -55,7 +56,7 @@ export default function CustomerDetailsStep({
   onContinue,
 }: Props) {
   return (
-    <section className="src-main">
+    <section className="scr-main">
       <div className="container container--narrow">
         <header className="page-head">
           <div>
@@ -64,7 +65,21 @@ export default function CustomerDetailsStep({
           </div>
         </header>
 
-        <form onSubmit={onContinue} className="card card-pad-lg" autoComplete="off">
+        <AppCard padded="lg">
+          <AppCardHeader style={{ marginBottom: 12 }}>
+            <div>
+              <AppCardTitle>Capture customer information</AppCardTitle>
+              <AppCardSub>All required fields must be completed before you continue.</AppCardSub>
+            </div>
+          </AppCardHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            onContinue()
+          }}
+          className="card-pad-lg"
+          autoComplete="off"
+        >
           <section className="form-section">
             <div className="form-section-head">
               <h2 className="form-section-title">Identity</h2>
@@ -207,13 +222,13 @@ export default function CustomerDetailsStep({
             <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
               <ArrowLeft /> Back
             </button>
-            <button type="button" className="btn btn-primary" onClick={onContinue} disabled={!customerValid}>
+            <button type="submit" className="btn btn-primary" disabled={!customerValid}>
               Save &amp; continue <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </form>
+        </AppCard>
       </div>
     </section>
   )
 }
-

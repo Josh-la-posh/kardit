@@ -1,88 +1,92 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import type { LucideIcon } from "lucide-react";
+import { useNavigate } from 'react-router-dom'
+import type { LucideIcon } from 'lucide-react'
 import {
   ArrowRight,
   Banknote,
-  Bell,
   Building2,
   ClipboardCheck,
-  FileText,
-  Landmark,
   Receipt,
-  Shield,
-  UserCog,
-  Users,
-} from "lucide-react";
-import { AppLayout } from "@/components/AppLayout";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PageHeader } from "@/components/ui/page-header";
-import { useAuth } from "@/hooks/useAuth";
+} from 'lucide-react'
+import { AppLayout } from '@/components/AppLayout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { useAuth } from '@/hooks/useAuth'
+import { AppCard, AppCardSub, AppCardTitle } from '@/components/ui/app-card'
 
 const modules: Array<{ label: string; icon: LucideIcon; path: string; description: string }> = [
   {
-    label: "Banks",
+    label: 'Banks',
     icon: Building2,
-    path: "/super-admin/banks",
-    description: "Manage platform banks",
+    path: '/super-admin/banks',
+    description: 'Manage platform banks and their configurations.',
   },
   {
-    label: "Onboarding",
+    label: 'Onboarding',
     icon: ClipboardCheck,
-    path: "/super-admin/onboarding/cases",
-    description: "Review submitted cases",
+    path: '/super-admin/onboarding/cases',
+    description: 'Review affiliate onboarding submissions and outcomes.',
   },
   {
-    label: "Transactions",
+    label: 'Transactions',
     icon: Receipt,
-    path: "/transactions",
-    description: "Search card activity",
+    path: '/transactions',
+    description: 'Search, inspect, and trace card transaction activity.',
   },
   {
-    label: "Audit Logs",
+    label: 'Audit logs',
     icon: Banknote,
-    path: "/audit-logs",
-    description: "Trace platform events",
-  }
-];
+    path: '/audit-logs',
+    description: 'Track platform events for operational and security audit.',
+  },
+]
 
 export default function SuperAdminDashboardPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={["SERVICE_PROVIDER"]}>
+    <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in">
-          <PageHeader
-            title={`Welcome back, ${user?.name?.split(" ")[0] || "Admin"}`}
-            subtitle={user?.tenantName || "Service Provider Dashboard"}
-            showBack={false}
-          />
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Welcome back, {user?.name?.split(' ')[0] || 'Admin'}</h1>
+                <p className="page-sub">{user?.tenantName || 'Service Provider Dashboard'}</p>
+              </div>
+            </header>
 
-          <h2 className="mb-3 text-lg font-semibold">Quick Actions</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {modules.map((module) => (
-              <button
-                key={module.path}
-                onClick={() => navigate(module.path)}
-                className="kardit-card group p-4 text-left transition-all duration-200 hover:border-primary/30 hover:shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <module.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-medium text-foreground">{module.label}</h3>
-                    <p className="truncate text-xs text-muted-foreground">{module.description}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+            <AppCard padded="md">
+              <div style={{ marginBottom: 14 }}>
+                <div>
+                  <AppCardTitle>Quick actions</AppCardTitle>
+                  <AppCardSub>Open core service-provider workflows.</AppCardSub>
                 </div>
-              </button>
-            ))}
+              </div>
+
+              <div className="action-grid">
+                {modules.map((module) => (
+                  <button
+                    key={module.path}
+                    type="button"
+                    onClick={() => navigate(module.path)}
+                    className="action-card"
+                    style={{ textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <div className="action-icon">
+                      <module.icon />
+                    </div>
+                    <div className="action-title">{module.label}</div>
+                    <div className="action-meta">{module.description}</div>
+                    <div className="action-cta">
+                      Open <ArrowRight />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </AppCard>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
-  );
+  )
 }
