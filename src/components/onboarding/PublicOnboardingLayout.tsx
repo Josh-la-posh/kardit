@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Check, FileText, Landmark, ShieldCheck } from 'lucide-react';
-import { KarditLogo } from '@/components/KarditLogo';
 import { cn } from '@/lib/utils';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
-import MarketingHeader from '../MarketingHeader';
 
 type OnboardingStepId = 'start' | 'organization' | 'documents' | 'issuing-banks' | 'review' | 'status';
 
@@ -152,11 +150,6 @@ export default function PublicOnboardingLayout({
   return (
     <div className="min-h-screen bg-[var(--cs-paper)]">
       <div className="flex min-h-screen flex-col">
-        <MarketingHeader
-          showStartEnrollment={false}
-          pathLabel={steps[currentStepIndex]?.label ?? 'Organization'}
-        />
-
         <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_1fr]">
           <aside className="hidden overflow-auto border-r border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-6 md:block">
             <h6 className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--cs-ink-100)]">
