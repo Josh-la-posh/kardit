@@ -306,7 +306,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6 bg-muted">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6 bg-[var(--cs-paper)]">
           {children}
         </main>
       </div>
