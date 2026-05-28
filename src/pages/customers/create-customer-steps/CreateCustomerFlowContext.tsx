@@ -4,7 +4,7 @@ import type { City, Country, State } from 'react-country-state-city/dist/esm/typ
 import { toast } from 'sonner'
 import { useCreateCustomer } from '@/hooks/useCustomers'
 import { useCreateCard } from '@/hooks/useCards'
-import { useIssuingBanks } from '@/hooks/useIssuingBank'
+import { getBanks, queryBanks } from '@/services/bankApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
 const ID_TYPE_TO_API: Record<string, string> = {
@@ -56,6 +56,7 @@ type FlowContextType = {
   validateCustomer: () => boolean
   bankSearch: string
   setBankSearch: (v: string) => void
+  searchBanksFromBackend: (query: string) => Promise<void>
   banksLoading: boolean
   banks: Array<{ bankId: string; bankDetails: { name: string; code: string } }>
   cardForm: CardForm
@@ -73,6 +74,29 @@ type FlowContextType = {
 }
 
 const CreateCustomerFlowContext = createContext<FlowContextType | null>(null)
+const CUSTOMER_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
+
+type FlowBank = { bankId: string; bankDetails: { name: string; code: string } }
+
+function mapBankItem(candidate: any): FlowBank | null {
+  const bankId = String(candidate?.bankId || '').trim()
+  const bankName = String(candidate?.bankDetails?.name || candidate?.bankName || '').trim()
+  const bankCode = String(candidate?.bankDetails?.code || candidate?.bankCode || '').trim()
+  if (!bankId || !bankName) return null
+  return {
+    bankId,
+    bankDetails: {
+      name: bankName,
+      code: bankCode,
+    },
+  }
+}
+
+function mergeUniqueBanks(current: FlowBank[], incoming: FlowBank[]) {
+  const byId = new Map(current.map((bank) => [bank.bankId, bank]))
+  for (const bank of incoming) byId.set(bank.bankId, bank)
+  return Array.from(byId.values())
+}
 
 export function CreateCustomerFlowProvider({ children }: { children: ReactNode }) {
   const { createCustomerDraft, isLoading: creatingCustomer } = useCreateCustomer()
@@ -102,8 +126,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
   const [phoneCode, setPhoneCode] = useState('+234')
 
   const [bankSearch, setBankSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const { banks, isLoading: banksLoading } = useIssuingBanks(debouncedSearch)
+  const [banks, setBanks] = useState<FlowBank[]>([])
+  const [banksLoading, setBanksLoading] = useState(true)
   const [cardForm, setCardForm] = useState<CardForm>({
     bankId: '',
     productId: '',
@@ -111,10 +135,86 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     currency: 'NGN',
   })
 
+  const saveBanksToCache = useCallback((items: FlowBank[]) => {
+    window.localStorage.setItem(CUSTOMER_BANKS_CACHE_KEY, JSON.stringify(items))
+  }, [])
+
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(bankSearch.trim()), 300)
-    return () => window.clearTimeout(timer)
-  }, [bankSearch])
+    let mounted = true
+
+    const loadBanks = async () => {
+      setBanksLoading(true)
+      try {
+        const raw = window.localStorage.getItem(CUSTOMER_BANKS_CACHE_KEY)
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as unknown[]
+            const normalized = Array.isArray(parsed)
+              ? parsed.map(mapBankItem).filter((bank): bank is FlowBank => Boolean(bank))
+              : []
+
+            if (normalized.length > 0) {
+              if (mounted) setBanks(normalized)
+              saveBanksToCache(normalized)
+              return
+            }
+          } catch {
+            window.localStorage.removeItem(CUSTOMER_BANKS_CACHE_KEY)
+          }
+        }
+
+        const response = await getBanks()
+        const fetched = (response || [])
+          .map(mapBankItem)
+          .filter((bank): bank is FlowBank => Boolean(bank))
+        if (mounted) setBanks(fetched)
+        saveBanksToCache(fetched)
+      } catch {
+        if (mounted) setBanks([])
+      } finally {
+        if (mounted) setBanksLoading(false)
+      }
+    }
+
+    void loadBanks()
+    return () => {
+      mounted = false
+    }
+  }, [saveBanksToCache])
+
+  const searchBanksFromBackend = useCallback(async (query: string) => {
+    const term = query.trim().toLowerCase()
+    if (!term) return
+
+    const exists = banks.some((bank) => {
+      const name = bank.bankDetails.name.toLowerCase()
+      const code = bank.bankDetails.code.toLowerCase()
+      return name.includes(term) || code.includes(term)
+    })
+    if (exists) return
+
+    setBanksLoading(true)
+    try {
+      const response = await queryBanks({
+        filters: { status: ['ACTIVE'], name: query.trim() },
+        page: 1,
+        pageSize: 100,
+      })
+      const fetched = (response.data || [])
+        .map(mapBankItem)
+        .filter((bank): bank is FlowBank => Boolean(bank))
+
+      setBanks((prev) => {
+        const merged = mergeUniqueBanks(prev, fetched)
+        saveBanksToCache(merged)
+        return merged
+      })
+    } catch {
+      // Preserve current list when backend lookup fails.
+    } finally {
+      setBanksLoading(false)
+    }
+  }, [banks, saveBanksToCache])
 
   const fullName = `${customerForm.firstName} ${customerForm.lastName}`.replace(/\s+/g, ' ').trim()
   const selectedBank = banks.find((bank) => bank.bankId === cardForm.bankId)
@@ -301,6 +401,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     validateCustomer,
     bankSearch,
     setBankSearch,
+    searchBanksFromBackend,
     banksLoading,
     banks,
     cardForm,
@@ -315,7 +416,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     submitCustomerDraft,
     handleIssue,
     combinedPhone,
-  }), [errors, result, customerForm, setCustomer, selectedCountry, selectedState, selectedCity, phoneCode, customerValid, validateCustomer, bankSearch, banksLoading, banks, cardForm, setCard, cardValid, validateCard, fullName, selectedBank, selectedProduct, busy, draftCustomerId, submitCustomerDraft, handleIssue, combinedPhone])
+  }), [errors, result, customerForm, setCustomer, selectedCountry, selectedState, selectedCity, phoneCode, customerValid, validateCustomer, bankSearch, banksLoading, banks, cardForm, setCard, cardValid, validateCard, fullName, selectedBank, selectedProduct, busy, draftCustomerId, submitCustomerDraft, handleIssue, combinedPhone, searchBanksFromBackend])
 
   return <CreateCustomerFlowContext.Provider value={value}>{children}</CreateCustomerFlowContext.Provider>
 }

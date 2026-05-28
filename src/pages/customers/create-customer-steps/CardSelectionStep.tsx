@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, CircleDollarSign } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
 const CARD_TYPES = [
@@ -13,6 +13,7 @@ type Bank = { bankId: string; bankDetails: { name: string; code: string } }
 type Props = {
   bankSearch: string
   setBankSearch: (v: string) => void
+  searchBanksFromBackend: (query: string) => Promise<void>
   banksLoading: boolean
   banks: Bank[]
   cardForm: CardForm
@@ -32,15 +33,7 @@ type TypeTileProps = {
   icon: ReactNode
 }
 
-function logoClassForBank(name: string) {
-  const normalized = name.toLowerCase()
-  if (normalized.includes('zenith')) return 'zenith'
-  if (normalized.includes('gtbank') || normalized.includes('guaranty')) return 'gtbank'
-  if (normalized.includes('access')) return 'access'
-  if (normalized.includes('uba')) return 'uba'
-  if (normalized.includes('fcmb')) return 'fcmb'
-  return ''
-}
+const BANK_LOGO_COLORS = ['#B82926', '#DC6B23', '#0027B6', '#DC0017', '#5C1E5C', '#0E7A46', '#0D4B8E'] as const
 
 function TypeTile({ type, current, onSelect, name, meta, icon }: TypeTileProps) {
   const isSelected = current === type
@@ -54,8 +47,53 @@ function TypeTile({ type, current, onSelect, name, meta, icon }: TypeTileProps) 
   )
 }
 
-export default function CardSelectionStep({ banksLoading, banks, cardForm, errors, cardValid, setCard, onBack, onContinue }: Props) {
+export default function CardSelectionStep({
+  bankSearch,
+  setBankSearch,
+  searchBanksFromBackend,
+  banksLoading,
+  banks,
+  cardForm,
+  errors,
+  cardValid,
+  setCard,
+  onBack,
+  onContinue,
+}: Props) {
   const selectedProduct = CARD_PRODUCTS.find((p) => p.id === cardForm.productId)
+  const [productSearch, setProductSearch] = useState('')
+  const [showAllBanks, setShowAllBanks] = useState(!cardForm.bankId)
+  const [showAllProducts, setShowAllProducts] = useState(!cardForm.productId)
+
+  const selectedBank = banks.find((bank) => bank.bankId === cardForm.bankId)
+
+  const filteredBanks = useMemo(() => {
+    const query = bankSearch.trim().toLowerCase()
+    if (!query) return banks
+    return banks.filter((bank) => {
+      const name = bank.bankDetails.name.toLowerCase()
+      const code = bank.bankDetails.code.toLowerCase()
+      return name.includes(query) || code.includes(query)
+    })
+  }, [banks, bankSearch])
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase()
+    if (!query) return CARD_PRODUCTS
+    return CARD_PRODUCTS.filter((product) => {
+      return product.name.toLowerCase().includes(query) || product.code.toLowerCase().includes(query)
+    })
+  }, [productSearch])
+
+  useEffect(() => {
+    if (!showAllBanks) return
+    const query = bankSearch.trim()
+    if (!query || filteredBanks.length > 0) return
+    const timer = window.setTimeout(() => {
+      void searchBanksFromBackend(query)
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [bankSearch, filteredBanks.length, showAllBanks, searchBanksFromBackend])
 
   return (
     <section className="scr-main">
@@ -71,35 +109,69 @@ export default function CardSelectionStep({ banksLoading, banks, cardForm, error
           <div className="form-section-head">
             <h2 className="form-section-title">Issuing bank</h2>
           </div>
-          <div className="option-grid">
-            {banksLoading ? (
-              Array.from({ length: 4 }).map((_, idx) => <div key={idx} className="option-card" style={{ minHeight: 88, opacity: 0.5 }} />)
-            ) : (
-              banks.map((b) => {
-                const isSelected = cardForm.bankId === b.bankId
-                const logoClass = logoClassForBank(b.bankDetails.name)
-                return (
-                  <label
-                    key={b.bankId}
-                    className={isSelected ? 'option-card is-selected' : 'option-card'}
-                    onClick={() => setCard('bankId', b.bankId)}
-                  >
-                    <input type="radio" name="bank" value={b.bankId} checked={isSelected} readOnly />
-                    <span className="check" />
-                    <div className="option-head">
-                      <div className={`option-logo ${logoClass}`}>
-                        {b.bankDetails.name.split(' ')[0].slice(0, 4).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="option-name">{b.bankDetails.name}</div>
-                        <div className="option-meta">CBN: {b.bankDetails.code}</div>
-                      </div>
-                    </div>
-                  </label>
-                )
-              })
-            )}
-          </div>
+          {!showAllBanks && selectedBank ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label className="option-card is-selected">
+                <input type="radio" name="bank" value={selectedBank.bankId} checked readOnly />
+                <span className="check" />
+                <div className="option-head">
+                  <div className="option-logo" style={{ background: BANK_LOGO_COLORS[0], color: 'var(--cs-white)' }}>
+                    {selectedBank.bankDetails.name.split(' ')[0].slice(0, 4).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="option-name">{selectedBank.bankDetails.name}</div>
+                    <div className="option-meta">CBN: {selectedBank.bankDetails.code}</div>
+                  </div>
+                </div>
+              </label>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAllBanks(true)}>
+                Change bank
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="field" style={{ marginTop: 10, marginBottom: 10 }}>
+                <input
+                  className="bch-input"
+                  placeholder="Search bank name or code"
+                  value={bankSearch}
+                  onChange={(e) => setBankSearch(e.target.value)}
+                />
+              </div>
+              <div className="option-grid">
+                {banksLoading ? (
+                  Array.from({ length: 4 }).map((_, idx) => <div key={idx} className="option-card" style={{ minHeight: 88, opacity: 0.5 }} />)
+                ) : (
+                  filteredBanks.map((b, idx) => {
+                    const isSelected = cardForm.bankId === b.bankId
+                    const logoColor = BANK_LOGO_COLORS[idx % BANK_LOGO_COLORS.length]
+                    return (
+                      <label
+                        key={b.bankId}
+                        className={isSelected ? 'option-card is-selected' : 'option-card'}
+                        onClick={() => {
+                          setCard('bankId', b.bankId)
+                          setShowAllBanks(false)
+                        }}
+                      >
+                        <input type="radio" name="bank" value={b.bankId} checked={isSelected} readOnly />
+                        <span className="check" />
+                        <div className="option-head">
+                          <div className="option-logo" style={{ background: logoColor, color: 'var(--cs-white)' }}>
+                            {b.bankDetails.name.split(' ')[0].slice(0, 4).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="option-name">{b.bankDetails.name}</div>
+                            <div className="option-meta">CBN: {b.bankDetails.code}</div>
+                          </div>
+                        </div>
+                      </label>
+                    )
+                  })
+                )}
+              </div>
+            </>
+          )}
           {errors.bankId && <p className="text-xs text-destructive" style={{ marginTop: 8 }}>{errors.bankId}</p>}
         </section>
 
@@ -109,8 +181,33 @@ export default function CardSelectionStep({ banksLoading, banks, cardForm, error
               <h2 className="form-section-title">Product</h2>
               <span className="form-section-meta">Pick a product variant</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {CARD_PRODUCTS.map((p) => {
+            {!showAllProducts && selectedProduct ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label className="product-card is-selected">
+                  <input type="radio" name="product" value={selectedProduct.id} checked readOnly />
+                  <div className={`product-chip ${selectedProduct.code.toLowerCase().includes('usd') ? 'usd' : 'standard'}`}>
+                    {selectedProduct.code.toUpperCase().includes('USD') ? 'USD' : 'NGN'}
+                  </div>
+                  <div className="product-info">
+                    <div className="product-name">{selectedProduct.name}</div>
+                    <div className="product-meta">Code: {selectedProduct.code}</div>
+                    <div className="product-fee">Configured fee/profile applies</div>
+                  </div>
+                  <span className="check" />
+                </label>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAllProducts(true)}>
+                  Change product
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <input
+                  className="bch-input"
+                  placeholder="Search product name or code"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+                {filteredProducts.map((p) => {
                 const isSelected = cardForm.productId === p.id
                 const style = p.code.toLowerCase().includes('usd')
                   ? 'usd'
@@ -123,7 +220,10 @@ export default function CardSelectionStep({ banksLoading, banks, cardForm, error
                   <label
                     key={p.id}
                     className={isSelected ? 'product-card is-selected' : 'product-card'}
-                    onClick={() => setCard('productId', p.id)}
+                    onClick={() => {
+                      setCard('productId', p.id)
+                      setShowAllProducts(false)
+                    }}
                   >
                     <input type="radio" name="product" value={p.id} checked={isSelected} readOnly />
                     <div className={`product-chip ${style}`}>{p.code.toUpperCase().includes('USD') ? 'USD' : 'NGN'}</div>
@@ -135,8 +235,9 @@ export default function CardSelectionStep({ banksLoading, banks, cardForm, error
                     <span className="check" />
                   </label>
                 )
-              })}
-            </div>
+                })}
+              </div>
+            )}
             {errors.productId && <p className="text-xs text-destructive" style={{ marginTop: 8 }}>{errors.productId}</p>}
           </section>
         )}

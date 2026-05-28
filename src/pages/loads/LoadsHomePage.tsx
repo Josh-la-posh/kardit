@@ -27,31 +27,7 @@ export default function LoadsHomePage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
-              <div className="kpi">
-                <div className="kpi-label">Today's loads</div>
-                <div className="kpi-value">
-                  {isLoading ? <Loader2 className="spin" style={{ width: 20, height: 20 }} /> : summary.todayCount}
-                </div>
-                <div className="kpi-sub">Number of load operations posted today</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-label">Today's amount</div>
-                <div className="kpi-value">
-                  {isLoading ? <Loader2 className="spin" style={{ width: 20, height: 20 }} /> : `$${summary.todayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-                </div>
-                <div className="kpi-sub">Aggregate load value processed today</div>
-              </div>
-            </section>
-
             <section>
-              <div className="section-head">
-                <div>
-                  <div className="section-title">Load operations</div>
-                  <div className="section-sub">Choose what you want to process</div>
-                </div>
-              </div>
-
               <div className="action-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
                 {tiles.map((tile) => (
                   <button

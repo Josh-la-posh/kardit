@@ -272,6 +272,17 @@ export default function AffiliateCustomerDetailPage() {
                       <span className="cards-list-title">Cards</span>
                       <span className="cards-list-count">{cardCount} linked</span>
                     </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() =>
+                        navigate(`/customers/${customer.customerRefId}/cards/new`, {
+                          state: { customer, returnTo: location.pathname },
+                        })
+                      }
+                    >
+                      <CreditCard /> Issue card
+                    </button>
                   </div>
                   <div className="cards-list-body">
                     {cardCount === 0 ? (

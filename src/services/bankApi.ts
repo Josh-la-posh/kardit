@@ -1,5 +1,5 @@
 import { ApiError } from '@/services/authApi';
-import type { QueryBanksRequest, QueryBanksResponse } from '@/types/bankContracts';
+import type { BankQueryItem, QueryBanksRequest, QueryBanksResponse } from '@/types/bankContracts';
 
 type ApiEnvelope<T> = {
   data?: {
@@ -121,5 +121,11 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> 
 export async function queryBanks(request: QueryBanksRequest): Promise<QueryBanksResponse> {
   return unwrapApiValue(
     await getJson<QueryBanksResponse | ApiEnvelope<QueryBanksResponse>>(buildQueryBanksPath(request))
+  );
+}
+
+export async function getBanks(): Promise<BankQueryItem[]> {
+  return unwrapApiValue(
+    await getJson<BankQueryItem[] | ApiStatusEnvelope<BankQueryItem[]> | ApiEnvelope<BankQueryItem[]>>('/banks/get-banks')
   );
 }

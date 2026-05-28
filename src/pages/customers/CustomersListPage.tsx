@@ -59,34 +59,21 @@ export default function CustomersListPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
-              <Kpi label="Total customers" value={String(total)} sub="Across your tenant scope" />
-              <Kpi label="Visible on page" value={String(filtered.length)} sub="After local filters" />
-              <Kpi label="Current page" value={String(page)} sub={`Page size ${pageSize}`} />
-              <Kpi label="KYC filter" value={kyc === 'all' ? 'All' : kyc.replace('LEVEL_', 'Tier ')} sub="Applied to list" />
-            </section>
-
             <AppCard padded="md" style={{ marginTop: 14 }}>
-              <AppCardHeader style={{ marginBottom: 12 }}>
-                <div>
-                  <AppCardTitle>Filters</AppCardTitle>
-                  <AppCardSub>Search by customer data and narrow by KYC or status.</AppCardSub>
-                </div>
-              </AppCardHeader>
+              <div className="search-input-wrap">
+                <Search className="search-icn" />
+                <input 
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Search by name, phone, customer ref, BVN, or NIN"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
               <div className="list-toolbar">
-                <div className="search-input-wrap">
-                  <Search className="search-icn" />
-                  <input 
-                    type="text"
-                    autoComplete="off"
-                    placeholder="Search by name, phone, customer ref, BVN, or NIN"
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value)
-                      setPage(1)
-                    }}
-                  />
-                </div>
               </div>
 
               <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, justifyContent: 'space-between' }}>

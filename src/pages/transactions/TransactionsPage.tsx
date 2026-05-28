@@ -276,20 +276,20 @@ export default function TransactionsPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
               <Kpi label="Funding Volume" value={isSummaryLoading ? '...' : formatMoney(fundingVolume, 'NGN')} sub="Current actor scope" />
               <Kpi label="Result Set" value={String(total)} sub="Matches current filters" />
               <Kpi label="Date Window" value={`${fromDate || 'Any'} - ${toDate || 'Any'}`} sub="From and to date filter" />
               <Kpi label="Page" value={`${page}/${totalPages}`} sub={`${DEFAULT_PAGE_SIZE} rows per page`} />
-            </section>
+            </section> */}
 
             <AppCard padded="md" style={{ marginTop: 14 }}>
-              <AppCardHeader style={{ marginBottom: 12 }}>
+              {/* <AppCardHeader style={{ marginBottom: 12 }}>
                 <div>
                   <AppCardTitle>Filters</AppCardTitle>
                   <AppCardSub>Search and narrow transaction records across your scope.</AppCardSub>
                 </div>
-              </AppCardHeader>
+              </AppCardHeader> */}
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="relative xl:col-span-2">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

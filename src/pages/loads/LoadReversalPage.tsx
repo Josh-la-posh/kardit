@@ -88,7 +88,7 @@ export default function LoadReversalPage() {
   const [accountId, setAccountId] = useState('');
   const [bankCode, setBankCode] = useState('');
   const [accountNumberMasked, setAccountNumberMasked] = useState('');
-  const [reason, setReason] = useState('CUSTOMER_CASH_OUT');
+  const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [result, setResult] = useState<{ response: CardUnloadResponse; previousBalance: number | null } | null>(null);
@@ -169,7 +169,7 @@ export default function LoadReversalPage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <main className="scr-main">
-          <div className="container container--narrow">
+          <div className="container">
             <header className="page-head">
               <div>
                 <h1 className="page-title">Card Unload</h1>
@@ -334,7 +334,7 @@ export default function LoadReversalPage() {
                         className="min-h-28 rounded-xl bg-background"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="CUSTOMER_CASH_OUT"
+                        placeholder="Reason for unload..."
                       />
                     </div>
                   </div>
@@ -543,7 +543,7 @@ export default function LoadReversalPage() {
                       setAccountId('');
                       setBankCode('');
                       setAccountNumberMasked('');
-                      setReason('CUSTOMER_CASH_OUT');
+                      setReason('');
                     }}
                   >
                     Unload another

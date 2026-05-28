@@ -44,6 +44,7 @@ export function CardStepRoute() {
     <CardSelectionStep
       bankSearch={flow.bankSearch}
       setBankSearch={flow.setBankSearch}
+      searchBanksFromBackend={flow.searchBanksFromBackend}
       banksLoading={flow.banksLoading}
       banks={flow.banks}
       cardForm={flow.cardForm}
@@ -71,15 +72,19 @@ export function ReviewStepRoute() {
       fullName={flow.fullName}
       phone={flow.combinedPhone}
       email={flow.customerForm.email}
-      line1={flow.customerForm.line1}
-      city={flow.customerForm.city}
       state={flow.customerForm.state}
+      bvn={flow.customerForm.idNumber}
+      customerId={flow.draftCustomerId || undefined}
       bankName={flow.selectedBank?.bankDetails.name}
+      bankCode={flow.selectedBank?.bankDetails.code}
       productName={flow.selectedProduct?.name}
+      productCode={flow.selectedProduct?.code}
       cardType={flow.cardForm.cardType}
       currency={flow.cardForm.currency}
       busy={flow.busy}
       onBack={() => navigate('/customers/create/card')}
+      onEditCustomer={() => navigate('/customers/create/customer')}
+      onEditCard={() => navigate('/customers/create/card')}
       onIssue={async () => {
         const ok = await flow.handleIssue()
         if (ok) navigate('/customers/create/result')

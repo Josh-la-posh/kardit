@@ -192,7 +192,7 @@ export default function SingleLoadPage() {
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
         <main className="scr-main">
-          <div className="container container--narrow">
+          <div className="container">
             <header className="page-head">
               <div>
                 <h1 className="page-title">Load Card</h1>

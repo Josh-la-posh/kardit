@@ -5,13 +5,36 @@ import { AlertCircle, ArrowLeft, Check, ChevronsUpDown, Loader2, Send, X } from 
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAffiliateBankPartnerships } from '@/hooks/useAffiliateBanks'
-import { queryBanks } from '@/services/bankApi'
+import { getBanks } from '@/services/bankApi'
 import type { BankQueryItem } from '@/types/bankContracts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
 const AFFILIATE_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
+
+function normalizeBank(candidate: any): BankQueryItem | null {
+  const bankId = String(candidate?.bankId || '').trim()
+  const bankName = String(candidate?.bankName || candidate?.bankDetails?.name || '').trim()
+  const bankCode = String(candidate?.bankCode || candidate?.bankDetails?.code || '').trim()
+  const status = String(candidate?.status || 'ACTIVE').trim()
+  const createdAt = String(candidate?.createdAt || new Date(0).toISOString()).trim()
+  const supportedCurrencies = Array.isArray(candidate?.supportedCurrencies)
+    ? candidate.supportedCurrencies
+    : undefined
+
+  if (!bankId) return null
+  if (!bankName && !bankCode) return null
+
+  return {
+    bankId,
+    bankName,
+    bankCode,
+    status,
+    createdAt,
+    supportedCurrencies,
+  }
+}
 
 export default function AffiliateBankRequestPage() {
   const navigate = useNavigate()
@@ -36,9 +59,13 @@ export default function AffiliateBankRequestPage() {
         const raw = window.localStorage.getItem(AFFILIATE_BANKS_CACHE_KEY)
         if (raw) {
           try {
-            const parsed = JSON.parse(raw) as BankQueryItem[]
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              if (mounted) setBankCatalog(parsed)
+            const parsed = JSON.parse(raw) as unknown[]
+            const normalized = Array.isArray(parsed)
+              ? parsed.map(normalizeBank).filter((bank): bank is BankQueryItem => Boolean(bank))
+              : []
+            if (normalized.length > 0) {
+              if (mounted) setBankCatalog(normalized)
+              window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(normalized))
               return
             }
           } catch {
@@ -46,13 +73,11 @@ export default function AffiliateBankRequestPage() {
           }
         }
 
-        const response = await queryBanks({
-          filters: { status: ['ACTIVE'] },
-          page: 1,
-          pageSize: 1000,
-        })
-
-        const activeBanks = (response.data || []).filter((bank) => bank.status === 'ACTIVE')
+        const response = await getBanks()
+        const activeBanks = (response || [])
+          .map(normalizeBank)
+          .filter((bank): bank is BankQueryItem => Boolean(bank))
+          .filter((bank) => bank.status === 'ACTIVE')
         window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(activeBanks))
         if (mounted) setBankCatalog(activeBanks)
       } catch (e) {
@@ -72,7 +97,7 @@ export default function AffiliateBankRequestPage() {
   }, [])
 
   const filteredBankCatalog = useMemo(() => {
-    const query = bankSearch.trim().toLowerCase()
+    const query = (bankSearch || '').trim().toLowerCase()
     if (!query) return bankCatalog
     return bankCatalog.filter((bank) => {
       const name = bank.bankName?.toLowerCase() || ''
@@ -176,7 +201,7 @@ export default function AffiliateBankRequestPage() {
                         <CommandInput
                           placeholder="Search banks by name or code..."
                           value={bankSearch}
-                          onValueChange={(value) => setBankSearch(value)}
+                          onValueChange={(value) => setBankSearch(value || '')}
                         />
                         <CommandList className="max-h-[280px]">
                           <CommandEmpty>No banks found.</CommandEmpty>

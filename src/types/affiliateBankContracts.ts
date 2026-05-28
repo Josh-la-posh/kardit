@@ -18,6 +18,38 @@ export interface GetAffiliateBankPartnershipsResponse {
   banks: AffiliateBankPartnership[];
 }
 
+export interface QueryAffiliatePartnershipRequestsFilters {
+  bankId?: string;
+  affiliateId?: string;
+  status?: string[];
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface QueryAffiliatePartnershipRequestsRequest {
+  filters: QueryAffiliatePartnershipRequestsFilters;
+  page: number;
+  pageSize: number;
+}
+
+export interface QueryAffiliatePartnershipRequestItem {
+  partnershipRequestId: string;
+  affiliateId: string;
+  bankId: string;
+  bankName?: string;
+  status: AffiliateBankPartnershipStatus;
+  note?: string;
+  requestedAt: string;
+  decisionedAt?: string;
+}
+
+export interface QueryAffiliatePartnershipRequestsResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  data: QueryAffiliatePartnershipRequestItem[];
+}
+
 export interface CreateBankPartnershipRequest {
   bankId: string;
   note: string;

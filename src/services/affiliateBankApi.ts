@@ -3,6 +3,7 @@ import type {
   CreateBankPartnershipRequest,
   CreateBankPartnershipResponse,
   GetAffiliateBankPartnershipsResponse,
+  QueryAffiliatePartnershipRequestsResponse,
 } from '@/types/affiliateBankContracts';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
@@ -75,9 +76,28 @@ export function resolveAffiliateId(user?: { tenantId?: string; email?: string } 
 export async function getAffiliateBankPartnerships(
   affiliateId: string
 ): Promise<GetAffiliateBankPartnershipsResponse> {
-  return getJson<GetAffiliateBankPartnershipsResponse>(
-    `/affiliates/${encodeURIComponent(affiliateId)}/bank-partnerships`
+  const response = await postJson<QueryAffiliatePartnershipRequestsResponse>(
+    '/affiliates/partnership-requests/query',
+    {
+      filters: { affiliateId },
+      page: 1,
+      pageSize: 500,
+    }
   );
+
+  return {
+    affiliateId,
+    banks: (response.data || []).map((item) => ({
+      bankId: item.bankId,
+      bankName: item.bankName || 'Unknown',
+      partnershipStatus: item.status,
+      rejectionReason: item.note,
+      lastUpdatedAt:
+        item.decisionedAt && !item.decisionedAt.startsWith('0001-01-01')
+          ? item.decisionedAt
+          : item.requestedAt,
+    })),
+  };
 }
 
 export async function createAffiliateBankPartnershipRequest(
