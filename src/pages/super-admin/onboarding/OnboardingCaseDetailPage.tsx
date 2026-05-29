@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LucideArrowLeft, RefreshCw, } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -35,6 +35,13 @@ export default function OnboardingCaseDetailPage() {
   // const [affiliateCreated, setAffiliateCreated] = useState(false);
 
   const canProvision = caseItem?.status === 'APPROVED';
+  const canRequestClarification =
+    caseItem?.status !== 'APPROVED' &&
+    caseItem?.status !== 'REJECTED' &&
+    caseItem?.status !== 'CLARIFICATION_REQUIRED' &&
+    caseItem?.status !== 'CLARIFICATION_REQUESTED';
+  const canReject = caseItem?.status !== 'APPROVED' && caseItem?.status !== 'REJECTED';
+  const canApprove = caseItem?.status !== 'APPROVED' && caseItem?.status !== 'REJECTED';
   // const canCreateAffiliate = caseItem?.status === 'APPROVED' && !affiliateCreated;
 
   const title = useMemo(
@@ -42,7 +49,7 @@ export default function OnboardingCaseDetailPage() {
     [caseItem?.affiliateName, caseItem?.organization?.legalName]
   );
 
-  const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION') => {
+  const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'CLARIFY') => {
     if (!caseId) return;
     setWorking(true);
     try {
@@ -136,9 +143,11 @@ export default function OnboardingCaseDetailPage() {
               <div className="flex items-center gap-2">
                   {caseItem && <StatusChip status={statusToChip[caseItem.status] || 'INACTIVE'} label={caseItem.status} />}
                   <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/onboarding/cases')}>
+                    <LucideArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
                   <Button variant="outline" size="sm" onClick={refresh}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
                 </div>
@@ -276,17 +285,17 @@ export default function OnboardingCaseDetailPage() {
                       placeholder="Internal reviewer note"
                     />
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {caseItem.status !== 'APPROVED' && (
-                        <Button variant="outline" onClick={() => doDecision('REQUEST_CLARIFICATION')} disabled={working}>
-                        Request clarification
-                      </Button>
-                      )}                 
-                      {caseItem.status !== "APPROVED" && (
-                        <Button variant="outline" onClick={() => doDecision('REJECT')} disabled={working}>
+                      {canRequestClarification && (
+                        <Button variant="secondary" onClick={() => doDecision('CLARIFY')} disabled={working}>
+                          Request clarification
+                        </Button>
+                      )}
+                      {canReject && (
+                        <Button variant="danger" onClick={() => doDecision('REJECT')} disabled={working}>
                           Reject
                         </Button>
                       )}
-                      {caseItem.status !== 'APPROVED' && (
+                      {canApprove && (
                         <Button onClick={() => doDecision('APPROVE')} disabled={working}>
                           Approve
                         </Button>
@@ -335,15 +344,6 @@ export default function OnboardingCaseDetailPage() {
                       <p className="text-sm text-muted-foreground">
                         Selected banks: {caseItem.issuingBankIds.length ? caseItem.issuingBankIds.join(', ') : 'None'}
                       </p>
-                    </div>
-                  )}
-
-                  {caseItem.status === 'APPROVED' && (
-                    <div className="rounded-md border border-border bg-muted p-4">
-                      <p className="mb-2 text-sm font-semibold">Provisioning result</p>
-                      <p className="text-sm text-muted-foreground">Tenant: {caseItem.provisionedTenantId}</p>
-                      <p className="text-sm text-muted-foreground">Admin: {caseItem.provisionedAdminEmail}</p>
-                      <p className="text-sm text-muted-foreground">Temp password: {caseItem.provisionedTemporaryPassword}</p>
                     </div>
                   )}
                 </div>

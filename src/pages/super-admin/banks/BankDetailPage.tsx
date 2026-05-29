@@ -13,6 +13,7 @@ import { useBankCardMetrics, useBankTransactionVolume } from '@/hooks/useTransac
 import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
 import { queryBanks } from '@/services/superAdminApi';
 import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
+import { AppCard } from '@/components/ui/app-card';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -181,6 +182,7 @@ export default function BankDetailPage() {
                 </div>
             </header>
 
+            <AppCard padded="md" style={{ marginTop: 14 }}>
             <div className="kardit-card p-6 mb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
@@ -207,6 +209,7 @@ export default function BankDetailPage() {
                 </div>
               </div>
             </div>
+            
 
             {/* Summary Stats */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -440,6 +443,7 @@ export default function BankDetailPage() {
                 </div>
               )}
             </div>
+            </AppCard>
           </div>
         </main>
       </AppLayout>
