@@ -100,12 +100,12 @@ export default function BankAuditLogsPage() {
               </button>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
               <Kpi label="Total logs" value={String(total)} sub="Current query scope" />
               <Kpi label="Current page" value={`${page}/${totalPages}`} sub={`${pageSize} rows per page`} />
               <Kpi label="Event types" value={String(eventTypes.length)} sub="Distinct events on this page" />
               <Kpi label="Filtered actor" value={actorUserId.trim() ? 'Yes' : 'No'} sub="Actor ID filter applied" />
-            </section>
+            </section> */}
 
             <section className="bch-card card-pad" style={{ marginTop: 14 }}>
               <div className="grid gap-3 md:grid-cols-5">

@@ -144,7 +144,7 @@ export default function DashboardPage() {
               </div>
             </header>
 
-            <section>
+            {/* <section>
               <div className="section-head">
                 <div>
                   <div className="section-title">Today at a glance</div>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                   sub="3 CMS timeouts · 4 insufficient funds"
                 />
               </div>
-            </section>
+            </section> */}
 
             <section>
               <div className="section-head">

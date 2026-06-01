@@ -311,8 +311,8 @@ export function useCreateCustomer() {
     const affiliateId = user?.affiliateId || user?.tenantId || 'affiliate_unknown';
     const requestId =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? `REQ-CUST-DRAFT-${crypto.randomUUID()}`
-        : `REQ-CUST-DRAFT-${Date.now()}`;
+        ? `REQ-${crypto.randomUUID()}`
+        : `REQ-${Date.now()}`;
 
     setIsLoading(true);
     setError(null);

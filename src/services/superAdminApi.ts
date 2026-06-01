@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/authApi';
+import { ApiError, getApiErrorMessage } from '@/services/authApi';
 import type {
   GenerateReportRequest,
   GenerateReportResponse,
@@ -54,7 +54,7 @@ async function getJson<TResponse>(path: string, init?: RequestInit): Promise<TRe
   const res = await fetch(`${baseUrl}${path}`, { method: 'GET', ...init });
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError('Request failed', res.status, body);
+    throw new ApiError(getApiErrorMessage(body, `Request failed (${res.status})`), res.status, body);
   }
   return (await res.json()) as TResponse;
 }
@@ -87,11 +87,7 @@ async function sendJson<TResponse>(method: 'POST' | 'PATCH', path: string, body:
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
-        ? String((errorBody as Record<string, unknown>).message)
-        : undefined) || `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed (${res.status})`), res.status, errorBody);
   }
 
   if (res.status === 204) return undefined as TResponse;

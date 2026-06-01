@@ -109,13 +109,6 @@ export default function OnboardingCasesListPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
-              <Kpi label="Total cases" value={String(total)} sub="Across selected filters" />
-              <Kpi label="Current status" value={currentStatusLabel} sub="Filter applied" />
-              <Kpi label="Page" value={String(currentPage)} sub="Current pagination index" />
-              <Kpi label="Page size" value={String(selectedPageSize)} sub="Rows per page" />
-            </section>
-
             <AppCard padded="md" style={{ marginTop: 16 }}>
               <AppCardHeader style={{ marginBottom: 12 }}>
                 <div>

@@ -55,35 +55,26 @@ export default function SuperAdminDashboardPage() {
               </div>
             </header>
 
-            <AppCard padded="md">
-              <div style={{ marginBottom: 14 }}>
-                <div>
-                  <AppCardTitle>Quick actions</AppCardTitle>
-                  <AppCardSub>Open core service-provider workflows.</AppCardSub>
-                </div>
-              </div>
-
-              <div className="action-grid">
-                {modules.map((module) => (
-                  <button
-                    key={module.path}
-                    type="button"
-                    onClick={() => navigate(module.path)}
-                    className="action-card"
-                    style={{ textAlign: 'left', cursor: 'pointer' }}
-                  >
-                    <div className="action-icon">
-                      <module.icon />
-                    </div>
-                    <div className="action-title">{module.label}</div>
-                    <div className="action-meta">{module.description}</div>
-                    <div className="action-cta">
-                      Open <ArrowRight />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </AppCard>
+            <div className="action-grid">
+              {modules.map((module) => (
+                <button
+                  key={module.path}
+                  type="button"
+                  onClick={() => navigate(module.path)}
+                  className="action-card"
+                  style={{ textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <div className="action-icon">
+                    <module.icon />
+                  </div>
+                  <div className="action-title">{module.label}</div>
+                  <div className="action-meta">{module.description}</div>
+                  <div className="action-cta">
+                    Open <ArrowRight />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </main>
       </AppLayout>

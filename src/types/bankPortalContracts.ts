@@ -222,7 +222,7 @@ export interface AffiliateActionRequestContext {
 export interface SuspendAffiliateRequest {
   requestContext: AffiliateActionRequestContext;
   reason: string;
-  idempotencyKey: string;
+  // idempotencyKey: string;
 }
 
 export interface SuspendAffiliateResponse {
