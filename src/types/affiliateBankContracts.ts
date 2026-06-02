@@ -8,6 +8,7 @@ export type AffiliateBankPartnershipStatus =
 export interface AffiliateBankPartnership {
   bankId: string;
   bankName: string;
+  bankCode?: string;
   partnershipStatus: AffiliateBankPartnershipStatus;
   rejectionReason?: string;
   lastUpdatedAt: string;
@@ -16,6 +17,26 @@ export interface AffiliateBankPartnership {
 export interface GetAffiliateBankPartnershipsResponse {
   affiliateId: string;
   banks: AffiliateBankPartnership[];
+}
+
+export interface BankPartnershipItem {
+  bankId: string;
+  bankName?: string;
+  bankCode?: string;
+  status?: string;
+  partnershipStatus?: AffiliateBankPartnershipStatus;
+  rejectionReason?: string;
+  note?: string;
+  lastUpdatedAt?: string;
+  updatedAt?: string;
+  decisionedAt?: string;
+  requestedAt?: string;
+}
+
+export interface GetBankPartnershipsByAffiliateResponse {
+  affiliateId?: string;
+  banks?: BankPartnershipItem[];
+  data?: BankPartnershipItem[];
 }
 
 export interface QueryAffiliatePartnershipRequestsFilters {

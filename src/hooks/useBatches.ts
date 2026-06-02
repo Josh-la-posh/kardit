@@ -151,11 +151,12 @@ export function useBatches(category?: BatchCategory) {
   }, [fetch]);
 
   const upload = useCallback(
-    async (params: { category: BatchCategory; file: File; productId?: string }) => {
+    async (params: { category: BatchCategory; file: File; productId?: string; bankId?: string }) => {
       const fileBase64 = await fileToBase64(params.file);
       const response: UploadBatchResponse = await uploadBatch({
         requestContext: context,
         productId: params.productId || '',
+        bankId: params.bankId || '',
         file: {
           fileName: params.file.name,
           contentType: params.file.type || 'text/csv',

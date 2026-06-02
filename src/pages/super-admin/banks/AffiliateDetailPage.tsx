@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, OctagonMinus, Phone, Snowflake, User, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { Activity, ArrowLeft, Calendar, CreditCard, Globe, Loader2, Mail, OctagonMinus, Phone, ShieldAlert, Snowflake, User, Users } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
+import { blockAffiliate } from '@/services/bankPortalApi';
 import { getAffiliateTransactionVolume, queryTransactions } from '@/services/transactionApi';
+import { useAuth } from '@/hooks/useAuth';
 import { useAffiliateCardMetrics } from '@/hooks/useTransactionVolumes';
 import type { AffiliateTransactionVolumeResponse, TransactionListItem } from '@/types/transactionContracts';
 import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
@@ -50,11 +54,14 @@ function findAffiliateById(items: AffiliateQueryItem[], affiliateId: string) {
   return items.find((item) => item.affiliateId === affiliateId) || null;
 }
 
+type AffiliateAction = 'block' | null;
+
 export default function AffiliateDetailPage() {
   const { bankId, affiliateId } = useParams<{ bankId: string; affiliateId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = location.state as LocationState | null;
+  const { user } = useAuth();
 
   const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
     routeState?.bank?.bankId === bankId ? routeState.bank : null
@@ -66,9 +73,14 @@ export default function AffiliateDetailPage() {
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const [affiliateVolume, setAffiliateVolume] = useState<AffiliateTransactionVolumeResponse | null>(null);
+  const [affiliateVolumeError, setAffiliateVolumeError] = useState<string | null>(null);
   const [affiliateTransactions, setAffiliateTransactions] = useState<TransactionListItem[]>([]);
-  const [affiliateTxLoading, setAffiliateTxLoading] = useState(true);
-  const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useAffiliateCardMetrics(affiliateId);
+  const [affiliateTransactionsError, setAffiliateTransactionsError] = useState<string | null>(null);
+  const [affiliateTxLoading, setAffiliateTxLoading] = useState(Boolean(affiliateId));
+  const { metrics: cardMetrics, isLoading: cardMetricsLoading, error: cardMetricsError } = useAffiliateCardMetrics(affiliateId);
+  const [actionType, setActionType] = useState<AffiliateAction>(null);
+  const [actionReason, setActionReason] = useState('');
+  const [actionWorking, setActionWorking] = useState(false);
 
   const loadSummaries = useCallback(async () => {
     if (!bankId || !affiliateId) {
@@ -144,13 +156,27 @@ export default function AffiliateDetailPage() {
   }, [loadSummaries]);
 
   useEffect(() => {
-    if (!affiliateId) return;
+    if (!affiliateId) {
+      setAffiliateVolume(null);
+      setAffiliateVolumeError('Affiliate not found');
+      setAffiliateTransactions([]);
+      setAffiliateTransactionsError('Affiliate not found');
+      setAffiliateTxLoading(false);
+      return;
+    }
 
     let active = true;
     setAffiliateTxLoading(true);
+    setAffiliateVolumeError(null);
+    setAffiliateTransactionsError(null);
 
     Promise.all([
-      getAffiliateTransactionVolume(affiliateId).catch(() => null),
+      getAffiliateTransactionVolume(affiliateId)
+        .then((response) => ({ response, error: null as string | null }))
+        .catch((error: unknown) => ({
+          response: null,
+          error: error instanceof Error ? error.message : 'Failed to load affiliate funding volume',
+        })),
       queryTransactions({
         filters: {
           bankId,
@@ -158,12 +184,19 @@ export default function AffiliateDetailPage() {
         },
         pageNumber: 1,
         pageSize: 10,
-      }).catch(() => null),
+      })
+        .then((response) => ({ response, error: null as string | null }))
+        .catch((error: unknown) => ({
+          response: null,
+          error: error instanceof Error ? error.message : 'Failed to load affiliate transactions',
+        })),
     ])
-      .then(([volumeResponse, transactionsResponse]) => {
+      .then(([volumeResult, transactionsResult]) => {
         if (!active) return;
-        setAffiliateVolume(volumeResponse);
-        setAffiliateTransactions(transactionsResponse?.data ?? []);
+        setAffiliateVolume(volumeResult.response);
+        setAffiliateVolumeError(volumeResult.error);
+        setAffiliateTransactions(transactionsResult.response?.data ?? []);
+        setAffiliateTransactionsError(transactionsResult.error);
       })
       .finally(() => {
         if (active) setAffiliateTxLoading(false);
@@ -184,30 +217,51 @@ export default function AffiliateDetailPage() {
   const contactPhone = undefined;
   const provisionedAt = undefined;
   const totalCards = cardMetrics?.metrics.totalCardsIssued ?? 0;
+  const actionTitle = 'Block Affiliate';
+  const actionDescription = 'Add the reason for blocking this affiliate. This may cascade into card and approval restrictions.';
 
-  if (summaryLoading) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
-        <AppLayout navVariant="service-provider">
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
+  const openActionDialog = (nextAction: Exclude<AffiliateAction, null>) => {
+    setActionType(nextAction);
+    setActionReason('');
+  };
 
-  if (!bankSummary || !affiliateSummary) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
-        <AppLayout navVariant="service-provider">
-          <div className="text-center py-20 text-muted-foreground">
-            {summaryError || (!bankSummary ? 'Bank not found' : 'Affiliate not found')}
-          </div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
+  const handleAffiliateAction = async () => {
+    if (!actionType || !bankId || !affiliateId || !actionReason.trim()) {
+      toast.error('Enter a reason first');
+      return;
+    }
+
+    setActionWorking(true);
+    try {
+      const requestId = `REQ-BLK-${Date.now()}`;
+      const idempotencyKey = `IDEMP-${Date.now()}`;
+      const response = await blockAffiliate(bankId, affiliateId, {
+        requestContext: {
+          requestId,
+          actorUserId: user?.id || 'USR-SUPERADMIN-UNKNOWN',
+          userType: user?.stakeholderType || user?.role || 'SERVICE_PROVIDER',
+          role: user?.role || 'SERVICE_PROVIDE',
+          bankId,
+          tenantId: user?.tenantId,
+          affiliateId,
+          idempotencyKey,
+        },
+        reason: actionReason.trim(),
+        // idempotencyKey,
+      });
+
+      setAffiliateSummary((current) =>
+        current ? { ...current, status: response.currentStatus } : current
+      );
+      toast.error(`Affiliate blocked: ${response.currentStatus}`);
+      setActionType(null);
+      setActionReason('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to block affiliate');
+    } finally {
+      setActionWorking(false);
+    }
+  };
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
@@ -221,7 +275,7 @@ export default function AffiliateDetailPage() {
                   {`Transactions and portfolio summary for ${affiliateName}`}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 justify-end">
                 <StatusChip status={affiliateStatusToChip[affiliateStatus] || 'INACTIVE'} label={affiliateStatus} />
                 <Button
                   variant="outline"
@@ -229,6 +283,9 @@ export default function AffiliateDetailPage() {
                   onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}/customers`)}
                 >
                   <Users className="h-4 w-4 mr-1" /> View Customers
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => openActionDialog('block')}>
+                  <ShieldAlert className="h-4 w-4 mr-1" /> Block
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bankName}
@@ -255,6 +312,17 @@ export default function AffiliateDetailPage() {
             </div>
 
             <div className="kardit-card p-6 mb-6">
+              {summaryLoading && (
+                <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  Loading affiliate details...
+                </div>
+              )}
+              {summaryError && (
+                <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                  {summaryError}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Registration Number</p>
@@ -350,6 +418,7 @@ export default function AffiliateDetailPage() {
                       {cardMetricsLoading ? '...' : totalCards.toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground">Cards Issued</p>
+                    {cardMetricsError && <p className="mt-1 text-xs text-destructive">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -366,6 +435,7 @@ export default function AffiliateDetailPage() {
                       {affiliateTxLoading ? '...' : formatMoney(affiliateVolume?.volumes?.totalFundingVolume)}
                     </p>
                     <p className="text-xs text-muted-foreground">Affiliate Funding</p>
+                    {affiliateVolumeError && <p className="mt-1 text-xs text-destructive">{affiliateVolumeError}</p>}
                   </div>
                 </div>
               </div>
@@ -379,6 +449,7 @@ export default function AffiliateDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Active Cards</p>
+                    {cardMetricsError && <p className="mt-1 text-xs text-destructive">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -392,6 +463,7 @@ export default function AffiliateDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Frozen Cards</p>
+                    {cardMetricsError && <p className="mt-1 text-xs text-destructive">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -405,6 +477,7 @@ export default function AffiliateDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Terminated Cards</p>
+                    {cardMetricsError && <p className="mt-1 text-xs text-destructive">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -428,6 +501,8 @@ export default function AffiliateDetailPage() {
                 <div className="flex items-center justify-center p-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
+              ) : affiliateTransactionsError ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">{affiliateTransactionsError}</div>
               ) : affiliateTransactions.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">No affiliate transactions found.</div>
               ) : (
@@ -469,6 +544,45 @@ export default function AffiliateDetailPage() {
             </div>
           </div>
         </main>
+
+        <Dialog open={actionType !== null} onOpenChange={(open) => !open && setActionType(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{actionTitle}</DialogTitle>
+              <DialogDescription>{actionDescription}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="affiliateActionReason">Reason</Label>
+                <textarea
+                  id="affiliateActionReason"
+                  className="mt-2 min-h-28 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm"
+                  placeholder="SERIOUS_COMPLIANCE_VIOLATION"
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  disabled={actionWorking}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setActionType(null)}
+                  disabled={actionWorking}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleAffiliateAction}
+                  disabled={actionWorking || !actionReason.trim()}
+                >
+                  {actionWorking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Proceed
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     </ProtectedRoute>
   );

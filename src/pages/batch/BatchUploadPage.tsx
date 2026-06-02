@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertCircle, ArrowLeft, ChevronDown, ChevronRight, Download, FileText, Loader2, Upload as UploadIcon, X,
@@ -6,22 +6,120 @@ import {
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { useAuth } from '@/hooks/useAuth'
 import { useBatches } from '@/hooks/useBatches'
+import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
+
+const AFFILIATE_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
+
+type CachedBank = {
+  bankId: string
+  bankName: string
+  bankCode: string
+  status: string
+}
+
+function normalizeBank(candidate: any): CachedBank | null {
+  const bankId = String(candidate?.bankId || '').trim()
+  const bankName = String(candidate?.bankName || candidate?.bankDetails?.name || '').trim()
+  const bankCode = String(candidate?.bankCode || candidate?.bankDetails?.code || '').trim()
+  const status = String(candidate?.status || candidate?.partnershipStatus || 'ACTIVE').trim()
+
+  if (!bankId) return null
+  if (!bankName && !bankCode) return null
+
+  return { bankId, bankName, bankCode, status }
+}
 
 export default function BatchUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [productId, setProductId] = useState(CARD_PRODUCTS[0]?.id ?? '')
+  const [bankId, setBankId] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [banksLoading, setBanksLoading] = useState(true)
+  const [banksError, setBanksError] = useState<string | null>(null)
+  const [allBanks, setAllBanks] = useState<CachedBank[]>([])
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { upload } = useBatches('cards')
 
+  useEffect(() => {
+    let mounted = true
+
+    const loadBanks = async () => {
+      setBanksLoading(true)
+      setBanksError(null)
+
+      try {
+        const affiliateId = resolveAffiliateId(user)
+        const cacheKey = `${AFFILIATE_BANKS_CACHE_KEY}:${affiliateId}`
+        const raw = window.localStorage.getItem(cacheKey)
+
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as unknown[]
+            const normalized = Array.isArray(parsed)
+              ? parsed.map(normalizeBank).filter((bank): bank is CachedBank => Boolean(bank))
+              : []
+
+            if (normalized.length > 0) {
+              if (mounted) setAllBanks(normalized)
+              window.localStorage.setItem(cacheKey, JSON.stringify(normalized))
+              return
+            }
+          } catch {
+            window.localStorage.removeItem(cacheKey)
+          }
+        }
+
+        const response = await getBankPartnershipsByAffiliate(affiliateId)
+        const normalized = (response.banks || [])
+          .map(normalizeBank)
+          .filter((bank): bank is CachedBank => Boolean(bank))
+          .filter((bank) => bank.status === 'ACTIVE')
+
+        window.localStorage.setItem(cacheKey, JSON.stringify(normalized))
+        if (mounted) setAllBanks(normalized)
+      } catch (error) {
+        if (mounted) {
+          setAllBanks([])
+          setBanksError(error instanceof Error ? error.message : 'Failed to load banks')
+        }
+      } finally {
+        if (mounted) setBanksLoading(false)
+      }
+    }
+
+    void loadBanks()
+    return () => {
+      mounted = false
+    }
+  }, [user])
+
+  const availableBanks = useMemo(
+    () => allBanks.filter((bank) => bank.status === 'ACTIVE'),
+    [allBanks]
+  )
+
+  useEffect(() => {
+    if (!availableBanks.length) {
+      setBankId('')
+      return
+    }
+
+    setBankId((current) => {
+      if (current && availableBanks.some((bank) => bank.bankId === current)) return current
+      return availableBanks[0]?.bankId || ''
+    })
+  }, [availableBanks])
+
   async function onUploadAndValidate() {
-    if (!file || !productId) return
+    if (!file || !productId || !bankId) return
     setUploading(true)
     try {
-      const res = await upload({ category: 'cards', file, productId })
+      const res = await upload({ category: 'cards', file, productId, bankId })
       toast.success(`Batch ${res.batchId} uploaded.`)
       navigate('/batch-operations')
     } catch (error) {
@@ -58,12 +156,40 @@ export default function BatchUploadPage() {
                     onChange={(e) => setProductId(e.target.value)}
                   >
                     {CARD_PRODUCTS.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} � {p.id}</option>
+                      <option key={p.id} value={p.id}>{p.name} - {p.id}</option>
                     ))}
                   </select>
                   <ChevronDown />
                 </div>
                 <p className="help-text">Determines BIN range, fees, and issuing bank for every card in this batch.</p>
+              </div>
+
+              <div>
+                <label className="bch-label" htmlFor="bank">Issuing bank</label>
+                <div className="select-wrap">
+                  <select
+                    id="bank"
+                    className="bch-select"
+                    value={bankId}
+                    onChange={(e) => setBankId(e.target.value)}
+                    disabled={banksLoading || uploading || !availableBanks.length}
+                  >
+                    {banksLoading ? (
+                      <option value="">Loading banks...</option>
+                    ) : !availableBanks.length ? (
+                      <option value="">No active bank partnerships</option>
+                    ) : (
+                      availableBanks.map((bank) => (
+                        <option key={bank.bankId} value={bank.bankId}>
+                          {bank.bankName} {bank.bankCode ? `- ${bank.bankCode}` : ''}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <ChevronDown />
+                </div>
+                <p className="help-text">The selected bankId will be included in the batch upload request.</p>
+                {banksError && <p className="text-xs text-destructive" style={{ marginTop: 8 }}>{banksError}</p>}
               </div>
 
               <div>
@@ -96,7 +222,7 @@ export default function BatchUploadPage() {
                       <div className="file-icon"><FileText /></div>
                       <div className="file-meta">
                         <div className="file-name">{file.name}</div>
-                        <div className="file-detail">{(file.size / 1024).toFixed(1)} KB � ready to upload</div>
+                        <div className="file-detail">{(file.size / 1024).toFixed(1)} KB - ready to upload</div>
                       </div>
                       <button
                         type="button"
@@ -116,7 +242,7 @@ export default function BatchUploadPage() {
                     <div className="dropzone-prompt">
                       <UploadIcon />
                       <div className="dropzone-prompt-main">Drop CSV or XLSX here, or click to browse</div>
-                      <div className="dropzone-prompt-sub">Up to 10,000 rows � 25 MB max � file structure must match the template</div>
+                      <div className="dropzone-prompt-sub">Up to 10,000 rows - 25 MB max - file structure must match the template</div>
                     </div>
                   )}
                 </label>
@@ -127,8 +253,8 @@ export default function BatchUploadPage() {
                   accept=".csv,.xlsx"
                   hidden
                   onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) setFile(f)
+                    const nextFile = e.target.files?.[0]
+                    if (nextFile) setFile(nextFile)
                   }}
                 />
               </div>
@@ -149,8 +275,8 @@ export default function BatchUploadPage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={!file || uploading}
-                  style={file ? undefined : { opacity: 0.4, pointerEvents: 'none' }}
+                  disabled={!file || !bankId || uploading || banksLoading}
+                  style={file && bankId ? undefined : { opacity: 0.4, pointerEvents: 'none' }}
                   onClick={onUploadAndValidate}
                 >
                   {uploading ? <Loader2 className="spin" style={{ width: 14, height: 14 }} /> : null}

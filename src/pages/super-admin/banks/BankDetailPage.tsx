@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
@@ -39,8 +38,8 @@ export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { volume, isLoading: volumeLoading } = useBankTransactionVolume(bankId);
-  const { metrics: cardMetrics, isLoading: cardMetricsLoading } = useBankCardMetrics(bankId);
+  const { volume, isLoading: volumeLoading, error: volumeError } = useBankTransactionVolume(bankId);
+  const { metrics: cardMetrics, isLoading: cardMetricsLoading, error: cardMetricsError } = useBankCardMetrics(bankId);
   
   const routeState = location.state as { bank?: BankQueryItem } | null;
   const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
@@ -134,33 +133,11 @@ export default function BankDetailPage() {
     );
   }
 
-  if (bankLoading) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
-        <AppLayout navVariant="service-provider">
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  if (!bankSummary) {
-    return (
-      <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
-        <AppLayout navVariant="service-provider">
-          <div className="text-center py-20 text-muted-foreground">{bankError || 'Bank not found'}</div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  const bankName = bankSummary.bankName || `Bank ${bankId}`;
-  const bankCode = bankSummary.bankCode || '-';
-  const bankStatus = bankSummary.status;
-  const supportedCurrencies = bankSummary.supportedCurrencies || [];
-  const createdAt = bankSummary.createdAt;
+  const bankName = bankSummary?.bankName || `Bank ${bankId}`;
+  const bankCode = bankSummary?.bankCode || '-';
+  const bankStatus = bankSummary?.status;
+  const supportedCurrencies = bankSummary?.supportedCurrencies || [];
+  const createdAt = bankSummary?.createdAt;
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
@@ -184,6 +161,17 @@ export default function BankDetailPage() {
 
             <AppCard padded="md" style={{ marginTop: 14 }}>
             <div className="kardit-card p-6 mb-6">
+              {bankLoading && (
+                <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  Loading bank details...
+                </div>
+              )}
+              {bankError && (
+                <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                  {bankError}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bank ID</p>
@@ -234,6 +222,7 @@ export default function BankDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.totalCardsIssued?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Cards Issued</p>
+                    {cardMetricsError && <p className="text-xs text-destructive mt-1">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -247,6 +236,7 @@ export default function BankDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.frozenCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Frozen Cards</p>
+                    {cardMetricsError && <p className="text-xs text-destructive mt-1">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -260,6 +250,7 @@ export default function BankDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.terminatedCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Terminated Cards</p>
+                    {cardMetricsError && <p className="text-xs text-destructive mt-1">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>
@@ -287,6 +278,7 @@ export default function BankDetailPage() {
                       {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalTransactionVolume)}
                     </p>
                     <p className="text-xs text-muted-foreground">Transaction Volume</p>
+                    {volumeError && <p className="text-xs text-destructive mt-1">{volumeError}</p>}
                   </div>
                 </div>
               </div>
@@ -300,6 +292,7 @@ export default function BankDetailPage() {
                       {volumeLoading ? '...' : formatMoney(volume?.volumes?.totalFundingVolume)}
                     </p>
                     <p className="text-xs text-muted-foreground">Funding Volume</p>
+                    {volumeError && <p className="text-xs text-destructive mt-1">{volumeError}</p>}
                   </div>
                 </div>
               </div>
@@ -313,6 +306,7 @@ export default function BankDetailPage() {
                       {cardMetricsLoading ? '...' : (cardMetrics?.metrics.activeCards?.toLocaleString() ?? '-')}
                     </p>
                     <p className="text-xs text-muted-foreground">Active Cards</p>
+                    {cardMetricsError && <p className="text-xs text-destructive mt-1">{cardMetricsError}</p>}
                   </div>
                 </div>
               </div>

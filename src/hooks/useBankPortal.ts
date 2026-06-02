@@ -490,7 +490,7 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
           idempotencyKey: `IDEMP-${Date.now()}`,
         },
         reason,
-        idempotencyKey: `IDEMP-${Date.now()}`,
+        // idempotencyKey: `IDEMP-${Date.now()}`,
       });
     },
     [affiliateId, user]

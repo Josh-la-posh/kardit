@@ -235,7 +235,7 @@ export interface SuspendAffiliateResponse {
 export interface BlockAffiliateRequest {
   requestContext: AffiliateActionRequestContext;
   reason: string;
-  idempotencyKey: string;
+  // idempotencyKey: string;
 }
 
 export interface BlockAffiliateResponse {

@@ -1,7 +1,9 @@
 import { ApiError } from '@/services/authApi';
 import type {
+  BankPartnershipItem,
   CreateBankPartnershipRequest,
   CreateBankPartnershipResponse,
+  GetBankPartnershipsByAffiliateResponse,
   GetAffiliateBankPartnershipsResponse,
   QueryAffiliatePartnershipRequestsResponse,
 } from '@/types/affiliateBankContracts';
@@ -56,6 +58,9 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
 export function resolveAffiliateId(user?: { tenantId?: string; email?: string } | null): string {
   const explicitAffiliateId = (import.meta as any).env?.VITE_AFFILIATE_ID as string | undefined;
   if (explicitAffiliateId) return explicitAffiliateId;
+  if ('affiliateId' in (user || {}) && typeof (user as { affiliateId?: string })?.affiliateId === 'string' && (user as { affiliateId?: string }).affiliateId) {
+    return (user as { affiliateId?: string }).affiliateId as string;
+  }
   if (user?.tenantId?.startsWith('AFF-')) return user.tenantId;
 
   const byTenant: Record<string, string> = {
@@ -73,31 +78,74 @@ export function resolveAffiliateId(user?: { tenantId?: string; email?: string } 
   throw new Error('Missing affiliateId. Set VITE_AFFILIATE_ID or provide an affiliate-scoped login.');
 }
 
+function mapPartnershipToAffiliateBank(item: BankPartnershipItem) {
+  return {
+    bankId: item.bankId,
+    bankName: item.bankName || 'Unknown',
+    bankCode: item.bankCode,
+    partnershipStatus: item.partnershipStatus || item.status || 'ACTIVE',
+    rejectionReason: item.rejectionReason || item.note,
+    lastUpdatedAt:
+      item.lastUpdatedAt ||
+      item.updatedAt ||
+      (item.decisionedAt && !item.decisionedAt.startsWith('0001-01-01')
+        ? item.decisionedAt
+        : item.requestedAt) ||
+      new Date(0).toISOString(),
+  };
+}
+
+export async function getBankPartnershipsByAffiliate(
+  affiliateId: string
+): Promise<GetAffiliateBankPartnershipsResponse> {
+  const response = await getJson<GetBankPartnershipsByAffiliateResponse>(
+    `/banks/partnerships/${encodeURIComponent(affiliateId)}`
+  );
+
+  const items = Array.isArray(response?.banks)
+    ? response.banks
+    : Array.isArray(response?.data)
+      ? response.data
+      : [];
+
+  return {
+    affiliateId: response?.affiliateId || affiliateId,
+    banks: items
+      .filter((item): item is BankPartnershipItem => Boolean(item?.bankId))
+      .map(mapPartnershipToAffiliateBank),
+  };
+}
+
 export async function getAffiliateBankPartnerships(
   affiliateId: string
 ): Promise<GetAffiliateBankPartnershipsResponse> {
-  const response = await postJson<QueryAffiliatePartnershipRequestsResponse>(
-    '/affiliates/partnership-requests/query',
-    {
-      filters: { affiliateId },
-      page: 1,
-      pageSize: 500,
-    }
-  );
+  try {
+    return await getBankPartnershipsByAffiliate(affiliateId);
+  } catch {
+    const response = await postJson<QueryAffiliatePartnershipRequestsResponse>(
+      '/affiliates/partnership-requests/query',
+      {
+        filters: { affiliateId },
+        page: 1,
+        pageSize: 500,
+      }
+    );
 
-  return {
-    affiliateId,
-    banks: (response.data || []).map((item) => ({
-      bankId: item.bankId,
-      bankName: item.bankName || 'Unknown',
-      partnershipStatus: item.status,
-      rejectionReason: item.note,
-      lastUpdatedAt:
-        item.decisionedAt && !item.decisionedAt.startsWith('0001-01-01')
-          ? item.decisionedAt
-          : item.requestedAt,
-    })),
-  };
+    return {
+      affiliateId,
+      banks: (response.data || []).map((item) => ({
+        bankId: item.bankId,
+        bankName: item.bankName || 'Unknown',
+        bankCode: undefined,
+        partnershipStatus: item.status,
+        rejectionReason: item.note,
+        lastUpdatedAt:
+          item.decisionedAt && !item.decisionedAt.startsWith('0001-01-01')
+            ? item.decisionedAt
+            : item.requestedAt,
+      })),
+    };
+  }
 }
 
 export async function createAffiliateBankPartnershipRequest(
