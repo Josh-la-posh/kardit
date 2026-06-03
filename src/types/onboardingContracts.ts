@@ -185,7 +185,7 @@ export interface OnboardingCase {
 
 
 export interface DecisionRequest {
-  decision: 'APPROVE' | 'REJECT' | 'REQUEST_CLARIFICATION';
+  decision: 'APPROVE' | 'REJECT' | 'CLARIFY';
   reason?: string;
   reviewerNote?: string;
   reviewerNotes?: string;

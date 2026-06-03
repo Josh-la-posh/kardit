@@ -8,6 +8,7 @@ export interface BatchRequestContext {
 export interface UploadBatchRequest {
   requestContext: BatchRequestContext;
   productId: string;
+  bankId: string;
   file: {
     fileName: string;
     contentType: string;

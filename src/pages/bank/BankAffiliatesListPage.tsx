@@ -120,12 +120,12 @@ export default function BankAffiliatesListPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
               <Kpi label="Affiliates" value={String(filtered.length)} sub="Within current filter" />
               <Kpi label="Total cards" value={totalCards.toLocaleString()} sub="Across listed affiliates" />
               <Kpi label="Active cards" value={totalActiveCards.toLocaleString()} sub="Currently active" />
               <Kpi label="Funding" value={totalFunding.toLocaleString()} sub="Aggregate funding volume" />
-            </section>
+            </section> */}
 
             <section className="bch-card card-pad" style={{ marginTop: 14 }}>
               <div className="relative">

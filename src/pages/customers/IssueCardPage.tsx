@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
 import { useCreateCard } from '@/hooks/useCards';
 import { useCustomer } from '@/hooks/useCustomers';
-import { getBanks } from '@/services/bankApi';
+import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi';
 import { CARD_PRODUCTS, DELIVERY_METHODS, ID_TYPES, store } from '@/stores/mockStore';
 import { ArrowLeft, ArrowRight, CircleDollarSign, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ export default function IssueCardPage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const routeState = (location.state as { customer?: any; returnTo?: string } | null) || null;
   const routeCustomer = routeState?.customer || null;
   const returnTo = routeState?.returnTo || `/customers/${customerId}`;
@@ -93,7 +95,10 @@ export default function IssueCardPage() {
       setBanksError(null);
 
       try {
-        const raw = window.localStorage.getItem(AFFILIATE_BANKS_CACHE_KEY);
+        const affiliateId = resolveAffiliateId(user);
+        const cacheKey = `${AFFILIATE_BANKS_CACHE_KEY}:${affiliateId}`;
+
+        const raw = window.localStorage.getItem(cacheKey);
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as unknown[];
@@ -103,19 +108,20 @@ export default function IssueCardPage() {
 
             if (normalized.length > 0) {
               if (mounted) setAllBanks(normalized);
-              window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(normalized));
+              window.localStorage.setItem(cacheKey, JSON.stringify(normalized));
               return;
             }
           } catch {
-            window.localStorage.removeItem(AFFILIATE_BANKS_CACHE_KEY);
+            window.localStorage.removeItem(cacheKey);
           }
         }
 
-        const fetched = await getBanks();
-        const normalized = (fetched || [])
+        const response = await getBankPartnershipsByAffiliate(affiliateId);
+        const normalized = (response.banks || [])
           .map(normalizeBank)
-          .filter((bank): bank is CachedBank => Boolean(bank));
-        window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(normalized));
+          .filter((bank): bank is CachedBank => Boolean(bank))
+          .filter((bank) => bank.status === 'ACTIVE');
+        window.localStorage.setItem(cacheKey, JSON.stringify(normalized));
         if (mounted) setAllBanks(normalized);
       } catch (e) {
         if (mounted) {
@@ -131,7 +137,7 @@ export default function IssueCardPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     setErrors({});

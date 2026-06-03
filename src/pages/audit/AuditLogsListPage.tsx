@@ -70,7 +70,7 @@ export default function AuditLogsListPage() {
         key: 'entityId',
         header: 'Entity ID',
         className: 'meta',
-        render: (log: (typeof filtered)[number]) => log.entityId || '—',
+        render: (log: (typeof filtered)[number]) => log.entityId || 'ï¿½',
       },
     ],
     [filtered]
@@ -88,12 +88,12 @@ export default function AuditLogsListPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
+            {/* <section className="kpis" style={{ marginTop: 14 }}>
               <Kpi label="Total logs" value={String(logs.length)} sub="All captured events" />
               <Kpi label="Filtered" value={String(filtered.length)} sub="Matching current filters" />
               <Kpi label="Action" value={actionFilter === 'ALL' ? 'All' : actionFilter} sub="Active action filter" />
               <Kpi label="Entity" value={entityFilter === 'ALL' ? 'All' : entityFilter} sub="Active entity filter" />
-            </section>
+            </section> */}
 
             <AppCard padded="md" style={{ marginTop: 14 }}>
               <AppCardHeader style={{ marginBottom: 12 }}>

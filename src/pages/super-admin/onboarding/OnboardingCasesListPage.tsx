@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import type { OnboardingCaseStatus } from '@/types/onboardingContracts';
 import { PaginatedTable } from '@/components/ui/paginated-table';
 import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
+import { RefreshCw } from 'lucide-react';
 
 const statusToChip: Record<string, StatusType> = {
   SUBMITTED: 'PENDING',
@@ -102,17 +103,11 @@ export default function OnboardingCasesListPage() {
               </div>
               <div className="row-end">
                 <Button variant="outline" size="sm" onClick={refresh}>
+                  <RefreshCw className={isLoading ? 'mr-1 h-4 w-4 animate-spin' : 'mr-1 h-4 w-4'} />
                   Refresh
                 </Button>
               </div>
             </header>
-
-            <section className="kpis" style={{ marginTop: 14 }}>
-              <Kpi label="Total cases" value={String(total)} sub="Across selected filters" />
-              <Kpi label="Current status" value={currentStatusLabel} sub="Filter applied" />
-              <Kpi label="Page" value={String(currentPage)} sub="Current pagination index" />
-              <Kpi label="Page size" value={String(selectedPageSize)} sub="Rows per page" />
-            </section>
 
             <AppCard padded="md" style={{ marginTop: 16 }}>
               <AppCardHeader style={{ marginBottom: 12 }}>

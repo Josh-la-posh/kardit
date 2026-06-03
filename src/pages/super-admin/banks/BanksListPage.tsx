@@ -153,13 +153,6 @@ export default function BanksListPage() {
               </div>
             </header>
 
-            <section className="kpis" style={{ marginTop: 14 }}>
-              <Kpi label="Total banks" value={String(total)} sub="All registered institutions" />
-              <Kpi label="Active on page" value={String(activeOnPage)} sub="Visible current page count" />
-              <Kpi label="Inactive on page" value={String(inactiveOnPage)} sub="Visible current page count" />
-              <Kpi label="Page size" value={String(selectedPageSize)} sub="Rows per page" />
-            </section>
-
             <AppCard padded="md" style={{ marginTop: 16 }}>
               <AppCardHeader style={{ marginBottom: 12 }}>
                 <div>
