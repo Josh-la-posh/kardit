@@ -148,6 +148,12 @@ function toErrorMessage(error: unknown) {
   return 'Something went wrong while loading cards.';
 }
 
+function normalizeDob(value: string | undefined) {
+  const dob = String(value || '').trim();
+  if (!dob) return '';
+  return dob.includes('T') ? dob.split('T')[0] : dob;
+}
+
 function mapCreatedCard(response: CreateCardResponse, input: CreateCardInput, tenantId?: string): Card {
   return toCardModel(
     {
@@ -384,7 +390,7 @@ export function useCreateCard() {
     const customerIdentity = data.customerIdentity || {
       firstName: customerResponse?.identity.firstName || '',
       lastName: customerResponse?.identity.lastName || '',
-      dob: customerResponse?.identity.dob || '',
+      dob: normalizeDob(customerResponse?.identity.dob),
       phone: customerResponse?.identity.phone || '',
       email: customerResponse?.identity.email || '',
     };
@@ -414,7 +420,7 @@ export function useCreateCard() {
           identity: {
             firstName: customerIdentity.firstName,
             lastName: customerIdentity.lastName,
-            dob: customerIdentity.dob,
+            dob: normalizeDob(customerIdentity.dob),
             phone: customerIdentity.phone,
             email: customerIdentity.email,
           },

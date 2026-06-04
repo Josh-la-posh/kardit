@@ -1,10 +1,11 @@
-﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { City, Country, State } from 'react-country-state-city/dist/esm/types'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks/useAuth'
 import { useCreateCustomer } from '@/hooks/useCustomers'
 import { useCreateCard } from '@/hooks/useCards'
-import { getBanks, queryBanks } from '@/services/bankApi'
+import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
 const ID_TYPE_TO_API: Record<string, string> = {
@@ -82,7 +83,8 @@ function mapBankItem(candidate: any): FlowBank | null {
   const bankId = String(candidate?.bankId || '').trim()
   const bankName = String(candidate?.bankDetails?.name || candidate?.bankName || '').trim()
   const bankCode = String(candidate?.bankDetails?.code || candidate?.bankCode || '').trim()
-  if (!bankId || !bankName) return null
+  const status = String(candidate?.status || candidate?.partnershipStatus || 'ACTIVE').trim()
+  if (!bankId || !bankName || status !== 'ACTIVE') return null
   return {
     bankId,
     bankDetails: {
@@ -99,6 +101,7 @@ function mergeUniqueBanks(current: FlowBank[], incoming: FlowBank[]) {
 }
 
 export function CreateCustomerFlowProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const { createCustomerDraft, isLoading: creatingCustomer } = useCreateCustomer()
   const { createCard, isLoading: creatingCard } = useCreateCard()
 
@@ -135,8 +138,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     currency: 'NGN',
   })
 
-  const saveBanksToCache = useCallback((items: FlowBank[]) => {
-    window.localStorage.setItem(CUSTOMER_BANKS_CACHE_KEY, JSON.stringify(items))
+  const saveBanksToCache = useCallback((affiliateId: string, items: FlowBank[]) => {
+    window.localStorage.setItem(`${CUSTOMER_BANKS_CACHE_KEY}:${affiliateId}`, JSON.stringify(items))
   }, [])
 
   useEffect(() => {
@@ -145,7 +148,9 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     const loadBanks = async () => {
       setBanksLoading(true)
       try {
-        const raw = window.localStorage.getItem(CUSTOMER_BANKS_CACHE_KEY)
+        const affiliateId = resolveAffiliateId(user)
+        const cacheKey = `${CUSTOMER_BANKS_CACHE_KEY}:${affiliateId}`
+        const raw = window.localStorage.getItem(cacheKey)
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as unknown[]
@@ -155,20 +160,20 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
 
             if (normalized.length > 0) {
               if (mounted) setBanks(normalized)
-              saveBanksToCache(normalized)
+              saveBanksToCache(affiliateId, normalized)
               return
             }
           } catch {
-            window.localStorage.removeItem(CUSTOMER_BANKS_CACHE_KEY)
+            window.localStorage.removeItem(cacheKey)
           }
         }
 
-        const response = await getBanks()
-        const fetched = (response || [])
+        const response = await getBankPartnershipsByAffiliate(affiliateId)
+        const fetched = (response.banks || [])
           .map(mapBankItem)
           .filter((bank): bank is FlowBank => Boolean(bank))
         if (mounted) setBanks(fetched)
-        saveBanksToCache(fetched)
+        saveBanksToCache(affiliateId, fetched)
       } catch {
         if (mounted) setBanks([])
       } finally {
@@ -180,7 +185,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     return () => {
       mounted = false
     }
-  }, [saveBanksToCache])
+  }, [saveBanksToCache, user])
 
   const searchBanksFromBackend = useCallback(async (query: string) => {
     const term = query.trim().toLowerCase()
@@ -193,28 +198,25 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     })
     if (exists) return
 
-    setBanksLoading(true)
     try {
-      const response = await queryBanks({
-        filters: { status: ['ACTIVE'], name: query.trim() },
-        page: 1,
-        pageSize: 100,
-      })
-      const fetched = (response.data || [])
+      const affiliateId = resolveAffiliateId(user)
+      setBanksLoading(true)
+      const response = await getBankPartnershipsByAffiliate(affiliateId)
+      const fetched = (response.banks || [])
         .map(mapBankItem)
         .filter((bank): bank is FlowBank => Boolean(bank))
 
       setBanks((prev) => {
         const merged = mergeUniqueBanks(prev, fetched)
-        saveBanksToCache(merged)
+        saveBanksToCache(affiliateId, merged)
         return merged
       })
     } catch {
-      // Preserve current list when backend lookup fails.
+      // Preserve current list when partnership refresh fails.
     } finally {
       setBanksLoading(false)
     }
-  }, [banks, saveBanksToCache])
+  }, [banks, saveBanksToCache, user])
 
   const fullName = `${customerForm.firstName} ${customerForm.lastName}`.replace(/\s+/g, ' ').trim()
   const selectedBank = banks.find((bank) => bank.bankId === cardForm.bankId)

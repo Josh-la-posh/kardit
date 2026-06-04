@@ -461,9 +461,9 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
         requestContext: {
           requestId: `REQ-SUS-${Date.now()}`,
           actorUserId: user?.id || 'USR-BNK-UNKNOWN',
-          userType: user?.role || 'BANK_USER',
+          userType: user?.role || 'BANK_ADMIN',
           bankId: resolvedBankId,
-          role: user?.role || 'BANK_USER',
+          role: user?.role || 'BANK_ADMIN',
           tenantId: user?.tenantId,
           affiliateId: affiliateId,
           idempotencyKey: `IDEMP-${Date.now()}`,
@@ -483,8 +483,8 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
         requestContext: {
           requestId: `REQ-BLK-${Date.now()}`,
           actorUserId: user?.id || 'USR-BNK-UNKNOWN',
-          userType: user?.stakeholderType || 'BANK',
-          role: user?.role || 'BANK_USER',
+          userType: user?.role || 'BANK_ADMIN',
+          role: user?.role || 'BANK_ADMIN',
           tenantId: user?.tenantId,
           affiliateId: affiliateId,
           idempotencyKey: `IDEMP-${Date.now()}`,
