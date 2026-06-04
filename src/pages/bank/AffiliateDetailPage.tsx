@@ -218,12 +218,12 @@ export default function AffiliateDetailPages() {
                 <button className="btn btn-ghost btn-sm" onClick={() => navigate(`${basePath}/customers`)}>
                   <Users className="h-4 w-4" /> View Customers
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => openActionDialog('suspend')}>
+                <button className="btn btn-primary btn-sm" onClick={() => openActionDialog('suspend')}>
                   <StopCircle className="h-4 w-4" /> Suspend
                 </button>
-                <button className="btn btn-primary btn-sm" onClick={() => openActionDialog('block')}>
+                <Button variant="danger" size="sm" onClick={() => openActionDialog('block')}>
                   <ShieldAlert className="h-4 w-4" /> Block
-                </button>
+                </Button>
               </div>
             </header>
 
