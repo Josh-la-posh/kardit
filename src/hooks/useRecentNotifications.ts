@@ -1,58 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  Notification, 
-  mockNotifications, 
-  simulateDelay 
-} from '@/services/mockData';
+import { useMemo } from 'react';
+import { useNotifications } from '@/hooks/useNotifications';
 
-/**
- * Hook to fetch recent notifications
- * 
- * Usage:
- * const { notifications, unreadCount, isLoading, markAsRead } = useRecentNotifications();
- */
+const RECENT_NOTIFICATIONS_LIMIT = 5;
+
 export function useRecentNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { notifications, unreadCount, isLoading, error, refetch } = useNotifications({
+    page: 1,
+    pageSize: 25,
+  });
 
-  const fetchNotifications = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      await simulateDelay(400);
-      setNotifications(mockNotifications);
-    } catch (err) {
-      setError('Failed to load notifications');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const recentNotifications = useMemo(() => {
+    return [...notifications]
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .slice(0, RECENT_NOTIFICATIONS_LIMIT);
+  }, [notifications]);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  }, []);
-
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  }, []);
-
-  return { 
-    notifications, 
-    unreadCount, 
-    isLoading, 
-    error, 
-    markAsRead, 
-    markAllAsRead,
-    refetch: fetchNotifications 
+  return {
+    notifications: recentNotifications,
+    unreadCount,
+    isLoading,
+    error,
+    markAsRead: () => {},
+    markAllAsRead: () => {},
+    refetch,
   };
 }
