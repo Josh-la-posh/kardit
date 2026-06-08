@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import IamCallbackPage from "./pages/IamCallbackPage";
 
 // Dashboard
 import DashboardPage from "./pages/DashboardPage";
@@ -138,6 +139,7 @@ const App = () => (
             <Route element={<PublicLayout />}>
               <Route path="/" element={<Page/>} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/callback" element={<IamCallbackPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />

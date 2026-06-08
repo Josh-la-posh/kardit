@@ -38,7 +38,6 @@ export default function AffiliateBanksPage() {
       render: (bank: (typeof banks)[number]) => (
         <>
           <div style={{ fontWeight: 600, color: 'var(--cs-ink-700)' }}>{bank.bankName}</div>
-          <div className="meta mono">{bank.bankId}</div>
         </>
       ),
     },
