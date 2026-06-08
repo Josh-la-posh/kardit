@@ -75,10 +75,31 @@ export interface SuperAdminNotification {
   message: string;
   status: NotificationStatus;
   createdAt: string;
+  title?: string;
+  severity?: 'INFO' | 'WARNING' | 'ERROR' | string;
+  readAt?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListNotificationsRequest {
+  status?: string;
+  type?: string;
+  tenantId: string;
+  userId: string;
+  page: number;
+  pageSize: number;
 }
 
 export interface ListNotificationsResponse {
-  notifications: SuperAdminNotification[];
+  notifications?: SuperAdminNotification[];
+  results?: SuperAdminNotification[];
+  items?: SuperAdminNotification[];
+  data?: SuperAdminNotification[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
 }
 
 export interface UpdateNotificationStatusRequest {
