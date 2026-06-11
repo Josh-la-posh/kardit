@@ -6,7 +6,7 @@ export const appConfig = {
   iamClientId: import.meta.env.VITE_IAM_CLIENT_ID || '',
   iamTenantCode: import.meta.env.VITE_IAM_TENANT_CODE || undefined,
   iamCallbackPath: import.meta.env.VITE_IAM_CALLBACK_PATH || '/callback',
-  iamStorageKey: import.meta.env.VITE_IAM_STORAGE_KEY || 'kardit_iam_token',
+  iamStorageKey: import.meta.env.VITE_IAM_STORAGE_KEY || 'kd_s0',
 };
 
 export const isIamEnabled = Boolean(appConfig.gatewayUrl && appConfig.iamClientId);

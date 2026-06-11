@@ -31,9 +31,9 @@ export interface IAMLogoutOptions {
   postLogoutRedirectUri: string;
 }
 
-const authStateKey = 'iam_auth_state';
-const returnUrlKey = 'iam_return_url';
-const dpopKeyStoreKey = 'iam_dpop_private_key';
+const authStateKey = 'kd_s1';
+const returnUrlKey = 'kd_s2';
+const dpopKeyStoreKey = 'kd_s3';
 const encoder = new TextEncoder();
 const nativeFetch = typeof window === 'undefined' ? fetch : window.fetch.bind(window);
 
@@ -112,7 +112,7 @@ export class IAMBrowserClient {
   }
 
   private get refreshStorageKey() {
-    return `${this.storageKey}_refresh`;
+    return `${this.storageKey}_r`;
   }
 
   private storeTokens(accessToken: string, refreshToken?: string) {
