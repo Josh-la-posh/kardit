@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRecentNotifications } from '@/hooks/useRecentNotifications';
-import { useAuth } from '@/hooks/useAuth';
-import { X, Bell, AlertTriangle, CheckCircle, Info, AlertCircle, Loader2 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import { NotificationSeverity } from '@/services/mockData';
-import { isBankReadOnlyUser } from '@/lib/permissions';
+import { X, Bell, AlertTriangle, Info, AlertCircle, Loader2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import type { AppNotificationSeverity } from '@/hooks/useNotifications';
 
 /**
  * NotificationsPanel - Slide-out panel for recent notifications
@@ -21,24 +19,19 @@ interface NotificationsPanelProps {
   onClose: () => void;
 }
 
-const severityConfig: Record<NotificationSeverity, { icon: typeof Info; className: string }> = {
-  info: { icon: Info, className: 'text-info' },
-  warning: { icon: AlertTriangle, className: 'text-warning' },
-  error: { icon: AlertCircle, className: 'text-destructive' },
-  success: { icon: CheckCircle, className: 'text-success' },
+const severityConfig: Record<AppNotificationSeverity, { icon: typeof Info; className: string }> = {
+  INFO: { icon: Info, className: 'text-info' },
+  WARNING: { icon: AlertTriangle, className: 'text-warning' },
+  ERROR: { icon: AlertCircle, className: 'text-destructive' },
 };
 
 export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
   const navigate = useNavigate();
-  const { notifications, isLoading, markAsRead, markAllAsRead, unreadCount } = useRecentNotifications();
-  const { user } = useAuth();
-  const isReadOnly = isBankReadOnlyUser(user);
+  const { notifications, isLoading, unreadCount, error } = useRecentNotifications();
 
   const handleNotificationClick = (id: string) => {
-    if (!isReadOnly) markAsRead(id);
-    console.log(`Notification ${id} clicked`);
-    // For now, just close the panel
-    // Later this could navigate to relevant content
+    onClose();
+    navigate(`/notifications/${id}`);
   };
 
   const handleViewAll = () => {
@@ -79,11 +72,8 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => {
-                  if (isReadOnly) return;
-                  markAllAsRead();
-                }}
-                disabled={isReadOnly}
+                disabled
+                title="Read-state updates are not yet wired to the API"
                 className="text-xs"
               >
                 Mark all read
@@ -103,6 +93,11 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Bell className="h-12 w-12 mb-3 opacity-50" />
+              <p>Unable to load notifications</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -146,7 +141,7 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
                           {notification.message}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1.5">
-                          {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                         </p>
                       </div>
                     </div>

@@ -3,12 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
-import { useNotification, useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, ExternalLink, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { isBankReadOnlyUser } from '@/lib/permissions';
+import { useNotification } from '@/hooks/useNotifications';
+import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 
 const entityRoutes: Record<string, (id: string) => string> = {
   Customer: (id) => `/customers/${id}`,
@@ -20,10 +17,7 @@ const entityRoutes: Record<string, (id: string) => string> = {
 export default function NotificationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { notification, isLoading } = useNotification(id);
-  const { toggleRead } = useNotifications();
-  const { user } = useAuth();
-  const isReadOnly = isBankReadOnlyUser(user);
+  const { notification, isLoading, error } = useNotification(id);
 
   if (isLoading) {
     return (
@@ -46,8 +40,8 @@ export default function NotificationDetailPage() {
           <main className="scr-main">
             <div className="container">
               <section className="bch-card" style={{ padding: 24 }}>
-                <div className="empty-list-title">Notification not found</div>
-                <div className="empty-list-sub">This notification may have been removed.</div>
+                <div className="empty-list-title">{error ? 'Unable to load notification' : 'Notification not found'}</div>
+                <div className="empty-list-sub">{error || 'This notification may have been removed.'}</div>
                 <div style={{ marginTop: 12 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => navigate('/notifications')}>
                     <ArrowLeft className="h-4 w-4" /> Back to notifications
@@ -108,27 +102,16 @@ export default function NotificationDetailPage() {
                 <div className="section-sub">Created: {format(new Date(notification.createdAt), 'PPP p')}</div>
                 {notification.readAt && <div className="section-sub">Read: {format(new Date(notification.readAt), 'PPP p')}</div>}
                 <div className="section-sub">Status: {notification.isRead ? 'Read' : 'Unread'}</div>
+                <div className="section-sub">Type: {notification.type}</div>
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
                 <button
                   className="btn btn-ghost btn-sm"
-                  disabled={isReadOnly}
-                  onClick={() => {
-                    if (isReadOnly) return;
-                    toggleRead(notification.id);
-                    navigate('/notifications');
-                  }}
+                  disabled
+                  title="Read-state updates are not yet wired to the API"
                 >
-                  {notification.isRead ? (
-                    <>
-                      <EyeOff className="h-4 w-4" /> Mark as unread
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4" /> Mark as read
-                    </>
-                  )}
+                  {notification.isRead ? 'Mark as unread' : 'Mark as read'}
                 </button>
 
                 {relatedRoute && (

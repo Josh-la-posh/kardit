@@ -1,14 +1,11 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/hooks/useAuth';
 import { AlertCircle, AlertTriangle, Bell, CheckSquare, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isBankReadOnlyUser } from '@/lib/permissions';
 
 const severityIcons = { INFO: Info, WARNING: AlertTriangle, ERROR: AlertCircle };
 const severityColors = {
@@ -19,9 +16,7 @@ const severityColors = {
 
 export default function NotificationsListPage() {
   const navigate = useNavigate();
-  const { notifications, isLoading, markAllAsRead } = useNotifications();
-  const { user } = useAuth();
-  const isReadOnly = isBankReadOnlyUser(user);
+  const { notifications, isLoading, error } = useNotifications();
   const [severityFilter, setSeverityFilter] = useState('ALL');
   const [readFilter, setReadFilter] = useState('ALL');
 
@@ -38,12 +33,6 @@ export default function NotificationsListPage() {
   const warningCount = useMemo(() => notifications.filter((n) => n.severity === 'WARNING').length, [notifications]);
   const errorCount = useMemo(() => notifications.filter((n) => n.severity === 'ERROR').length, [notifications]);
 
-  const handleMarkAll = () => {
-    if (isReadOnly) return;
-    markAllAsRead();
-    toast.success('All notifications marked as read');
-  };
-
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -54,7 +43,7 @@ export default function NotificationsListPage() {
                 <h1 className="page-title">Notifications</h1>
                 <p className="page-sub">View all notifications and quickly triage unread items.</p>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={handleMarkAll} disabled={isReadOnly}>
+              <button className="btn btn-ghost btn-sm" disabled={true} title="Read-state updates are not yet wired to the API">
                 <CheckSquare className="h-4 w-4" /> Mark all read
               </button>
             </header>
@@ -106,6 +95,12 @@ export default function NotificationsListPage() {
               {isLoading ? (
                 <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
                   <Loader2 className="spin" style={{ width: 24, height: 24 }} />
+                </div>
+              ) : error ? (
+                <div className="empty-list" style={{ padding: 24 }}>
+                  <Bell />
+                  <div className="empty-list-title">Unable to load notifications</div>
+                  <div className="empty-list-sub">{error}</div>
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="empty-list" style={{ padding: 24 }}>
