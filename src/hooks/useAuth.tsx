@@ -15,7 +15,7 @@ import {
   requestPasswordReset as apiRequestPasswordReset,
   resetPassword as apiResetPassword,
 } from '@/services/authApi';
-import { appConfig, isIamEnabled } from '@/config';
+import { isIamEnabled } from '@/config';
 import { iamClient, type TokenClaims } from '@/iam';
 
 /**
@@ -308,12 +308,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (emailOrRequest: string | LoginRequest, password?: string) => {
     if (isIamEnabled) {
+      const tenantCode = typeof emailOrRequest === 'string' ? undefined : emailOrRequest.tenantCode;
       const params = new URLSearchParams(window.location.search);
       const next = params.get('next');
       const safeNext = next?.startsWith('/') ? next : '/dashboard';
 
       await iamClient.login({
-        tenantCode: appConfig.iamTenantCode,
+        tenantCode,
         returnUrl: `${window.location.origin}${safeNext}`,
       });
 

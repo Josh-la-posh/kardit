@@ -3,6 +3,7 @@ export type AuthChannel = 'WEB';
 export interface LoginRequest {
   username: string;
   password: string;
+  tenantCode?: string;
   channel: AuthChannel;
   deviceInfo?: {
     ipAddress?: string;
