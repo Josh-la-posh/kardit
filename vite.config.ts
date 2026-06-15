@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     proxy: {
+      "/api/gw": {
+        target: process.env.VITE_GATEWAY_PROXY_TARGET || "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (apiPath) => apiPath.replace(/^\/api\/gw/, ""),
+      },
       "/api": {
         target: "http://167.172.49.177:8080",
         changeOrigin: true,

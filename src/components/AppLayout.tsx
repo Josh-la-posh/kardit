@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { KarditLogo } from '@/components/KarditLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { isIamEnabled } from '@/config';
 import { useRecentNotifications } from '@/hooks/useRecentNotifications';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { SessionExpiredDialog } from '@/components/SessionExpiredDialog';
@@ -106,8 +107,10 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    if (isIamEnabled) return;
+
     toast.success('Successfully logged out');
     navigate('/login');
   };

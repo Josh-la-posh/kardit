@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
@@ -24,14 +24,22 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { isAuthenticated, passwordMustChange, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    } else if (passwordMustChange) {
-      navigate('/change-password');
+    const params = new URLSearchParams(location.search);
+    if (params.has('code') && params.has('state')) {
+      navigate(`/callback${location.search}`, { replace: true });
+      return;
     }
-  }, [isAuthenticated, passwordMustChange, navigate]);
+
+    if (!isAuthenticated) {
+      const next = encodeURIComponent(`${location.pathname}${location.search}`);
+      navigate(`/login?reason=protected_route&next=${next}`, { replace: true });
+    } else if (passwordMustChange) {
+      navigate('/change-password', { replace: true });
+    }
+  }, [isAuthenticated, passwordMustChange, navigate, location.pathname, location.search]);
 
   if (!isAuthenticated || passwordMustChange) {
     return null;

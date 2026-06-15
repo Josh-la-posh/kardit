@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
@@ -15,6 +15,8 @@ import {
   requestPasswordReset as apiRequestPasswordReset,
   resetPassword as apiResetPassword,
 } from '@/services/authApi';
+import { appConfig, isIamEnabled } from '@/config';
+import { iamClient, type TokenClaims } from '@/iam';
 
 /**
  * Authentication Context for Kardit
@@ -64,13 +66,50 @@ interface AuthContextType extends AuthState {
   >;
   requestPasswordReset: (request: ForgotPasswordRequest) => Promise<ForgotPasswordResponse>;
   resetPassword: (request: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
-  logout: () => void;
+  logout: () => Promise<void> | void;
   completePasswordChange: () => void;
   forceSessionExpired: () => void;
   dismissSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function claimString(claims: TokenClaims | null, keys: string[], fallback = ''): string {
+  if (!claims) return fallback;
+  for (const key of keys) {
+    const value = claims[key];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return fallback;
+}
+
+function iamClaimsToUser(claims: TokenClaims | null): User | null {
+  if (!claims?.sub) return null;
+
+  const roles = Array.isArray(claims.roles) ? claims.roles : [];
+  const permissions = Array.isArray(claims.permissions) ? claims.permissions : [];
+  const role = roles[0] || permissions[0] || 'User';
+  const tenantId = claimString(claims, ['tenantId', 'tenant_id'], 'tenant_unknown');
+  const tenantSlug = claimString(claims, ['tenantSlug', 'tenant_slug']);
+  const tenantName = claimString(claims, ['tenantName', 'tenant_name'], tenantSlug || tenantId);
+  const stakeholderTypeClaim = claimString(claims, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type']);
+  const normalizedStakeholderType = stakeholderTypeClaim.toUpperCase();
+
+  return {
+    id: claims.sub,
+    email: claimString(claims, ['email', 'preferred_username'], 'user@kardit.app'),
+    name: claimString(claims, ['name', 'fullName', 'preferred_username', 'email'], 'User'),
+    role,
+    stakeholderType:
+      normalizedStakeholderType === 'BANK'
+        ? 'BANK'
+        : normalizedStakeholderType === 'SERVICE_PROVIDER' || normalizedStakeholderType === 'SUPER_ADMIN'
+          ? 'SERVICE_PROVIDER'
+          : 'AFFILIATE',
+    tenantId,
+    tenantName,
+  };
+}
 
 // Mock users for demo
 const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswordChange?: boolean; locked?: boolean }> = {
@@ -229,13 +268,72 @@ function toRoles(user: User): string[] {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
+    isAuthenticated: isIamEnabled ? iamClient.isAuthenticated() : false,
+    user: isIamEnabled ? iamClaimsToUser(iamClient.getClaims()) : null,
     passwordMustChange: false,
     sessionExpired: false,
   });
 
+  useEffect(() => {
+    if (!isIamEnabled) return undefined;
+
+    const syncIamState = () => {
+      const authenticated = iamClient.isAuthenticated();
+      setState((prev) => ({
+        ...prev,
+        isAuthenticated: authenticated,
+        user: authenticated ? iamClaimsToUser(iamClient.getClaims()) : null,
+        passwordMustChange: false,
+      }));
+    };
+
+    const handleSessionExpired = () => {
+      setState({
+        isAuthenticated: false,
+        user: null,
+        passwordMustChange: false,
+        sessionExpired: true,
+      });
+    };
+
+    syncIamState();
+    window.addEventListener('focus', syncIamState);
+    window.addEventListener('iam:session-expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('focus', syncIamState);
+      window.removeEventListener('iam:session-expired', handleSessionExpired);
+    };
+  }, []);
+
   const login = useCallback(async (emailOrRequest: string | LoginRequest, password?: string) => {
+    if (isIamEnabled) {
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next');
+      const safeNext = next?.startsWith('/') ? next : '/dashboard';
+
+      await iamClient.login({
+        tenantCode: appConfig.iamTenantCode,
+        returnUrl: `${window.location.origin}${safeNext}`,
+      });
+
+      return {
+        success: true as const,
+        response: {
+          accessToken: '',
+          refreshToken: '',
+          expiresIn: 0,
+          user: {
+            userId: '',
+            fullName: '',
+            userType: 'AFFILIATE',
+            roles: [],
+            scope: { scopeType: 'AFFILIATE_TENANT', tenantId: '' },
+          },
+        } satisfies LoginSuccessResponse,
+      };
+    }
+
     const request: LoginRequest =
       typeof emailOrRequest === 'string'
         ? {
@@ -401,7 +499,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (isIamEnabled) {
+      setState({
+        isAuthenticated: false,
+        user: null,
+        passwordMustChange: false,
+        sessionExpired: false,
+      });
+      await iamClient.logout({
+        postLogoutRedirectUri: `${window.location.origin}/login`,
+      });
+      return;
+    }
+
     setState({
       isAuthenticated: false,
       user: null,
