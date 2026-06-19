@@ -1,5 +1,5 @@
 import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi';
-import { clearAuthSession, getAuthTenantId, saveAuthProfile } from '@/services/authSession';
+import { clearAuthSession, saveAuthProfile } from '@/services/authSession';
 
 export interface TokenClaims {
   sub?: string;
@@ -265,7 +265,6 @@ export class IAMBrowserClient {
 
   private async loadCurrentTenantProfile(): Promise<unknown | null> {
     const tenantId =
-      getAuthTenantId() ||
       this.getClaims()?.tenantId ||
       this.getClaims()?.tenant_id;
 

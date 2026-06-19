@@ -11,6 +11,7 @@ export interface AffiliateProfileByTenantResponse {
   affiliateType: AffiliateType;
   affiliateId: string;
   tenantId: string;
+  ownerBankId: string;
   legalName: string;
   tradingName: string;
   registrationNumber: string;
@@ -18,6 +19,7 @@ export interface AffiliateProfileByTenantResponse {
   status: string;
   createdAt: string;
   updatedAt: string;
+  isBankAffiliate: boolean;
 }
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');

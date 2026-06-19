@@ -10,6 +10,7 @@ import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { executeBatchLoad, getBatchLoadResults, uploadBatchLoad } from '@/services/cardsApi';
 import { useLoadBatch, useLoadBatches } from '@/hooks/useLoads';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { ArrowLeft, Download, FileText, Loader2, Upload } from 'lucide-react';
 
 function randomId(prefix: string) {
@@ -61,12 +62,13 @@ function BatchList() {
     setUploading(true);
     try {
       const fileBase64 = await fileToBase64(file);
+      const affiliateId = resolveAffiliateId(user);
       const response = await uploadBatchLoad({
         requestContext: {
           requestId: randomId('batch-load-upload'),
           actorUserId: user?.id || 'user_unknown',
           tenantId: user?.tenantId || 'tenant_unknown',
-          affiliateId: user?.tenantId || 'affiliate_unknown',
+          affiliateId,
         },
         file: {
           fileName: file.name,
@@ -190,7 +192,7 @@ function BatchDetail({ batchId }: { batchId: string }) {
           requestId: randomId('batch-load-exec'),
           actorUserId: user?.id || 'user_unknown',
           tenantId: user?.tenantId || 'tenant_unknown',
-          affiliateId: user?.tenantId || 'affiliate_unknown',
+          affiliateId: resolveAffiliateId(user),
         },
       });
       toast.success(`Batch ${response.batchId} executed`);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiError } from '@/services/apiError';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { useAuth } from '@/hooks/useAuth';
 import { createCustomerDraft as createCustomerDraftApi, getCustomer, searchCustomers } from '@/services/customerApi';
 import { getCustomerTransactions } from '@/services/transactionApi';
@@ -308,7 +309,7 @@ export function useCreateCustomer() {
     data: CreateCustomerDraftInput
   ): Promise<CreateCustomerDraftResult> => {
     const tenantId = user?.tenantId || 'tenant_unknown';
-    const affiliateId = user?.affiliateId || user?.tenantId || 'affiliate_unknown';
+    const affiliateId = resolveAffiliateId(user);
     const requestId =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? `REQ-${crypto.randomUUID()}`

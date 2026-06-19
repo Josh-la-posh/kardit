@@ -405,7 +405,7 @@ export function useCreateCard() {
       requestContext: {
         requestId: randomId('card-request'),
         tenantId: data.tenantId || user?.tenantId || 'tenant_unknown',
-        affiliateId: data.affiliateId || 'affiliate_unknown',
+        affiliateId: data.affiliateId || resolveAffiliateId(user),
         idempotencyKey: randomId('card-idempotency'),
       },
       issuance: {

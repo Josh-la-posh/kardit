@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBatch, getBatchResultsDownload, getBatchRows, submitBatch, uploadBatch, validateBatch } from '@/services/batchApi';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import type {
   BatchRow,
   GetBatchResponse,
@@ -113,13 +114,24 @@ export function useBatches(category?: BatchCategory) {
   const { user } = useAuth();
 
   const context = useMemo(
-    () => ({
-      actorUserId: user?.id || 'user_unknown',
-      userType: user?.stakeholderType || 'AFFILIATE',
-      tenantId: user?.tenantId || 'tenant_unknown',
-      affiliateId: user?.stakeholderType === 'AFFILIATE' ? user?.tenantId || 'affiliate_unknown' : undefined,
-    }),
-    [user?.id, user?.stakeholderType, user?.tenantId]
+    () => {
+      let affiliateId: string | undefined;
+      if (user?.stakeholderType === 'AFFILIATE') {
+        try {
+          affiliateId = resolveAffiliateId(user);
+        } catch {
+          affiliateId = undefined;
+        }
+      }
+
+      return {
+        actorUserId: user?.id || 'user_unknown',
+        userType: user?.stakeholderType || 'AFFILIATE',
+        tenantId: user?.tenantId || 'tenant_unknown',
+        affiliateId,
+      };
+    },
+    [user]
   );
 
   const fetch = useCallback(async () => {

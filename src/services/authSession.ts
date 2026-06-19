@@ -1,6 +1,6 @@
 const AUTH_ACCESS_TOKEN_KEY = 'kardit.auth.accessToken.v1';
 const AUTH_REFRESH_TOKEN_KEY = 'kardit.auth.refreshToken.v1';
-const AUTH_TENANT_ID_KEY = 'kardit.auth.tenantId.v1';
+const AUTH_TENANT_CODE_KEY = 'kardit.auth.tenantCode.v1';
 const AUTH_PROFILE_KEY = 'kardit.auth.profile.v1';
 
 function getSessionStorage(): Storage | null {
@@ -10,30 +10,22 @@ function getSessionStorage(): Storage | null {
 export function saveAuthSession(session: {
   accessToken?: string;
   refreshToken?: string;
-  tenantId?: string;
 }): void {
   const storage = getSessionStorage();
   if (!storage) return;
 
   if (session.accessToken) storage.setItem(AUTH_ACCESS_TOKEN_KEY, session.accessToken);
   if (session.refreshToken) storage.setItem(AUTH_REFRESH_TOKEN_KEY, session.refreshToken);
-
-  const tenantId = session.tenantId?.trim();
-  if (tenantId) storage.setItem(AUTH_TENANT_ID_KEY, tenantId);
 }
 
-export function saveTenantId(tenantId?: string): void {
-  const normalized = tenantId?.trim();
+export function saveTenantCode(tenantCode?: string): void {
+  const normalized = tenantCode?.trim();
   if (!normalized) return;
-  getSessionStorage()?.setItem(AUTH_TENANT_ID_KEY, normalized);
+  getSessionStorage()?.setItem(AUTH_TENANT_CODE_KEY, normalized);
 }
 
 export function getAuthAccessToken(): string | null {
   return getSessionStorage()?.getItem(AUTH_ACCESS_TOKEN_KEY) || null;
-}
-
-export function getAuthTenantId(): string | null {
-  return getSessionStorage()?.getItem(AUTH_TENANT_ID_KEY) || null;
 }
 
 export function saveAuthProfile(profile: unknown): void {
@@ -54,12 +46,20 @@ export function getAuthProfile(): unknown {
   }
 }
 
+export function getAuthAffiliateId(): string | null {
+  const profile = getAuthProfile();
+  if (!profile || typeof profile !== 'object') return null;
+
+  const affiliateId = (profile as Record<string, unknown>).affiliateId;
+  return typeof affiliateId === 'string' && affiliateId.trim() ? affiliateId.trim() : null;
+}
+
 export function clearAuthSession(): void {
   const storage = getSessionStorage();
   if (!storage) return;
 
   storage.removeItem(AUTH_ACCESS_TOKEN_KEY);
   storage.removeItem(AUTH_REFRESH_TOKEN_KEY);
-  storage.removeItem(AUTH_TENANT_ID_KEY);
+  storage.removeItem(AUTH_TENANT_CODE_KEY);
   storage.removeItem(AUTH_PROFILE_KEY);
 }

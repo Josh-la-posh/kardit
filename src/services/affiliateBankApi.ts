@@ -1,4 +1,5 @@
 import { ApiError } from '@/services/apiError';
+import { getAuthAffiliateId } from '@/services/authSession';
 import type {
   BankPartnershipItem,
   CreateBankPartnershipRequest,
@@ -55,27 +56,15 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   return (await res.json()) as TResponse;
 }
 
-export function resolveAffiliateId(user?: { tenantId?: string; email?: string } | null): string {
-  const explicitAffiliateId = (import.meta as any).env?.VITE_AFFILIATE_ID as string | undefined;
-  if (explicitAffiliateId) return explicitAffiliateId;
+export function resolveAffiliateId(user?: { tenantId?: string; affiliateId?: string } | null): string {
   if ('affiliateId' in (user || {}) && typeof (user as { affiliateId?: string })?.affiliateId === 'string' && (user as { affiliateId?: string }).affiliateId) {
     return (user as { affiliateId?: string }).affiliateId as string;
   }
+  const profileAffiliateId = getAuthAffiliateId();
+  if (profileAffiliateId) return profileAffiliateId;
   if (user?.tenantId?.startsWith('AFF-')) return user.tenantId;
 
-  const byTenant: Record<string, string> = {
-    tenant_alpha_affiliate: '',
-  };
-
-  const byEmail: Record<string, string> = {
-    'affiliate@kardit.app': 'AFF-F5BE3E1610314B9582F3CFF4F7F34B88',
-    'demo@kardit.app': 'a7d5929b-cba8-4e97-8985-2ce1d9fc91c3',
-  };
-
-  if (user?.tenantId && byTenant[user.tenantId]) return byTenant[user.tenantId];
-  if (user?.email && byEmail[user.email.toLowerCase()]) return byEmail[user.email.toLowerCase()];
-
-  throw new Error('Missing affiliateId. Set VITE_AFFILIATE_ID or provide an affiliate-scoped login.');
+  throw new Error('Missing affiliateId. Sign in with an affiliate profile that includes affiliateId.');
 }
 
 function mapPartnershipToAffiliateBank(item: BankPartnershipItem) {
