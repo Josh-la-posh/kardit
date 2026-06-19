@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/authApi';
+import { ApiError } from '@/services/apiError';
 import type {
   CreateAffiliateRequest,
   CreateAffiliateResponse,
@@ -63,5 +63,11 @@ export async function createAffiliate(request: CreateAffiliateRequest): Promise<
 export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetAffiliateKybSnapshotResponse> {
   return getJson<GetAffiliateKybSnapshotResponse>(
     `/affiliates/${encodeURIComponent(affiliateId)}/kyb-snapshot`
+  );
+}
+
+export async function getAffiliateProfileByTenant(tenantId: string): Promise<unknown> {
+  return getJson<unknown>(
+    `/affiliates/${encodeURIComponent(tenantId)}/profilebytenant`
   );
 }

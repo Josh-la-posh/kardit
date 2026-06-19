@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/authApi';
+import { ApiError } from '@/services/apiError';
 import type { BankQueryItem, QueryBanksRequest, QueryBanksResponse } from '@/types/bankContracts';
 
 type ApiEnvelope<T> = {

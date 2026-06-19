@@ -22,7 +22,7 @@ export function ProtectedRoute({
   requiredRoles,
   requiredStakeholderTypes,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, passwordMustChange, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,12 +36,10 @@ export function ProtectedRoute({
     if (!isAuthenticated) {
       const next = encodeURIComponent(`${location.pathname}${location.search}`);
       navigate(`/login?reason=protected_route&next=${next}`, { replace: true });
-    } else if (passwordMustChange) {
-      navigate('/change-password', { replace: true });
     }
-  }, [isAuthenticated, passwordMustChange, navigate, location.pathname, location.search]);
+  }, [isAuthenticated, navigate, location.pathname, location.search]);
 
-  if (!isAuthenticated || passwordMustChange) {
+  if (!isAuthenticated) {
     return null;
   }
 

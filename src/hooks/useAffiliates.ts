@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { createAffiliate as createAffiliateApi } from '@/services/affiliateApi';
-import { ApiError } from '@/services/authApi';
+import { ApiError } from '@/services/apiError';
 import type { CreateAffiliateRequest, CreateAffiliateResponse } from '@/types/affiliateContracts';
 
 export function useCreateAffiliate() {
