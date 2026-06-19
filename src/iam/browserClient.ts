@@ -1,3 +1,6 @@
+import { getAffiliateProfileByTenant } from '@/services/affiliateApi';
+import { clearAuthSession, getAuthTenantId, saveAuthProfile } from '@/services/authSession';
+
 export interface TokenClaims {
   sub?: string;
   email?: string;
@@ -57,6 +60,48 @@ function decodeJwt(token: string): TokenClaims | null {
   } catch {
     return null;
   }
+}
+
+function unwrapProfileObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+
+  for (const key of ['data', 'value', 'profile', 'affiliate', 'user']) {
+    const nested = record[key];
+    if (nested && typeof nested === 'object') return unwrapProfileObject(nested) || (nested as Record<string, unknown>);
+  }
+
+  return record;
+}
+
+function firstProfileString(profile: Record<string, unknown> | null, keys: string[]): string {
+  if (!profile) return '';
+  for (const key of keys) {
+    const value = profile[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (Array.isArray(value)) {
+      const first = value.find((item) => typeof item === 'string' && item.trim());
+      if (typeof first === 'string') return first.trim();
+    }
+  }
+  return '';
+}
+
+function profileRedirectPath(profileResponse: unknown): string {
+  const profile = unwrapProfileObject(profileResponse);
+  const role = firstProfileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles']);
+  const normalized = role.toUpperCase().replace(/[\s-]+/g, '_');
+
+  if (normalized.includes('BANK')) return '/bank/dashboard';
+  if (
+    normalized.includes('SERVICE_PROVIDER') ||
+    normalized.includes('SUPER_ADMIN') ||
+    normalized.includes('SUPERADMIN')
+  ) {
+    return '/super-admin/dashboard';
+  }
+
+  return '/dashboard';
 }
 
 async function sha256(input: string | Uint8Array): Promise<Uint8Array> {
@@ -187,7 +232,9 @@ export class IAMBrowserClient {
     if (!code || !state) throw new Error('Callback missing code or state');
 
     await this.exchangeCode(code, state);
-    window.location.replace(this.consumeReturnUrl());
+    const fallbackReturnUrl = this.consumeReturnUrl();
+    const profile = await this.loadCurrentTenantProfile();
+    window.location.replace(profile ? profileRedirectPath(profile) : fallbackReturnUrl);
   }
 
   async exchangeCode(code: string, state: string): Promise<void> {
@@ -212,6 +259,19 @@ export class IAMBrowserClient {
 
     this.storeTokens(accessToken, body.refresh_token || body.refreshToken);
     sessionStorage.removeItem(authStateKey);
+  }
+
+  private async loadCurrentTenantProfile(): Promise<unknown | null> {
+    const tenantId =
+      getAuthTenantId() ||
+      this.getClaims()?.tenantId ||
+      this.getClaims()?.tenant_id;
+
+    if (typeof tenantId !== 'string' || !tenantId.trim()) return null;
+
+    const profile = await getAffiliateProfileByTenant(tenantId.trim());
+    saveAuthProfile(profile);
+    return profile;
   }
 
   consumeReturnUrl(): string {
@@ -292,6 +352,7 @@ export class IAMBrowserClient {
     sessionStorage.removeItem(this.refreshStorageKey);
     sessionStorage.removeItem(authStateKey);
     sessionStorage.removeItem(returnUrlKey);
+    clearAuthSession();
     if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
   }
 

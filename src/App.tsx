@@ -8,9 +8,6 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Auth Pages
 import LoginPage from "./pages/LoginPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import ChangePasswordPage from "./pages/ChangePasswordPage";
 import IamCallbackPage from "./pages/IamCallbackPage";
 
 // Dashboard
@@ -140,9 +137,6 @@ const App = () => (
               <Route path="/" element={<Page/>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/callback" element={<IamCallbackPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/change-password" element={<ChangePasswordPage />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/solutions" element={<Solutions />} />
 

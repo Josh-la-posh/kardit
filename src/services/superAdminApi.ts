@@ -1,4 +1,4 @@
-import { ApiError, getApiErrorMessage } from '@/services/authApi';
+import { ApiError, getApiErrorMessage } from '@/services/apiError';
 import type {
   GenerateReportRequest,
   GenerateReportResponse,

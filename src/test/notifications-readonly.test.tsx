@@ -9,7 +9,6 @@ vi.mock('@/hooks/useAuth', () => {
   return {
     useAuth: () => ({
       isAuthenticated: true,
-      passwordMustChange: false,
       sessionExpired: false,
       user: {
         id: 'u1',

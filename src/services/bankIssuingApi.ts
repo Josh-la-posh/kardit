@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/authApi";
+import { ApiError } from "@/services/apiError";
 import { CreateIssuingBankRequest, CreateIssuingBankResponse, getBankAffiliatesResponse, getBankCardsRequest, getBankCardsResponse, getIssuingBanksDashboardResponse } from "@/types/bankIssuingContracts";
 
 

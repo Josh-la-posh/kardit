@@ -37,18 +37,6 @@ function resolveHeaderConfig(pathname: string): HeaderConfig {
     return { pathLabel: 'Sign In', showStartEnrollment: true }
   }
 
-  if (pathname === '/forgot-password') {
-    return { pathLabel: 'Forgot Password', showStartEnrollment: false }
-  }
-
-  if (pathname === '/reset-password') {
-    return { pathLabel: 'Reset Password', showStartEnrollment: false }
-  }
-
-  if (pathname === '/change-password') {
-    return { pathLabel: 'Change Password', showStartEnrollment: false }
-  }
-
   if (pathname.startsWith('/onboarding')) {
     return {
       showAffiliatePortal: true,

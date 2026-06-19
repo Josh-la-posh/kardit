@@ -17,6 +17,8 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
+import { getAffiliateProfileByTenant } from '@/services/affiliateApi'
+import { getAuthTenantId, saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
 type Range = 'today' | 'week' | 'month' | 'custom'
@@ -99,9 +101,41 @@ const KPI_DATA: Record<
 export default function DashboardPage() {
   const [range, setRange] = useState<Range>('today')
   const [refreshing, setRefreshing] = useState(false)
+  const [tenantProfileResponse, setTenantProfileResponse] = useState<unknown>(null)
+  const [tenantProfileError, setTenantProfileError] = useState<string | null>(null)
+  const [tenantProfileLoading, setTenantProfileLoading] = useState(false)
   const d = useMemo(() => KPI_DATA[range], [range])
   const navigate = useNavigate()
   const { user } = useAuth()
+
+  useEffect(() => {
+    const tenantId = getAuthTenantId() || user?.tenantId
+    if (!tenantId) return
+
+    let cancelled = false
+    setTenantProfileLoading(true)
+    setTenantProfileError(null)
+
+    getAffiliateProfileByTenant(tenantId)
+      .then((response) => {
+        if (cancelled) return
+        console.info('Affiliate profile by tenant response:', response)
+        saveAuthProfile(response)
+        setTenantProfileResponse(response)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        console.error('Affiliate profile by tenant failed:', error)
+        setTenantProfileError(error instanceof Error ? error.message : 'Unable to fetch tenant profile')
+      })
+      .finally(() => {
+        if (!cancelled) setTenantProfileLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?.tenantId])
 
   useEffect(() => {
     const stakeholderType = user?.stakeholderType
@@ -143,6 +177,37 @@ export default function DashboardPage() {
                 </p>
               </div>
             </header>
+
+            <section>
+              <div className="section-head">
+                <div>
+                  <div className="section-title">Tenant profile response</div>
+                  <div className="section-sub">
+                    GET /api/v1/affiliates/{getAuthTenantId() || user?.tenantId || 'tenantId'}/profilebytenant
+                  </div>
+                </div>
+              </div>
+              <pre
+                style={{
+                  maxHeight: 360,
+                  overflow: 'auto',
+                  border: '1px solid var(--cs-border)',
+                  borderRadius: 8,
+                  background: 'var(--cs-bg-elevated)',
+                  padding: 16,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {tenantProfileLoading
+                  ? 'Loading tenant profile...'
+                  : tenantProfileError
+                    ? tenantProfileError
+                    : JSON.stringify(tenantProfileResponse, null, 2)}
+              </pre>
+            </section>
 
             {/* <section>
               <div className="section-head">

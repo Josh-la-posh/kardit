@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ApiError } from '@/services/authApi';
+import { ApiError } from '@/services/apiError';
 import { createCard as createCardApi, getCard as getCardApi, getCardFundingDetails, getCardFulfillmentStatus, queryCards } from '@/services/cardsApi';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';

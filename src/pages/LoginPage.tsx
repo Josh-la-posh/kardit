@@ -1,17 +1,13 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { isIamEnabled } from '@/config'
+import { TextField } from '@/components/ui/text-field'
 import '@/styles/auth.css'
 
 export default function LoginPage() {
-  const navigate = useNavigate()
   const { login } = useAuth()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPwd, setShowPwd] = useState(false)
-  const [remember, setRemember] = useState(false)
+  const [tenantId, setTenantId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,30 +15,16 @@ export default function LoginPage() {
     e.preventDefault()
     setError(null)
 
-    if (!isIamEnabled && (!email || !password)) {
-      setError('Please enter both email and password')
+    const trimmedTenantId = tenantId.trim()
+    if (!trimmedTenantId) {
+      setError('Please enter your Tenant ID to continue.')
       return
     }
 
     setSubmitting(true)
 
     try {
-      const result = await login({
-        username: email,
-        password,
-        channel: 'WEB',
-        deviceInfo: {
-          userAgent: navigator.userAgent,
-          deviceFingerprint: 'frontend-mock',
-        },
-      })
-
-      if (!result.success) {
-        setError(result.error || 'Login failed')
-        return
-      }
-
-      if (!isIamEnabled) navigate('/dashboard')
+      await login(trimmedTenantId)
     } catch {
       setError('An unexpected error occurred')
     } finally {
@@ -63,70 +45,21 @@ export default function LoginPage() {
                 Sign in to your account
               </h2>
 
-              {isIamEnabled ? (
-                <p className="text-sm text-muted-foreground" style={{ marginBottom: 24 }}>
-                  Continue to the IAM sign-in page to authorize your Kardit session.
-                </p>
-              ) : (
-                <>
-                  <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className="field field--full">
-                      <label htmlFor="s-email">Work email</label>
-                      <input
-                        id="s-email"
-                        name="email"
-                        type="email"
-                        required
-                        placeholder="adaeze@example.com"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={submitting}
-                      />
-                    </div>
-                    <div className="field field--full">
-                      <label htmlFor="s-pwd">Password</label>
-                      <div className="pwd-wrap">
-                        <input
-                          id="s-pwd"
-                          name="password"
-                          type={showPwd ? 'text' : 'password'}
-                          required
-                          placeholder="Enter your password"
-                          autoComplete="current-password"
-                          minLength={8}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={submitting}
-                        />
-                        <button
-                          type="button"
-                          className="pwd-toggle"
-                          aria-label={showPwd ? 'Hide password' : 'Show password'}
-                          onClick={() => setShowPwd((s) => !s)}
-                        >
-                          {showPwd ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="signin-row">
-                    <label className="remember">
-                      <input
-                        type="checkbox"
-                        name="remember"
-                        checked={remember}
-                        onChange={(e) => setRemember(e.target.checked)}
-                      />
-                      <span>Keep me signed in</span>
-                    </label>
-                    <Link className="forgot" to="/forgot-password">
-                      Forgot password?
-                    </Link>
-                  </div>
-                </>
-              )}
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr', marginBottom: 24 }}>
+                <TextField
+                  id="s-tenant"
+                  label="Tenant ID"
+                  name="tenantId"
+                  type="text"
+                  required
+                  placeholder="Enter your tenant ID"
+                  autoComplete="organization"
+                  value={tenantId}
+                  onChange={(e) => setTenantId(e.target.value)}
+                  disabled={submitting}
+                  size="lg"
+                />
+              </div>
 
               <button type="submit" className="btn btn--accent signin-submit" disabled={submitting}>
                 {submitText}

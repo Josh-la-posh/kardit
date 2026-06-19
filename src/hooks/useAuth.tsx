@@ -1,40 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import type {
-  ForgotPasswordRequest,
-  ForgotPasswordResponse,
-  LoginPasswordChangeRequiredResponse,
-  LoginRequest,
-  LoginResponse,
-  LoginSuccessResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
-} from '@/types/authContracts';
-import {
-  ApiError,
-  login as apiLogin,
-  requestPasswordReset as apiRequestPasswordReset,
-  resetPassword as apiResetPassword,
-} from '@/services/authApi';
-import { appConfig, isIamEnabled } from '@/config';
+import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { getAuthProfile, saveTenantId } from '@/services/authSession';
 import { iamClient, type TokenClaims } from '@/iam';
-
-/**
- * Authentication Context for Kardit
- * 
- * Provides:
- * - isAuthenticated: boolean
- * - user: User object or null
- * - passwordMustChange: boolean (for first-time login)
- * - login, logout, forceSessionExpired functions
- * 
- * Demo users:
- * - demo@kardit.app / Demo123! - Normal login
- * - affiliate@kardit.app / Demo123! - Affiliate operator login
- * - bank@kardit.app / Demo123! - Bank portal login
- * - superadmin@kardit.app / Demo123! - Super Admin access
- * - firstlogin@kardit.app / Demo123! - Requires password change
- * - locked@kardit.app / any - Account locked
- */
 
 export interface User {
   id: string;
@@ -52,22 +18,12 @@ export interface User {
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
-  passwordMustChange: boolean;
   sessionExpired: boolean;
 }
 
 interface AuthContextType extends AuthState {
-  login: (
-    emailOrRequest: string | LoginRequest,
-    password?: string
-  ) => Promise<
-    | { success: true; response: LoginResponse }
-    | { success: false; error: string; status?: 400 | 401 | 403 | 423; locked?: boolean }
-  >;
-  requestPasswordReset: (request: ForgotPasswordRequest) => Promise<ForgotPasswordResponse>;
-  resetPassword: (request: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
-  logout: () => Promise<void> | void;
-  completePasswordChange: () => void;
+  login: (tenantId: string) => Promise<void>;
+  logout: () => Promise<void>;
   forceSessionExpired: () => void;
   dismissSessionExpired: () => void;
 }
@@ -83,7 +39,70 @@ function claimString(claims: TokenClaims | null, keys: string[], fallback = ''):
   return fallback;
 }
 
-function iamClaimsToUser(claims: TokenClaims | null): User | null {
+function unwrapProfileObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+
+  for (const key of ['data', 'value', 'profile', 'affiliate', 'user']) {
+    const nested = record[key];
+    if (nested && typeof nested === 'object') return unwrapProfileObject(nested) || (nested as Record<string, unknown>);
+  }
+
+  return record;
+}
+
+function profileString(profile: Record<string, unknown> | null, keys: string[], fallback = ''): string {
+  if (!profile) return fallback;
+  for (const key of keys) {
+    const value = profile[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (Array.isArray(value)) {
+      const first = value.find((item) => typeof item === 'string' && item.trim());
+      if (typeof first === 'string') return first.trim();
+    }
+  }
+  return fallback;
+}
+
+function normalizeStakeholderType(value: string): User['stakeholderType'] | undefined {
+  const normalized = value.toUpperCase().replace(/[\s-]+/g, '_');
+  if (normalized.includes('BANK')) return 'BANK';
+  if (
+    normalized.includes('SERVICE_PROVIDER') ||
+    normalized.includes('SUPER_ADMIN') ||
+    normalized.includes('SUPERADMIN')
+  ) {
+    return 'SERVICE_PROVIDER';
+  }
+  if (normalized.includes('AFFILIATE')) return 'AFFILIATE';
+  return undefined;
+}
+
+function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
+  const profile = unwrapProfileObject(profileResponse);
+  if (!profile) return user;
+
+  const role = profileString(profile, ['role', 'userRole', 'primaryRole', 'roles'], user.role);
+  const stakeholderType =
+    normalizeStakeholderType(
+      profileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles'])
+    ) || user.stakeholderType;
+
+  return {
+    ...user,
+    id: profileString(profile, ['userId', 'id'], user.id),
+    email: profileString(profile, ['email', 'username'], user.email),
+    name: profileString(profile, ['fullName', 'name', 'displayName'], user.name),
+    role,
+    stakeholderType,
+    tenantId: profileString(profile, ['tenantId', 'tenant_id'], user.tenantId),
+    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'affiliateName', 'name'], user.tenantName),
+    affiliateId: profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') || user.affiliateId,
+    bankId: profileString(profile, ['bankId', 'bank_id'], user.bankId || '') || user.bankId,
+  };
+}
+
+function claimsToUser(claims: TokenClaims | null): User | null {
   if (!claims?.sub) return null;
 
   const roles = Array.isArray(claims.roles) ? claims.roles : [];
@@ -93,197 +112,34 @@ function iamClaimsToUser(claims: TokenClaims | null): User | null {
   const tenantSlug = claimString(claims, ['tenantSlug', 'tenant_slug']);
   const tenantName = claimString(claims, ['tenantName', 'tenant_name'], tenantSlug || tenantId);
   const stakeholderTypeClaim = claimString(claims, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type']);
-  const normalizedStakeholderType = stakeholderTypeClaim.toUpperCase();
 
-  return {
+  const user: User = {
     id: claims.sub,
     email: claimString(claims, ['email', 'preferred_username'], 'user@kardit.app'),
     name: claimString(claims, ['name', 'fullName', 'preferred_username', 'email'], 'User'),
     role,
-    stakeholderType:
-      normalizedStakeholderType === 'BANK'
-        ? 'BANK'
-        : normalizedStakeholderType === 'SERVICE_PROVIDER' || normalizedStakeholderType === 'SUPER_ADMIN'
-          ? 'SERVICE_PROVIDER'
-          : 'AFFILIATE',
+    stakeholderType: normalizeStakeholderType(stakeholderTypeClaim) || 'AFFILIATE',
     tenantId,
     tenantName,
   };
-}
 
-// Mock users for demo
-const MOCK_USERS: Record<string, { password: string; user: User; requiresPasswordChange?: boolean; locked?: boolean }> = {
-  'demo@kardit.app': {
-    password: 'Demo123!',
-    user: {
-      id: '1',
-      email: 'demo@kardit.app',
-      name: 'John Doe',
-      role: 'Admin',
-      stakeholderType: 'AFFILIATE',
-      affiliateId: 'a7d5929b-cba8-4e97-8985-2ce1d9fc91c3',
-      tenantId: 'oMicqwLQ',
-      tenantName: 'Alpha Bank Affiliate',
-    },
-  },
-  'affiliate@kardit.app': {
-    password: 'Demo123!',
-    user: {
-      id: '5',
-      email: 'affiliate@kardit.app',
-      name: 'Affiliate User',
-      role: 'User',
-      stakeholderType: 'AFFILIATE',
-      affiliateId: 'AFF-9F6EDBBE20DD4C6B97D0B720676506E1',
-      tenantId: 'TEN-C597545896834F1C99C28AAC42C0D931',
-      tenantName: 'Alpha Bank Affiliate',
-    },
-  },
-  'bank@kardit.app': {
-    password: 'Demo123!',
-    user: {
-      id: '4',
-      email: 'bank@kardit.app',
-      name: 'Alpha Bank User',
-      role: 'BANK_ADMIN',
-      stakeholderType: 'BANK',
-      tenantId: 'tenant_alpha_bank',
-      bankId: '000045f9-d01b-479c-a84d-0fe82454d55a',
-      tenantName: 'Alpha Bank',
-    },
-  },
-  'superadmin@kardit.app': {
-    password: 'Demo123!',
-    user: {
-      id: '0',
-      email: 'superadmin@kardit.app',
-      name: 'Super Admin',
-      role: 'SERVICE_PROVIDER',
-      stakeholderType: 'SERVICE_PROVIDER',
-      tenantId: 'tenant_chamsswitch',
-      tenantName: 'Chamsswitch',
-    },
-  },
-  'firstlogin@kardit.app': {
-    password: 'Demo123!',
-    requiresPasswordChange: true,
-    user: {
-      id: '2',
-      email: 'firstlogin@kardit.app',
-      name: 'New User',
-      role: 'User',
-      stakeholderType: 'AFFILIATE',
-      tenantId: 'tenant_alpha_affiliate',
-      tenantName: 'Alpha Bank Affiliate',
-    },
-  },
-  'locked@kardit.app': {
-    password: 'any',
-    locked: true,
-    user: {
-      id: '3',
-      email: 'locked@kardit.app',
-      name: 'Locked User',
-      role: 'User',
-      stakeholderType: 'AFFILIATE',
-      tenantId: 'tenant_alpha_affiliate',
-      tenantName: 'Alpha Bank Affiliate',
-    },
-  },
-};
-
-function randomId(prefix: string) {
-  return `${prefix}-${Math.floor(Date.now() / 1000)}-${Math.random().toString(16).slice(2, 8)}`.toUpperCase();
-}
-
-function toUserType(user: User): 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' {
-  return user.stakeholderType ?? 'AFFILIATE';
-}
-
-function toStakeholderType(userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER'): User['stakeholderType'] {
-  return userType;
-}
-
-function shouldUseAuthApi(): boolean {
-  const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  const flag = (import.meta as any).env?.VITE_USE_API_AUTH as string | undefined;
-  return Boolean(baseUrl) && flag === 'true';
-}
-
-function apiUserToInternalUser(username: string, apiUser: LoginSuccessResponse['user']): User {
-  const scope = apiUser.scope;
-  const bankId = scope.scopeType === 'BANK_PORTFOLIO' ? scope.bankId || undefined : undefined;
-  const tenantId =
-    scope.scopeType === 'AFFILIATE_TENANT'
-      ? scope.tenantId || 'tenant_unknown'
-      : scope.scopeType === 'BANK_PORTFOLIO'
-        ? bankId || 'tenant_unknown'
-        : 'tenant_unknown';
-
-  return {
-    id: apiUser.userId,
-    email: username,
-    name: apiUser.fullName,
-    role: apiUser.roles?.[0] ?? 'User',
-    stakeholderType: toStakeholderType(apiUser.userType),
-    tenantId,
-    bankId,
-    tenantName: tenantId === 'tenant_unknown' ? 'Unknown' : tenantId,
-  };
-}
-
-function toScope(user: User): LoginSuccessResponse['user']['scope'] {
-  const stakeholderType = user.stakeholderType;
-  if (stakeholderType === 'BANK') {
-    return { scopeType: 'BANK_PORTFOLIO', bankId: user.bankId || user.tenantId };
-  }
-  if (stakeholderType === 'SERVICE_PROVIDER') {
-    return { scopeType: 'GLOBAL' };
-  }
-  return { scopeType: 'AFFILIATE_TENANT', tenantId: user.tenantId };
-}
-
-function toRoles(user: User): string[] {
-  // Keep the app's existing `user.role` semantics, but wrap into an SRS-style array.
-  const baseRole = user.role?.trim();
-  if (!baseRole) return [];
-
-  const stakeholderType = user.stakeholderType ?? 'AFFILIATE';
-  if (stakeholderType === 'AFFILIATE') {
-    if (baseRole === 'Admin') return ['AFFILIATE_ADMIN'];
-    if (baseRole === 'User') return ['AFFILIATE_OPERATOR'];
-    return [`AFFILIATE_${baseRole.toUpperCase().replace(/\s+/g, '_')}`];
-  }
-
-  if (stakeholderType === 'BANK') {
-    if (baseRole === 'Admin') return ['BANK_ADMIN'];
-    if (baseRole === 'User') return ['BANK_USER'];
-    return [`BANK_${baseRole.toUpperCase().replace(/\s+/g, '_')}`];
-  }
-
-  // SERVICE_PROVIDER
-  if (baseRole === 'Super Admin') return ['SUPER_ADMIN'];
-  return [baseRole.toUpperCase().replace(/\s+/g, '_')];
+  return mergeProfileIntoUser(user, getAuthProfile());
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    isAuthenticated: isIamEnabled ? iamClient.isAuthenticated() : false,
-    user: isIamEnabled ? iamClaimsToUser(iamClient.getClaims()) : null,
-    passwordMustChange: false,
+    isAuthenticated: iamClient.isAuthenticated(),
+    user: iamClient.isAuthenticated() ? claimsToUser(iamClient.getClaims()) : null,
     sessionExpired: false,
   });
 
   useEffect(() => {
-    if (!isIamEnabled) return undefined;
-
     const syncIamState = () => {
       const authenticated = iamClient.isAuthenticated();
       setState((prev) => ({
         ...prev,
         isAuthenticated: authenticated,
-        user: authenticated ? iamClaimsToUser(iamClient.getClaims()) : null,
-        passwordMustChange: false,
+        user: authenticated ? claimsToUser(iamClient.getClaims()) : null,
       }));
     };
 
@@ -291,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         isAuthenticated: false,
         user: null,
-        passwordMustChange: false,
         sessionExpired: true,
       });
     };
@@ -306,226 +161,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (emailOrRequest: string | LoginRequest, password?: string) => {
-    if (isIamEnabled) {
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get('next');
-      const safeNext = next?.startsWith('/') ? next : '/dashboard';
+  const login = useCallback(async (tenantId: string) => {
+    const tenantCode = tenantId.trim();
+    saveTenantId(tenantCode);
 
-      await iamClient.login({
-        tenantCode: appConfig.iamTenantCode,
-        returnUrl: `${window.location.origin}${safeNext}`,
-      });
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    const safeNext = next?.startsWith('/') ? next : '/dashboard';
 
-      return {
-        success: true as const,
-        response: {
-          accessToken: '',
-          refreshToken: '',
-          expiresIn: 0,
-          user: {
-            userId: '',
-            fullName: '',
-            userType: 'AFFILIATE',
-            roles: [],
-            scope: { scopeType: 'AFFILIATE_TENANT', tenantId: '' },
-          },
-        } satisfies LoginSuccessResponse,
-      };
-    }
-
-    const request: LoginRequest =
-      typeof emailOrRequest === 'string'
-        ? {
-            username: emailOrRequest,
-            password: password ?? '',
-            channel: 'WEB',
-            deviceInfo: {
-              userAgent: navigator.userAgent,
-            },
-          }
-        : emailOrRequest;
-
-    if (shouldUseAuthApi()) {
-      try {
-        const response = await apiLogin(request);
-
-        if ('requiresPasswordChange' in response && response.requiresPasswordChange) {
-          setState({
-            isAuthenticated: true,
-            user: {
-              id: response.userId,
-              email: request.username,
-              name: request.username,
-              role: 'User',
-              stakeholderType: toStakeholderType(response.userType),
-              tenantId: 'tenant_unknown',
-              tenantName: 'Unknown',
-            },
-            passwordMustChange: true,
-            sessionExpired: false,
-          });
-
-          return { success: true as const, response };
-        }
-
-        const internalUser = apiUserToInternalUser(request.username, response.user);
-        setState({
-          isAuthenticated: true,
-          user: internalUser,
-          passwordMustChange: false,
-          sessionExpired: false,
-        });
-
-        return { success: true as const, response };
-      } catch (err) {
-        if (err instanceof ApiError && err.status) {
-          if (err.status === 423) return { success: false as const, error: err.message, status: 423, locked: true };
-          if (err.status === 403) return { success: false as const, error: err.message || 'User inactive', status: 403 };
-          if (err.status === 401)
-            return { success: false as const, error: err.message || 'Invalid username or password', status: 401 };
-          if (err.status === 400) return { success: false as const, error: err.message || 'Missing credentials', status: 400 };
-          return { success: false as const, error: err.message || 'Login failed' };
-        }
-        // If API is enabled but unreachable, fall through to mock behavior.
-      }
-    }
-
-    // Simulate network delay for mock auth only
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    if (!request.username || !request.password) {
-      return { success: false as const, error: 'Missing credentials', status: 400 as const };
-    }
-
-    const email = request.username.toLowerCase();
-
-    const mockUser = MOCK_USERS[email];
-
-    // Check for locked account (also works for any email containing "locked")
-    if (mockUser?.locked || email.includes('locked')) {
-      return { success: false as const, error: 'Account is locked', status: 423 as const, locked: true };
-    }
-
-    // Check credentials
-    if (!mockUser || mockUser.password !== request.password) {
-      return { success: false as const, error: 'Invalid username or password', status: 401 as const };
-    }
-
-    const user = mockUser.user;
-    const userType = toUserType(user);
-
-    setState({
-      isAuthenticated: true,
-      user,
-      passwordMustChange: mockUser.requiresPasswordChange || false,
-      sessionExpired: false,
+    await iamClient.login({
+      tenantCode,
+      returnUrl: `${window.location.origin}${safeNext}`,
     });
-
-    if (mockUser.requiresPasswordChange) {
-      const response: LoginPasswordChangeRequiredResponse = {
-        requiresPasswordChange: true,
-        userId: user.id,
-        userType,
-        message: 'Password change required before access.',
-      };
-      return { success: true as const, response };
-    }
-
-    const response: LoginSuccessResponse = {
-      accessToken: `mock.${randomId('AT')}`,
-      refreshToken: `mock.${randomId('RT')}`,
-      expiresIn: 3600,
-      user: {
-        userId: user.id,
-        fullName: user.name,
-        userType,
-        roles: toRoles(user),
-        scope: toScope(user),
-      },
-    };
-
-    return { success: true as const, response };
-  }, []);
-
-  const requestPasswordReset = useCallback(async (request: ForgotPasswordRequest) => {
-    if (shouldUseAuthApi()) {
-      try {
-        return await apiRequestPasswordReset(request);
-      } catch (err) {
-        // UX should not disclose account existence; callers already show generic success.
-        if (err instanceof ApiError && err.status) throw err;
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    if (!request.username) {
-      // Keep it simple in the mock: emulate server-side 400 by throwing.
-      throw new Error('Missing username');
-    }
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    return {
-      resetRequestId: randomId('RST'),
-      deliveryChannel: 'EMAIL',
-      expiresAt,
-    };
-  }, []);
-
-  const resetPassword = useCallback(async (request: ResetPasswordRequest) => {
-    if (shouldUseAuthApi()) {
-      try {
-        return await apiResetPassword(request);
-      } catch (err) {
-        if (err instanceof ApiError && err.status) throw err;
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    if (!request.resetRequestId || !request.otp || !request.newPassword) {
-      throw new Error('Missing reset payload');
-    }
-
-    // Mock behavior: treat otp "000000" as invalid.
-    if (request.otp === '000000') {
-      const err = new Error('Invalid OTP');
-      (err as any).code = 400;
-      throw err;
-    }
-
-    return {
-      status: 'PASSWORD_RESET_SUCCESS',
-      updatedAt: new Date().toISOString(),
-    };
   }, []);
 
   const logout = useCallback(async () => {
-    if (isIamEnabled) {
-      setState({
-        isAuthenticated: false,
-        user: null,
-        passwordMustChange: false,
-        sessionExpired: false,
-      });
-      await iamClient.logout({
-        postLogoutRedirectUri: `${window.location.origin}/login`,
-      });
-      return;
-    }
-
     setState({
       isAuthenticated: false,
       user: null,
-      passwordMustChange: false,
       sessionExpired: false,
     });
-  }, []);
-
-  const completePasswordChange = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      passwordMustChange: false,
-    }));
+    await iamClient.logout({
+      postLogoutRedirectUri: `${window.location.origin}/login`,
+    });
   }, []);
 
   const forceSessionExpired = useCallback(() => {
@@ -539,7 +197,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({
       isAuthenticated: false,
       user: null,
-      passwordMustChange: false,
       sessionExpired: false,
     });
   }, []);
@@ -549,10 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         ...state,
         login,
-        requestPasswordReset,
-        resetPassword,
         logout,
-        completePasswordChange,
         forceSessionExpired,
         dismissSessionExpired,
       }}

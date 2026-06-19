@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ApiError } from '@/services/authApi';
+import { ApiError } from '@/services/apiError';
 import { useAuth } from '@/hooks/useAuth';
 import { createCustomerDraft as createCustomerDraftApi, getCustomer, searchCustomers } from '@/services/customerApi';
 import { getCustomerTransactions } from '@/services/transactionApi';
