@@ -1,6 +1,6 @@
 import { appConfig, isIamEnabled } from '@/config';
 import { iamClient } from '@/iam';
-import { getAuthAccessToken, getAuthTenantId } from '@/services/authSession';
+import { getAuthAccessToken } from '@/services/authSession';
 
 let installed = false;
 
@@ -38,17 +38,34 @@ function shouldUseDpop(input: RequestInfo | URL): boolean {
   return isBackendRequest(input) && !isIamAuthEndpoint;
 }
 
+function claimString(claims: Record<string, unknown> | null, keys: string[]): string {
+  if (!claims) return '';
+  for (const key of keys) {
+    const value = claims[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function getTenantIdFromTokenClaims(): string {
+  const claims = iamClient.getClaims();
+  return claimString(claims, [
+    'tenantId',
+    'tenant_id',
+  ]);
+}
+
 function withStoredSessionHeaders(input: RequestInfo | URL, init?: RequestInit): RequestInit {
   const headers = new Headers(input instanceof Request ? input.headers : undefined);
   if (init?.headers) {
     new Headers(init.headers).forEach((value, key) => headers.set(key, value));
   }
   const accessToken = getAuthAccessToken();
-  const tenantId = getAuthTenantId() || iamClient.getClaims()?.tenantId || iamClient.getClaims()?.tenant_id;
+  const tenantId = getTenantIdFromTokenClaims();
 
   if (accessToken && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${accessToken}`);
-  if (typeof tenantId === 'string' && tenantId.trim() && !headers.has('X-Tenant-Id')) {
-    headers.set('X-Tenant-Id', tenantId.trim());
+  if (tenantId && !headers.has('X-Tenant-Id')) {
+    headers.set('X-Tenant-Id', tenantId);
   }
 
   return { ...init, headers };

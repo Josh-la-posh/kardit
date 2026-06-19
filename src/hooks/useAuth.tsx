@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuthProfile, saveTenantId } from '@/services/authSession';
+import { getStakeholderTypeForAffiliateType } from '@/services/affiliateApi';
+import { getAuthProfile, saveTenantCode } from '@/services/authSession';
 import { iamClient, type TokenClaims } from '@/iam';
 
 export interface User {
@@ -22,7 +23,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (tenantId: string) => Promise<void>;
+  login: (tenantCode: string) => Promise<void>;
   logout: () => Promise<void>;
   forceSessionExpired: () => void;
   dismissSessionExpired: () => void;
@@ -55,9 +56,13 @@ function profileString(profile: Record<string, unknown> | null, keys: string[], 
   if (!profile) return fallback;
   for (const key of keys) {
     const value = profile[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'string' && value.trim() && value.trim().toLowerCase() !== 'not assigned') {
+      return value.trim();
+    }
     if (Array.isArray(value)) {
-      const first = value.find((item) => typeof item === 'string' && item.trim());
+      const first = value.find(
+        (item) => typeof item === 'string' && item.trim() && item.trim().toLowerCase() !== 'not assigned'
+      );
       if (typeof first === 'string') return first.trim();
     }
   }
@@ -84,6 +89,7 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
 
   const role = profileString(profile, ['role', 'userRole', 'primaryRole', 'roles'], user.role);
   const stakeholderType =
+    getStakeholderTypeForAffiliateType(profile.affiliateType) ||
     normalizeStakeholderType(
       profileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles'])
     ) || user.stakeholderType;
@@ -96,9 +102,9 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
     role,
     stakeholderType,
     tenantId: profileString(profile, ['tenantId', 'tenant_id'], user.tenantId),
-    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'affiliateName', 'name'], user.tenantName),
+    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'legalName', 'tradingName', 'affiliateName', 'name'], user.tenantName),
     affiliateId: profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') || user.affiliateId,
-    bankId: profileString(profile, ['bankId', 'bank_id'], user.bankId || '') || user.bankId,
+    bankId: profileString(profile, ['ownerBankId', 'owner_bank_id', 'bankId', 'bank_id'], user.bankId || '') || user.bankId,
   };
 }
 
@@ -161,9 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (tenantId: string) => {
-    const tenantCode = tenantId.trim();
-    saveTenantId(tenantCode);
+  const login = useCallback(async (tenantCodeInput: string) => {
+    const tenantCode = tenantCodeInput.trim();
+    saveTenantCode(tenantCode);
 
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next');

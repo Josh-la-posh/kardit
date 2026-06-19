@@ -1,5 +1,5 @@
-import { getAffiliateProfileByTenant } from '@/services/affiliateApi';
-import { clearAuthSession, getAuthTenantId, saveAuthProfile } from '@/services/authSession';
+import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi';
+import { clearAuthSession, saveAuthProfile } from '@/services/authSession';
 
 export interface TokenClaims {
   sub?: string;
@@ -89,6 +89,8 @@ function firstProfileString(profile: Record<string, unknown> | null, keys: strin
 
 function profileRedirectPath(profileResponse: unknown): string {
   const profile = unwrapProfileObject(profileResponse);
+  if (profile?.affiliateType) return getRouteForAffiliateType(profile.affiliateType);
+
   const role = firstProfileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles']);
   const normalized = role.toUpperCase().replace(/[\s-]+/g, '_');
 
@@ -263,7 +265,6 @@ export class IAMBrowserClient {
 
   private async loadCurrentTenantProfile(): Promise<unknown | null> {
     const tenantId =
-      getAuthTenantId() ||
       this.getClaims()?.tenantId ||
       this.getClaims()?.tenant_id;
 

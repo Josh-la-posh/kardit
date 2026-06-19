@@ -93,7 +93,7 @@ export default function SingleLoadPage() {
     try {
       return resolveAffiliateId(user);
     } catch {
-      return user?.tenantId || 'affiliate_unknown';
+      return '';
     }
   }, [user]);
 

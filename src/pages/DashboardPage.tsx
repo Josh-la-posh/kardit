@@ -17,8 +17,8 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
-import { getAffiliateProfileByTenant } from '@/services/affiliateApi'
-import { getAuthTenantId, saveAuthProfile } from '@/services/authSession'
+import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi'
+import { saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
 type Range = 'today' | 'week' | 'month' | 'custom'
@@ -109,7 +109,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
 
   useEffect(() => {
-    const tenantId = getAuthTenantId() || user?.tenantId
+    const tenantId = user?.tenantId
     if (!tenantId) return
 
     let cancelled = false
@@ -122,6 +122,8 @@ export default function DashboardPage() {
         console.info('Affiliate profile by tenant response:', response)
         saveAuthProfile(response)
         setTenantProfileResponse(response)
+        const route = getRouteForAffiliateType((response as { affiliateType?: unknown }).affiliateType)
+        if (route !== '/dashboard') navigate(route, { replace: true })
       })
       .catch((error) => {
         if (cancelled) return
@@ -135,7 +137,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [user?.tenantId])
+  }, [navigate, user?.tenantId])
 
   useEffect(() => {
     const stakeholderType = user?.stakeholderType
@@ -183,7 +185,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="section-title">Tenant profile response</div>
                   <div className="section-sub">
-                    GET /api/v1/affiliates/{getAuthTenantId() || user?.tenantId || 'tenantId'}/profilebytenant
+                    GET /api/v1/affiliates/{user?.tenantId || 'tenantId'}/profilebytenant
                   </div>
                 </div>
               </div>

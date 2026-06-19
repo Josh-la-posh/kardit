@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCard } from '@/hooks/useCards';
 import { useCardTransactions, TransactionFilters } from '@/hooks/useTransactions';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import type { TransactionStatus as ApiTransactionStatus, TransactionType as ApiTransactionType } from '@/types/transactionContracts';
 import {
   activateCard,
@@ -105,10 +106,10 @@ export default function CardDetailPage() {
       actorUserId: user?.id || 'user_unknown',
       userType: user?.stakeholderType || 'AFFILIATE',
       tenantId: user?.tenantId || 'tenant_unknown',
-      affiliateId: user?.affiliateId || 'affiliate_unknown',
+      affiliateId: resolveAffiliateId(user),
       idempotencyKey: randomId('idem'),
     }),
-    [user?.id, user?.stakeholderType, user?.tenantId]
+    [user]
   );
 
   const buildLimitRequestContext = useCallback(
@@ -117,9 +118,9 @@ export default function CardDetailPage() {
       actorUserId: user?.id || 'user_unknown',
       userType: user?.stakeholderType || 'AFFILIATE',
       tenantId: user?.tenantId || 'tenant_unknown',
-      affiliateId: user?.tenantId || 'affiliate_unknown',
+      affiliateId: resolveAffiliateId(user),
     }),
-    [user?.id, user?.stakeholderType, user?.tenantId]
+    [user]
   );
 
   const buildOpsContext = useCallback(
@@ -161,7 +162,7 @@ export default function CardDetailPage() {
           actorUserId: user?.id || 'user_unknown',
           userType: user?.stakeholderType || 'AFFILIATE',
           tenantId: user?.tenantId || 'tenant_unknown',
-          affiliateId: user?.affiliateId
+          affiliateId: resolveAffiliateId(user),
         },
       });
       toast.success(`Fulfillment updated to ${response.currentStatus}`);
@@ -171,7 +172,7 @@ export default function CardDetailPage() {
     } finally {
       setFulfillmentLoading(false);
     }
-  }, [cardId, refetchCard, user?.id, user?.stakeholderType, user?.tenantId]);
+  }, [cardId, refetchCard, user]);
 
   const handleFulfillmentReinitiate = useCallback(async () => {
     if (!cardId) return;
