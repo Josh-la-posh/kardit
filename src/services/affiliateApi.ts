@@ -5,6 +5,21 @@ import type {
   GetAffiliateKybSnapshotResponse,
 } from '@/types/affiliateContracts';
 
+export type AffiliateType = 'EXTERNAL' | 'INTERNAL' | 'INTERNAL_BANK';
+
+export interface AffiliateProfileByTenantResponse {
+  affiliateType: AffiliateType;
+  affiliateId: string;
+  tenantId: string;
+  legalName: string;
+  tradingName: string;
+  registrationNumber: string;
+  country: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 const getApiBaseUrl = () => {
@@ -67,7 +82,48 @@ export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetA
 }
 
 export async function getAffiliateProfileByTenant(tenantId: string): Promise<unknown> {
-  return getJson<unknown>(
+  return getJson<AffiliateProfileByTenantResponse>(
     `/affiliates/${encodeURIComponent(tenantId)}/profilebytenant`
   );
+}
+
+export function normalizeAffiliateType(value: unknown): AffiliateType | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toUpperCase();
+  if (normalized === 'EXTERNAL' || normalized === 'INTERNAL' || normalized === 'INTERNAL_BANK') {
+    return normalized;
+  }
+  return undefined;
+}
+
+export function getAffiliateTypeFromProfile(profile: unknown): AffiliateType | undefined {
+  if (!profile || typeof profile !== 'object') return undefined;
+  return normalizeAffiliateType((profile as Record<string, unknown>).affiliateType);
+}
+
+export function getStakeholderTypeForAffiliateType(
+  affiliateType: unknown
+): 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | undefined {
+  switch (normalizeAffiliateType(affiliateType)) {
+    case 'EXTERNAL':
+      return 'AFFILIATE';
+    case 'INTERNAL':
+      return 'SERVICE_PROVIDER';
+    case 'INTERNAL_BANK':
+      return 'BANK';
+    default:
+      return undefined;
+  }
+}
+
+export function getRouteForAffiliateType(affiliateType: unknown): string {
+  switch (normalizeAffiliateType(affiliateType)) {
+    case 'INTERNAL':
+      return '/super-admin/dashboard';
+    case 'INTERNAL_BANK':
+      return '/bank/dashboard';
+    case 'EXTERNAL':
+    default:
+      return '/dashboard';
+  }
 }

@@ -17,7 +17,7 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
-import { getAffiliateProfileByTenant } from '@/services/affiliateApi'
+import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi'
 import { getAuthTenantId, saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
@@ -122,6 +122,8 @@ export default function DashboardPage() {
         console.info('Affiliate profile by tenant response:', response)
         saveAuthProfile(response)
         setTenantProfileResponse(response)
+        const route = getRouteForAffiliateType((response as { affiliateType?: unknown }).affiliateType)
+        if (route !== '/dashboard') navigate(route, { replace: true })
       })
       .catch((error) => {
         if (cancelled) return
@@ -135,7 +137,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [user?.tenantId])
+  }, [navigate, user?.tenantId])
 
   useEffect(() => {
     const stakeholderType = user?.stakeholderType

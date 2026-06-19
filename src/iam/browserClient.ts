@@ -1,4 +1,4 @@
-import { getAffiliateProfileByTenant } from '@/services/affiliateApi';
+import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi';
 import { clearAuthSession, getAuthTenantId, saveAuthProfile } from '@/services/authSession';
 
 export interface TokenClaims {
@@ -89,6 +89,8 @@ function firstProfileString(profile: Record<string, unknown> | null, keys: strin
 
 function profileRedirectPath(profileResponse: unknown): string {
   const profile = unwrapProfileObject(profileResponse);
+  if (profile?.affiliateType) return getRouteForAffiliateType(profile.affiliateType);
+
   const role = firstProfileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles']);
   const normalized = role.toUpperCase().replace(/[\s-]+/g, '_');
 

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { getStakeholderTypeForAffiliateType } from '@/services/affiliateApi';
 import { getAuthProfile, saveTenantId } from '@/services/authSession';
 import { iamClient, type TokenClaims } from '@/iam';
 
@@ -84,6 +85,7 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
 
   const role = profileString(profile, ['role', 'userRole', 'primaryRole', 'roles'], user.role);
   const stakeholderType =
+    getStakeholderTypeForAffiliateType(profile.affiliateType) ||
     normalizeStakeholderType(
       profileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles'])
     ) || user.stakeholderType;
@@ -96,7 +98,7 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
     role,
     stakeholderType,
     tenantId: profileString(profile, ['tenantId', 'tenant_id'], user.tenantId),
-    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'affiliateName', 'name'], user.tenantName),
+    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'legalName', 'tradingName', 'affiliateName', 'name'], user.tenantName),
     affiliateId: profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') || user.affiliateId,
     bankId: profileString(profile, ['bankId', 'bank_id'], user.bankId || '') || user.bankId,
   };
