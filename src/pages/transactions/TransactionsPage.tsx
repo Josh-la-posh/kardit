@@ -12,7 +12,10 @@ import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/u
 import { PaginatedTable } from '@/components/ui/paginated-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-import { resolveAffiliateId } from '@/services/affiliateBankApi';
+import { getAffiliateBankPartnerships, resolveAffiliateId } from '@/services/affiliateBankApi';
+import { getBankAffiliates } from '@/services/bankPortalApi';
+import { getBanks } from '@/services/bankApi';
+import { queryAffiliates, queryBanks as querySuperAdminBanks } from '@/services/superAdminApi';
 import {
   exportTransactions,
   getAffiliateTransactionVolume,
@@ -27,7 +30,8 @@ import type {
 } from '@/types/transactionContracts';
 
 const DEFAULT_PAGE_SIZE = 25;
-const transactionTypeOptions: Array<TransactionType | 'ALL'> = ['ALL', 'POS', 'ATM_WITHDRAWAL', 'LOAD', 'UNLOAD'];
+const ALL_FILTER_VALUE = 'ALL';
+const transactionTypeOptions: Array<TransactionType | 'ALL'> = ['ALL', 'LOADS', 'UNLOADS'];
 const transactionStatusOptions: Array<TransactionStatus | 'ALL'> = [
   'ALL',
   'SUCCESS',
@@ -38,6 +42,12 @@ const transactionStatusOptions: Array<TransactionStatus | 'ALL'> = [
   'COMPLETED',
   'PENDING',
 ];
+
+type FilterOption = {
+  id: string;
+  label: string;
+  meta?: string;
+};
 
 function formatMoney(amount: number, currency: string) {
   const safeCurrency = (currency || '').trim() || 'NGN';
@@ -68,6 +78,15 @@ function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destr
   return 'outline';
 }
 
+function uniqueOptions(options: FilterOption[]) {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    if (!option.id || seen.has(option.id)) return false;
+    seen.add(option.id);
+    return true;
+  });
+}
+
 export default function TransactionsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -87,6 +106,9 @@ export default function TransactionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [bankOptions, setBankOptions] = useState<FilterOption[]>([]);
+  const [affiliateOptions, setAffiliateOptions] = useState<FilterOption[]>([]);
+  const [isFilterOptionsLoading, setIsFilterOptionsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -100,6 +122,18 @@ export default function TransactionsPage() {
   }, [user]);
 
   const defaultBankId = user?.stakeholderType === 'BANK' ? user.bankId || user.tenantId : '';
+  const currentBankOption = useMemo(
+    () => defaultBankId
+      ? [{ id: defaultBankId, label: user?.tenantName || 'Current bank' }]
+      : [],
+    [defaultBankId, user?.tenantName]
+  );
+  const currentAffiliateOption = useMemo(
+    () => affiliateId
+      ? [{ id: affiliateId, label: user?.tenantName || 'Current affiliate' }]
+      : [],
+    [affiliateId, user?.tenantName]
+  );
 
   const filters = useMemo<TransactionQueryFilters>(() => {
     const next: TransactionQueryFilters = {
@@ -145,6 +179,94 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchTransactions(1);
   }, [fetchTransactions]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let active = true;
+
+    async function loadScopedOptions() {
+      setIsFilterOptionsLoading(true);
+      try {
+        const nextBanks: FilterOption[] = [];
+        const nextAffiliates: FilterOption[] = [];
+
+        if (user?.stakeholderType === 'SERVICE_PROVIDER') {
+          const [banksResponse, affiliatesResponse] = await Promise.all([
+            querySuperAdminBanks({ filters: {}, page: 1, pageSize: 500 }),
+            queryAffiliates({ filters: {}, page: 1, pageSize: 500 }),
+          ]);
+
+          nextBanks.push(
+            ...(banksResponse.data || []).map((bank) => ({
+              id: bank.bankId,
+              label: bank.bankName || bank.bankCode || bank.bankId,
+              meta: bank.bankCode,
+            }))
+          );
+          nextAffiliates.push(
+            ...(affiliatesResponse.data || []).map((affiliate) => ({
+              id: affiliate.affiliateId,
+              label: affiliate.tradingName || affiliate.legalName || affiliate.affiliateId,
+              meta: affiliate.tenantId,
+            }))
+          );
+        } else if (user?.stakeholderType === 'BANK') {
+          nextBanks.push(...currentBankOption);
+          if (defaultBankId) {
+            const response = await getBankAffiliates(defaultBankId);
+            nextAffiliates.push(
+              ...(response.affiliates || []).map((affiliate) => ({
+                id: affiliate.affiliateId,
+                label: affiliate.affiliateName || affiliate.affiliateId,
+                meta: affiliate.tenantId,
+              }))
+            );
+          }
+        } else {
+          nextAffiliates.push(...currentAffiliateOption);
+          if (affiliateId) {
+            const response = await getAffiliateBankPartnerships(affiliateId);
+            nextBanks.push(
+              ...(response.banks || []).map((bank) => ({
+                id: bank.bankId,
+                label: bank.bankName || bank.bankCode || bank.bankId,
+                meta: bank.bankCode,
+              }))
+            );
+          } else {
+            const banks = await getBanks();
+            nextBanks.push(
+              ...banks.map((bank) => ({
+                id: bank.bankId,
+                label: bank.bankName || bank.bankCode || bank.bankId,
+                meta: bank.bankCode,
+              }))
+            );
+          }
+        }
+
+        if (active) {
+          setBankOptions(uniqueOptions([...currentBankOption, ...nextBanks]));
+          setAffiliateOptions(uniqueOptions([...currentAffiliateOption, ...nextAffiliates]));
+        }
+      } catch (err) {
+        console.error('Unable to load transaction filter options:', err);
+        if (active) {
+          setBankOptions(uniqueOptions(currentBankOption));
+          setAffiliateOptions(uniqueOptions(currentAffiliateOption));
+        }
+      } finally {
+        if (active) setIsFilterOptionsLoading(false);
+      }
+    }
+
+    loadScopedOptions();
+
+    return () => {
+      active = false;
+    };
+  }, [affiliateId, currentAffiliateOption, currentBankOption, defaultBankId, user]);
 
   useEffect(() => {
     if (user?.stakeholderType === 'AFFILIATE' && !affiliateId) {
@@ -296,11 +418,31 @@ export default function TransactionsPage() {
                   <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
                 </div>
                 <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
-                <Input placeholder="Customer ID" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
-                <Input placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
-                <Input placeholder="Bank ID" value={bankId} onChange={(e) => setBankId(e.target.value)} />
+                <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
+                <Input title="Card no" placeholder="Card no" value={cardId} onChange={(e) => setCardId(e.target.value)} />
+                <Select value={bankId || ALL_FILTER_VALUE} onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}>
+                  <SelectTrigger><SelectValue placeholder="Bank" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_FILTER_VALUE}>All Banks</SelectItem>
+                    {bankOptions.map((bank) => (
+                      <SelectItem key={bank.id} value={bank.id}>
+                        {bank.label}{bank.meta ? ` - ${bank.meta}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {user?.stakeholderType !== 'AFFILIATE' && (
-                  <Input placeholder="Affiliate ID" value={affiliateIdFilter} onChange={(e) => setAffiliateIdFilter(e.target.value)} />
+                  <Select value={affiliateIdFilter || ALL_FILTER_VALUE} onValueChange={(value) => setAffiliateIdFilter(value === ALL_FILTER_VALUE ? '' : value)}>
+                    <SelectTrigger><SelectValue placeholder="Affiliate" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_FILTER_VALUE}>All Affiliates</SelectItem>
+                      {affiliateOptions.map((affiliate) => (
+                        <SelectItem key={affiliate.id} value={affiliate.id}>
+                          {affiliate.label}{affiliate.meta ? ` - ${affiliate.meta}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
                 <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
                 <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
@@ -324,7 +466,9 @@ export default function TransactionsPage() {
               <div className="mt-3 flex flex-wrap gap-3">
                 <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
                 <p className="text-xs text-muted-foreground self-center">
-                  {user?.stakeholderType === 'SERVICE_PROVIDER'
+                  {isFilterOptionsLoading
+                    ? 'Loading filter options...'
+                    : user?.stakeholderType === 'SERVICE_PROVIDER'
                     ? 'Global users can filter by bank or affiliate as needed.'
                     : 'Your organization scope is applied automatically.'}
                 </p>

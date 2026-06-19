@@ -26,11 +26,11 @@ const proofTypeOptions = [
     label: 'Internal fund move',
     description: 'Funds moved internally before loading the card.',
   },
-  {
-    value: 'VIRTUAL_ACCOUNT_CREDIT',
-    label: 'Virtual account credit',
-    description: 'Direct credit into the issuing bank virtual account.',
-  },
+  // {
+  //   value: 'VIRTUAL_ACCOUNT_CREDIT',
+  //   label: 'Virtual account credit',
+  //   description: 'Direct credit into the issuing bank virtual account.',
+  // },
 ];
 const quickAmounts = [5000, 10000, 25000, 50000, 100000];
 

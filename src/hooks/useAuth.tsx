@@ -40,6 +40,18 @@ function claimString(claims: TokenClaims | null, keys: string[], fallback = ''):
   return fallback;
 }
 
+function claimDisplayName(claims: TokenClaims | null): string {
+  const directName = claimString(claims, ['name', 'fullName', 'displayName']);
+  if (directName) return directName;
+
+  const givenName = claimString(claims, ['given_name', 'givenName']);
+  const familyName = claimString(claims, ['family_name', 'familyName']);
+  const fullName = [givenName, familyName].filter(Boolean).join(' ').trim();
+  if (fullName) return fullName;
+
+  return claimString(claims, ['preferred_username', 'username', 'email'], 'User');
+}
+
 function unwrapProfileObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
   const record = value as Record<string, unknown>;
@@ -122,7 +134,7 @@ function claimsToUser(claims: TokenClaims | null): User | null {
   const user: User = {
     id: claims.sub,
     email: claimString(claims, ['email', 'preferred_username'], 'user@kardit.app'),
-    name: claimString(claims, ['name', 'fullName', 'preferred_username', 'email'], 'User'),
+    name: claimDisplayName(claims),
     role,
     stakeholderType: normalizeStakeholderType(stakeholderTypeClaim) || 'AFFILIATE',
     tenantId,
