@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { City, Country, State } from 'react-country-state-city/dist/esm/types'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { useCreateCustomer } from '@/hooks/useCustomers'
 import { useCreateCard } from '@/hooks/useCards'
 import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi'
+import type { PelpayCountry, PelpayState } from '@/services/locationApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
 export type Step = 'customer' | 'card' | 'review' | 'result'
@@ -37,12 +37,10 @@ type FlowContextType = {
   result: { customerId: string; cardId: string } | null
   customerForm: CustomerForm
   setCustomer: (key: keyof CustomerForm, value: string) => void
-  selectedCountry: Country | null
-  selectedState: State | null
-  selectedCity: City | null
-  setSelectedCountry: (v: Country | null) => void
-  setSelectedState: (v: State | null) => void
-  setSelectedCity: (v: City | null) => void
+  selectedCountry: PelpayCountry | null
+  selectedState: PelpayState | null
+  setSelectedCountry: (v: PelpayCountry | null) => void
+  setSelectedState: (v: PelpayState | null) => void
   phoneCode: string
   setPhoneCode: (v: string) => void
   customerValid: boolean
@@ -71,11 +69,17 @@ const CUSTOMER_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
 
 type FlowBank = { bankId: string; bankDetails: { name: string; code: string } }
 
-function mapBankItem(candidate: any): FlowBank | null {
-  const bankId = String(candidate?.bankId || '').trim()
-  const bankName = String(candidate?.bankDetails?.name || candidate?.bankName || '').trim()
-  const bankCode = String(candidate?.bankDetails?.code || candidate?.bankCode || '').trim()
-  const status = String(candidate?.status || candidate?.partnershipStatus || 'ACTIVE').trim()
+function mapBankItem(candidate: unknown): FlowBank | null {
+  const bank = (candidate && typeof candidate === 'object' ? candidate : {}) as Record<string, unknown>
+  const bankDetails =
+    bank.bankDetails && typeof bank.bankDetails === 'object'
+      ? (bank.bankDetails as Record<string, unknown>)
+      : {}
+
+  const bankId = String(bank.bankId || '').trim()
+  const bankName = String(bankDetails.name || bank.bankName || '').trim()
+  const bankCode = String(bankDetails.code || bank.bankCode || '').trim()
+  const status = String(bank.status || bank.partnershipStatus || 'ACTIVE').trim()
   if (!bankId || !bankName || status !== 'ACTIVE') return null
   return {
     bankId,
@@ -129,9 +133,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     idType: '',
     idNumber: '',
   })
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
-  const [selectedState, setSelectedState] = useState<State | null>(null)
-  const [selectedCity, setSelectedCity] = useState<City | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<PelpayCountry | null>(null)
+  const [selectedState, setSelectedState] = useState<PelpayState | null>(null)
   const [phoneCode, setPhoneCode] = useState('+234')
 
   const [bankSearch, setBankSearch] = useState('')
@@ -400,10 +403,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     setCustomer,
     selectedCountry,
     selectedState,
-    selectedCity,
     setSelectedCountry,
     setSelectedState,
-    setSelectedCity,
     phoneCode,
     setPhoneCode,
     customerValid,
@@ -425,7 +426,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     submitCustomerDraft,
     handleIssue,
     combinedPhone,
-  }), [errors, result, customerForm, setCustomer, selectedCountry, selectedState, selectedCity, phoneCode, customerValid, validateCustomer, bankSearch, banksLoading, banks, cardForm, setCard, cardValid, validateCard, fullName, selectedBank, selectedProduct, busy, draftCustomerId, submitCustomerDraft, handleIssue, combinedPhone, searchBanksFromBackend])
+  }), [errors, result, customerForm, setCustomer, selectedCountry, selectedState, phoneCode, customerValid, validateCustomer, bankSearch, banksLoading, banks, cardForm, setCard, cardValid, validateCard, fullName, selectedBank, selectedProduct, busy, draftCustomerId, submitCustomerDraft, handleIssue, combinedPhone, searchBanksFromBackend])
 
   return <CreateCustomerFlowContext.Provider value={value}>{children}</CreateCustomerFlowContext.Provider>
 }

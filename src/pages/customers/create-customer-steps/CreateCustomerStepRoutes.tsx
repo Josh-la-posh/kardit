@@ -17,10 +17,8 @@ export function CustomerStepRoute() {
       setCustomer={flow.setCustomer}
       selectedCountry={flow.selectedCountry}
       selectedState={flow.selectedState}
-      selectedCity={flow.selectedCity}
       setSelectedCountry={flow.setSelectedCountry}
       setSelectedState={flow.setSelectedState}
-      setSelectedCity={flow.setSelectedCity}
       phoneCode={flow.phoneCode}
       setPhoneCode={flow.setPhoneCode}
       onBack={() => navigate('/cards/issue')}

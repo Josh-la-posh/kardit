@@ -1,11 +1,11 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { TextField } from '@/components/ui/text-field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card'
-import { CitySelect, CountrySelect, StateSelect } from 'react-country-state-city'
 import PhoneInput from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
-import type { City, Country, State } from 'react-country-state-city/dist/esm/types'
+import { getCountriesWithStates, type PelpayCountry, type PelpayState } from '@/services/locationApi'
 import { ID_TYPES } from '@/stores/mockStore'
 
 function formatDateInputValue(date: Date) {
@@ -40,12 +40,10 @@ type Props = {
   errors: Record<string, string>
   customerValid: boolean
   setCustomer: (key: keyof CustomerForm, value: string) => void
-  selectedCountry: Country | null
-  selectedState: State | null
-  selectedCity: City | null
-  setSelectedCountry: (v: Country | null) => void
-  setSelectedState: (v: State | null) => void
-  setSelectedCity: (v: City | null) => void
+  selectedCountry: PelpayCountry | null
+  selectedState: PelpayState | null
+  setSelectedCountry: (v: PelpayCountry | null) => void
+  setSelectedState: (v: PelpayState | null) => void
   phoneCode: string
   setPhoneCode: (v: string) => void
   onBack: () => void
@@ -59,16 +57,28 @@ export default function CustomerDetailsStep({
   setCustomer,
   selectedCountry,
   selectedState,
-  selectedCity,
   setSelectedCountry,
   setSelectedState,
-  setSelectedCity,
   phoneCode,
   setPhoneCode,
   onBack,
   onContinue,
 }: Props) {
   const maxDob = getMinimumDobForAge(14)
+  const {
+    data: countries = [],
+    isLoading: isLoadingCountries,
+  } = useQuery({
+    queryKey: ['pelpay-countries'],
+    queryFn: getCountriesWithStates,
+    staleTime: 1000 * 60 * 30,
+  })
+  const availableStates = selectedCountry?.states ?? []
+  const selectTriggerClassName = (hasError?: boolean) =>
+    [
+      'h-10 rounded-[var(--cs-radius-sm)] border bg-[var(--cs-bg-elevated)] text-sm',
+      hasError ? 'border-destructive' : 'border-[var(--cs-border-strong)]',
+    ].join(' ')
 
   return (
     <section className="scr-main">
@@ -164,56 +174,54 @@ export default function CustomerDetailsStep({
               </div>
               <div className="field">
                 <label>Country<span className="req">*</span></label>
-                <CountrySelect
-                  containerClassName={errors.country ? 'border border-destructive rounded-[var(--cs-radius-sm)]' : ''}
-                  inputClassName="h-10 px-3 rounded-[var(--cs-radius-sm)] text-sm bg-[var(--cs-bg-elevated)] border border-[var(--cs-border-strong)]"
-                  onChange={(country) => {
+                <Select
+                  value={selectedCountry?.id ?? customerForm.country}
+                  onValueChange={(countryId) => {
+                    const country = countries.find((item) => item.id === countryId) ?? null
                     setSelectedCountry(country)
                     setSelectedState(null)
-                    setSelectedCity(null)
-                    setCustomer('country', country.name)
+                    setCustomer('country', country?.id ?? '')
                     setCustomer('state', '')
                     setCustomer('city', '')
                   }}
-                  placeHolder="Select country"
-                  defaultValue={(selectedCountry ?? undefined) as any}
-                />
+                  disabled={isLoadingCountries || !countries.length}
+                >
+                  <SelectTrigger className={selectTriggerClassName(Boolean(errors.country))}>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>{country.countryName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.country && <div className="help text-destructive">{errors.country}</div>}
               </div>
               <div className="field">
                 <label>State<span className="req">*</span></label>
-                <StateSelect
-                  countryid={selectedCountry?.id ?? 0}
-                  containerClassName={errors.state ? 'border border-destructive rounded-[var(--cs-radius-sm)]' : ''}
-                  inputClassName="h-10 px-3 rounded-[var(--cs-radius-sm)] text-sm bg-[var(--cs-bg-elevated)] border border-[var(--cs-border-strong)]"
-                  onChange={(state) => {
+                <Select
+                  value={selectedState?.id ?? customerForm.state}
+                  onValueChange={(stateId) => {
+                    const state = availableStates.find((item) => item.id === stateId) ?? null
                     setSelectedState(state)
-                    setSelectedCity(null)
-                    setCustomer('state', state.name)
+                    setCustomer('state', state?.id ?? '')
                     setCustomer('city', '')
                   }}
-                  placeHolder={selectedCountry ? 'Select state' : 'Select country first'}
-                  defaultValue={(selectedState ?? undefined) as any}
-                  disabled={!selectedCountry}
-                />
+                  disabled={!selectedCountry || !availableStates.length}
+                >
+                  <SelectTrigger className={selectTriggerClassName(Boolean(errors.state))}>
+                    <SelectValue placeholder={selectedCountry ? 'Select state' : 'Select country first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableStates.map((state) => (
+                      <SelectItem key={state.id} value={state.id}>{state.stateName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.state && <div className="help text-destructive">{errors.state}</div>}
               </div>
               <div className="field">
-                <label>City<span className="req">*</span></label>
-                <CitySelect
-                  countryid={selectedCountry?.id ?? 0}
-                  stateid={selectedState?.id ?? 0}
-                  containerClassName={errors.city ? 'border border-destructive rounded-[var(--cs-radius-sm)]' : ''}
-                  inputClassName="h-10 px-3 rounded-[var(--cs-radius-sm)] text-sm bg-[var(--cs-bg-elevated)] border border-[var(--cs-border-strong)]"
-                  onChange={(city) => {
-                    setSelectedCity(city)
-                    setCustomer('city', city.name)
-                  }}
-                  placeHolder={selectedState ? 'Select city' : 'Select state first'}
-                  defaultValue={(selectedCity ?? undefined) as any}
-                  disabled={!selectedCountry || !selectedState}
-                />
-                {errors.city && <div className="help text-destructive">{errors.city}</div>}
+                <TextField label="City *" value={customerForm.city} onChange={(e) => setCustomer('city', e.target.value)} placeholder="Ikeja" error={errors.city} />
               </div>
             </div>
           </section>
