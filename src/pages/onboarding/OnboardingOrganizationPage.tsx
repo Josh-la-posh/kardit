@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
-import { CountrySelect, GetCountries, GetState, StateSelect } from 'react-country-state-city';
-import type { Country, State } from 'react-country-state-city/dist/esm/types';
-import { useCreateOnboardingSession, useOnboardingDraft } from '@/hooks/useOnboarding';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
+import { useCreateOnboardingSession, useOnboardingDraft } from '@/hooks/useOnboarding';
 import { saveOrganization as saveOrganizationApi } from '@/services/onboardingApi';
+import { getCountriesWithStates, type PelpayCountry, type PelpayState } from '@/services/locationApi';
 
 function RequiredLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -19,17 +20,6 @@ function RequiredLabel({ children }: { children: React.ReactNode }) {
 
 function normalizeCountryValue(value: string) {
   return value.trim().toLowerCase();
-}
-
-function normalizeStateValue(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function getSelectInputClassName(hasError?: boolean) {
-  return [
-    'h-10 px-5 text-[hsl(var(--foreground))] rounded-lg text-base placeholder:text-muted-foreground bg-[hsl(var(--background))] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-    hasError ? 'border border-[hsl(var(--destructive))] focus:ring-[hsl(var(--destructive))/0.35]' : '',
-  ].join(' ');
 }
 
 export default function OnboardingOrganizationPage() {
@@ -67,8 +57,8 @@ export default function OnboardingOrganizationPage() {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedState, setSelectedState] = useState<State | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<PelpayCountry | null>(null);
+  const [selectedState, setSelectedState] = useState<PelpayState | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<RequiredFieldKey, string>>>({});
   const requiredFieldKeys: RequiredFieldKey[] = [
     'tenantId',
@@ -81,57 +71,55 @@ export default function OnboardingOrganizationPage() {
     'contactPhone',
   ];
 
+  const {
+    data: countries = [],
+    isLoading: isLoadingCountries,
+    error: countriesError,
+  } = useQuery({
+    queryKey: ['pelpay-countries'],
+    queryFn: getCountriesWithStates,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const availableStates = selectedCountry?.states ?? [];
+
   React.useEffect(() => {
-    let active = true;
-
     setForm(initial);
-    setSelectedCountry(null);
-    setSelectedState(null);
-
-    const hydrateAddressSelections = async () => {
-      const initialCountry = normalizeCountryValue(initial.country);
-      const initialState = normalizeStateValue(initial.state);
-
-      if (!initialCountry) return;
-
-      const countries = (await GetCountries()) as Country[];
-      if (!active) return;
-
-      const countryMatch = countries.find(
-        (country) =>
-          country.iso2.toLowerCase() === initialCountry ||
-          country.iso3.toLowerCase() === initialCountry ||
-          country.name.toLowerCase() === initialCountry
-      );
-
-      if (!countryMatch) return;
-
-      setSelectedCountry(countryMatch);
-      setForm((prev) => ({ ...prev, country: countryMatch.iso2 }));
-
-      if (!initialState) return;
-
-      const states = (await GetState(countryMatch.id)) as State[];
-      if (!active) return;
-
-      const stateMatch = states.find(
-        (state) =>
-          state.state_code.toLowerCase() === initialState ||
-          state.name.toLowerCase() === initialState
-      );
-
-      if (!stateMatch) return;
-
-      setSelectedState(stateMatch);
-      setForm((prev) => ({ ...prev, state: stateMatch.state_code || stateMatch.name }));
-    };
-
-    void hydrateAddressSelections();
-
-    return () => {
-      active = false;
-    };
   }, [initial]);
+
+  React.useEffect(() => {
+    const initialCountry = normalizeCountryValue(initial.country);
+    const initialState = normalizeStateValue(initial.state);
+
+    if (!countries.length) {
+      setSelectedCountry(null);
+      setSelectedState(null);
+      return;
+    }
+
+    const countryMatch =
+      countries.find(
+        (country) =>
+          country.id.toLowerCase() === initialCountry ||
+          country.countryName.toLowerCase() === initialCountry
+      ) ?? null;
+
+    setSelectedCountry(countryMatch);
+
+    if (!countryMatch) {
+      setSelectedState(null);
+      return;
+    }
+
+    const stateMatch =
+      countryMatch.states.find(
+        (state) =>
+          state.id.toLowerCase() === initialState ||
+          state.stateName.toLowerCase() === initialState
+      ) ?? null;
+
+    setSelectedState(stateMatch);
+  }, [countries, initial.country, initial.state]);
 
   const set = (k: keyof typeof form, v: string) => {
     setForm((p) => ({ ...p, [k]: v }));
@@ -212,13 +200,20 @@ export default function OnboardingOrganizationPage() {
         await saveOrganizationApi(activeDraftId, payload);
       }
       navigate(`/onboarding/${activeDraftId}/documents`);
-    } catch (err: any) {
-      setLocalError(err?.message || 'Failed to save organization details');
+    } catch (err: unknown) {
+      setLocalError(err instanceof Error ? err.message : 'Failed to save organization details');
     } finally {
       setSaving(false);
     }
   };
-  const toneClasses = "border-[hsl(var(--input))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]";
+
+  const toneClasses = 'border-[hsl(var(--input))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]';
+  const selectTriggerClassName = (hasError?: boolean) =>
+    [
+      'h-12 rounded-lg border px-3 text-base',
+      toneClasses,
+      hasError ? 'border-[hsl(var(--destructive))] focus:ring-[hsl(var(--destructive))/0.35]' : '',
+    ].join(' ');
 
   return (
     <PublicOnboardingLayout
@@ -229,15 +224,14 @@ export default function OnboardingOrganizationPage() {
       description="All fields are required unless marked optional. Use your registered business name and address as on file with CAC."
     >
       <div className="animate-fade-in rounded-3xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-5 shadow-[var(--cs-shadow-lg)] md:p-7">
-
-        {(localError || error) && (
+        {(localError || error || countriesError) && (
           <div className="mb-5 flex items-center gap-2 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <span>{localError || error}</span>
+            <span>{localError || error || (countriesError instanceof Error ? countriesError.message : 'Failed to load countries')}</span>
           </div>
         )}
 
-        {isLoading && draftId ? (
+        {(isLoading && draftId) || isLoadingCountries ? (
           <div className="flex items-center justify-center rounded-[1.5rem] border border-[hsl(var(--landing-panel-border))] bg-[hsl(var(--landing-panel))] py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -248,7 +242,7 @@ export default function OnboardingOrganizationPage() {
                 <h2 className="text-xl md:text-2xl font-bold text-foreground">Organization Details</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="col-span-2">
                   <TextField label={<RequiredLabel>Legal Business Name</RequiredLabel>} value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
                 </div>
@@ -256,52 +250,73 @@ export default function OnboardingOrganizationPage() {
                 <TextField label={<RequiredLabel>RC / Registration Number</RequiredLabel>} value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
                 <TextField label={<RequiredLabel>Tenant ID</RequiredLabel>} value={form.tenantId} onChange={(e) => set('tenantId', e.target.value)} disabled={saving} error={fieldErrors.tenantId} />
                 <div className="col-span-2">
-                  <TextField className="  md:col-span-2" label={<RequiredLabel>Address Line 1</RequiredLabel>} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
+                  <TextField className="md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm md:text-base font-semibold text-foreground">
-                    <RequiredLabel>Country</RequiredLabel>
-                  </label>
-                  <CountrySelect
-                    containerClassName={[toneClasses, fieldErrors.country ? 'border-[hsl(var(--destructive))]' : ''].join(' ')}
-                    inputClassName={getSelectInputClassName(Boolean(fieldErrors.country))}
-                    defaultValue={(selectedCountry ?? undefined) as any}
-                    onChange={(country) => {
+                  <label className="text-sm md:text-base font-semibold text-foreground"><RequiredLabel>Country</RequiredLabel></label>
+                  <Select
+                    value={selectedCountry?.id ?? ''}
+                    onValueChange={(countryId) => {
+                      const country = countries.find((item) => item.id === countryId) ?? null;
                       setSelectedCountry(country);
                       setSelectedState(null);
                       setFieldErrors((prev) => ({ ...prev, country: undefined }));
                       setForm((prev) => ({
                         ...prev,
-                        country: country.iso2,
+                        country: country?.id ?? '',
                         state: '',
                         city: '',
                       }));
                     }}
-                    placeHolder="Select country"
-                    disabled={saving}
-                  />
+                    disabled={saving || !countries.length}
+                  >
+                    <SelectTrigger className={selectTriggerClassName(Boolean(fieldErrors.country))}>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={country.id}>
+                          {country.countryName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {fieldErrors.country && <p className="text-xs text-destructive">{fieldErrors.country}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm md:text-base font-semibold text-foreground">State</label>
-                  <StateSelect
-                    countryid={selectedCountry?.id ?? 0}
-                    containerClassName={toneClasses}
-                    inputClassName={getSelectInputClassName()}
-                    defaultValue={(selectedState ?? undefined) as any}
-                    onChange={(state) => {
+                  <label className="text-sm md:text-base font-semibold text-foreground"><RequiredLabel>State</RequiredLabel></label>
+                  <Select
+                    value={selectedState?.id ?? ''}
+                    onValueChange={(stateId) => {
+                      const state = availableStates.find((item) => item.id === stateId) ?? null;
                       setSelectedState(state);
                       setForm((prev) => ({
                         ...prev,
-                        state: state.state_code || state.name,
+                        state: state?.id ?? '',
                         city: '',
                       }));
                     }}
-                    placeHolder={selectedCountry ? 'Select state' : 'Select country first'}
-                    disabled={saving || !selectedCountry}
-                  />
+                    disabled={saving || !selectedCountry || !availableStates.length}
+                  >
+                    <SelectTrigger className={selectTriggerClassName()}>
+                      <SelectValue placeholder={selectedCountry ? 'Select state' : 'Select country first'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStates.map((state) => (
+                        <SelectItem key={state.id} value={state.id}>
+                          {state.stateName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <TextField label="City" value={form.city} onChange={(e) => set('city', e.target.value)} disabled={saving} />
+                <TextField
+                  label="City"
+                  value={form.city}
+                  onChange={(e) => set('city', e.target.value)}
+                  placeholder="Enter city"
+                  disabled={saving}
+                />
               </div>
             </section>
 
@@ -309,7 +324,7 @@ export default function OnboardingOrganizationPage() {
               <div className="mb-5">
                 <h2 className="text-xl font-bold text-foreground">Primary contact</h2>
               </div>
-              <div className="grid grid-col-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-col-1 gap-4 md:grid-cols-2">
                 <div className="col-span-2">
                   <TextField label={<RequiredLabel>Full Name</RequiredLabel>} value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
                 </div>
@@ -330,5 +345,3 @@ export default function OnboardingOrganizationPage() {
     </PublicOnboardingLayout>
   );
 }
-
-

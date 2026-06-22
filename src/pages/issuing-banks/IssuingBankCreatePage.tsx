@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { useCreateIssuingBankSession } from '@/hooks/useIssuingBank';
 import { AlertCircle, Building2, CheckCircle2, LucideArrowLeft } from 'lucide-react';
-import { CountrySelect } from 'react-country-state-city';
-import type { Country } from 'react-country-state-city/dist/esm/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getCountriesWithStates, type PelpayCountry } from '@/services/locationApi';
 import { toast } from 'sonner';
 import { AppCard } from '@/components/ui/app-card';
 
@@ -32,7 +32,12 @@ interface FormErrors {
 export default function IssuingBankCreatePage() {
   const navigate = useNavigate();
   const { create } = useCreateIssuingBankSession();
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<PelpayCountry | null>(null);
+  const { data: countries = [], isLoading: isLoadingCountries } = useQuery({
+    queryKey: ['pelpay-countries'],
+    queryFn: getCountriesWithStates,
+    staleTime: 1000 * 60 * 30,
+  });
 
   const [step, setStep] = useState<Step>('details');
   const [confirmed, setConfirmed] = useState(false);
@@ -262,16 +267,26 @@ export default function IssuingBankCreatePage() {
                           <label htmlFor="country" className="block text-sm font-medium mb-1">
                             Country <span className="text-[hsl(var(--destructive))]">*</span>
                           </label>
-                          <CountrySelect
-                            containerClassName="w-full"
-                            inputClassName={countrySelectInputClassName}
-                            defaultValue={(selectedCountry ?? undefined) as any}
-                            onChange={(country) => {
+                          <Select
+                            value={selectedCountry?.id ?? form.country}
+                            onValueChange={(countryId) => {
+                              const country = countries.find((item) => item.id === countryId) ?? null;
                               setSelectedCountry(country);
-                              set('country', country.iso2);
+                              set('country', country?.id ?? '');
                             }}
-                            placeHolder="Select country"
-                          />
+                            disabled={isLoadingCountries || !countries.length}
+                          >
+                            <SelectTrigger className={countrySelectInputClassName}>
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map((country) => (
+                                <SelectItem key={country.id} value={country.id}>
+                                  {country.countryName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {errors.country && <p className="text-xs text-[hsl(var(--destructive))] mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
                         </div>
                       </div>
@@ -402,7 +417,7 @@ export default function IssuingBankCreatePage() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Country</p>
-                          <p className="font-semibold text-foreground">{selectedCountry?.name || form.country}</p>
+                          <p className="font-semibold text-foreground">{selectedCountry?.countryName || form.country}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Contact Name</p>
