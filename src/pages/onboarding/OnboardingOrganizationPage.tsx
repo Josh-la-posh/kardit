@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TextField } from '@/components/ui/text-field';
 import { Button } from '@/components/ui/button';
-import { CitySelect, CountrySelect, GetCity, GetCountries, GetState, StateSelect } from 'react-country-state-city';
-import type { City, Country, State } from 'react-country-state-city/dist/esm/types';
+import { CountrySelect, GetCountries, GetState, StateSelect } from 'react-country-state-city';
+import type { Country, State } from 'react-country-state-city/dist/esm/types';
 import { useCreateOnboardingSession, useOnboardingDraft } from '@/hooks/useOnboarding';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
@@ -22,10 +22,6 @@ function normalizeCountryValue(value: string) {
 }
 
 function normalizeStateValue(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizeCityValue(value: string) {
   return value.trim().toLowerCase();
 }
 
@@ -73,7 +69,6 @@ export default function OnboardingOrganizationPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedState, setSelectedState] = useState<State | null>(null);
-  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<RequiredFieldKey, string>>>({});
   const requiredFieldKeys: RequiredFieldKey[] = [
     'tenantId',
@@ -92,12 +87,10 @@ export default function OnboardingOrganizationPage() {
     setForm(initial);
     setSelectedCountry(null);
     setSelectedState(null);
-    setSelectedCity(null);
 
     const hydrateAddressSelections = async () => {
       const initialCountry = normalizeCountryValue(initial.country);
       const initialState = normalizeStateValue(initial.state);
-      const initialCity = normalizeCityValue(initial.city);
 
       if (!initialCountry) return;
 
@@ -131,17 +124,6 @@ export default function OnboardingOrganizationPage() {
 
       setSelectedState(stateMatch);
       setForm((prev) => ({ ...prev, state: stateMatch.state_code || stateMatch.name }));
-
-      if (!initialCity) return;
-
-      const cities = (await GetCity(countryMatch.id, stateMatch.id)) as City[];
-      if (!active) return;
-
-      const cityMatch = cities.find((city) => city.name.toLowerCase() === initialCity);
-      if (!cityMatch) return;
-
-      setSelectedCity(cityMatch);
-      setForm((prev) => ({ ...prev, city: cityMatch.name }));
     };
 
     void hydrateAddressSelections();
@@ -287,7 +269,6 @@ export default function OnboardingOrganizationPage() {
                     onChange={(country) => {
                       setSelectedCountry(country);
                       setSelectedState(null);
-                      setSelectedCity(null);
                       setFieldErrors((prev) => ({ ...prev, country: undefined }));
                       setForm((prev) => ({
                         ...prev,
@@ -310,7 +291,6 @@ export default function OnboardingOrganizationPage() {
                     defaultValue={(selectedState ?? undefined) as any}
                     onChange={(state) => {
                       setSelectedState(state);
-                      setSelectedCity(null);
                       setForm((prev) => ({
                         ...prev,
                         state: state.state_code || state.name,
@@ -321,22 +301,7 @@ export default function OnboardingOrganizationPage() {
                     disabled={saving || !selectedCountry}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm md:text-base font-semibold text-foreground">City</label>
-                  <CitySelect
-                    countryid={selectedCountry?.id ?? 0}
-                    stateid={selectedState?.id ?? 0}
-                    containerClassName={toneClasses}
-                    inputClassName={getSelectInputClassName()}
-                    defaultValue={(selectedCity ?? undefined) as any}
-                    onChange={(city) => {
-                      setSelectedCity(city);
-                      set('city', city.name);
-                    }}
-                    placeHolder={selectedState ? 'Select city' : 'Select state first'}
-                    disabled={saving || !selectedCountry || !selectedState}
-                  />
-                </div>                
+                <TextField label="City" value={form.city} onChange={(e) => set('city', e.target.value)} disabled={saving} />
               </div>
             </section>
 
