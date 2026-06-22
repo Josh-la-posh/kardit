@@ -122,14 +122,14 @@ export default function AffiliateCustomersPage() {
   }, [loadSummaries]);
 
   const customerRequestContext = useMemo<CustomerSearchRequestContext | null>(() => {
-    if (!affiliateSummary?.tenantId) return null;
+    if (!user?.id || !affiliateSummary?.tenantId) return null;
     return {
-      actorUserId: '',
+      actorUserId: user.id,
       userType: 'SERVICE_PROVIDER',
       tenantId: affiliateSummary.tenantId,
       scopeType: 'AFFILIATE_TENANT',
     };
-  }, [affiliateSummary?.tenantId]);
+  }, [affiliateSummary?.tenantId, user?.id]);
 
   const { customers, total, isLoading, error, refetch } = useCustomers(query, {
     requestContext: customerRequestContext,

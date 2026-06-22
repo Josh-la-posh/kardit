@@ -31,14 +31,14 @@ export default function AffiliateCustomersPage() {
   );
 
   const customerRequestContext = useMemo<CustomerSearchRequestContext | null>(() => {
-    if (!affiliate?.tenantId) return null;
+    if (!user?.id || !affiliate?.tenantId) return null;
     return {
-      actorUserId: '',
+      actorUserId: user.id,
       userType: 'BANK_ADMIN',
       tenantId: affiliate.tenantId,
       scopeType: 'AFFILIATE_TENANT',
     };
-  }, [affiliate?.tenantId]);
+  }, [affiliate?.tenantId, user?.id]);
 
   const { customers, total, isLoading, error } = useCustomers(search, {
     requestContext: customerRequestContext,

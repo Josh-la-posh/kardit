@@ -98,7 +98,6 @@ export async function searchCustomers(request: SearchCustomersRequest): Promise<
   ) as SearchCustomersRequest['criteria'];
 
   const sanitizedRequest: SearchCustomersRequest = {
-    requestContext: request.requestContext,
     criteria,
     pagination: request.pagination,
   };
