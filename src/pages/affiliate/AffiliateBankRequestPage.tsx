@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AlertCircle, ArrowLeft, Check, ChevronsUpDown, Loader2, Send, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronsUpDown, Loader2, Send, X } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAffiliateBankPartnerships } from '@/hooks/useAffiliateBanks'
 import { getBanks } from '@/services/bankApi'
 import type { BankQueryItem } from '@/types/bankContracts'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 const AFFILIATE_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
@@ -111,6 +111,11 @@ export default function AffiliateBankRequestPage() {
     return filteredBankCatalog.filter((bank) => !existing.has(bank.bankId))
   }, [filteredBankCatalog, banks])
 
+  const selectedBank = useMemo(
+    () => requestableBanks.find((bank) => bank.bankId === selectedBankId) || null,
+    [requestableBanks, selectedBankId]
+  )
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLocalError(null)
@@ -157,57 +162,64 @@ export default function AffiliateBankRequestPage() {
               <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label className="bch-label">Bank</label>
-                  <Popover open={bankPickerOpen} onOpenChange={setBankPickerOpen}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="bch-input"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          textAlign: 'left',
-                        }}
-                        disabled={isSubmitting || bankCatalogLoading || !requestableBanks.length}
-                      >
-                        <span style={{ opacity: selectedBankId ? 1 : 0.65 }}>
-                          {selectedBankId
-                            ? requestableBanks.find((bank) => bank.bankId === selectedBankId)?.bankName ||
-                              requestableBanks.find((bank) => bank.bankId === selectedBankId)?.bankCode
-                            : bankCatalogLoading
-                              ? 'Loading banks...'
-                              : 'Search and select a bank'}
-                        </span>
-                        <ChevronsUpDown style={{ width: 16, height: 16, opacity: 0.7 }} />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[420px] p-0" align="start" sideOffset={8}>
-                      <div style={{ borderBottom: '1px solid var(--border)', padding: '10px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>Select a bank</div>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            style={{ height: 28, padding: '0 8px' }}
-                            onClick={() => setBankPickerOpen(false)}
-                          >
-                            <X style={{ width: 14, height: 14 }} />
-                            Close
-                          </button>
+                  <button
+                    type="button"
+                    className="bch-input"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      textAlign: 'left',
+                    }}
+                    disabled={isSubmitting || bankCatalogLoading || !requestableBanks.length}
+                    onClick={() => setBankPickerOpen(true)}
+                  >
+                    <span style={{ opacity: selectedBankId ? 1 : 0.65 }}>
+                      {selectedBankId
+                        ? selectedBank?.bankName || selectedBank?.bankCode
+                        : bankCatalogLoading
+                          ? 'Loading banks...'
+                          : 'Search and select a bank'}
+                    </span>
+                    <ChevronsUpDown style={{ width: 16, height: 16, opacity: 0.7 }} />
+                  </button>
+
+                  <Dialog open={bankPickerOpen} onOpenChange={setBankPickerOpen}>
+                    <DialogContent
+                      className="flex h-full md:h-[86vh] w-full md:w-[60vw] max-w-[1120px] grid-rows-none flex-col gap-0 overflow-hidden border bg-background/95 p-0 shadow-2xl backdrop-blur sm:rounded-lg"
+                      overlayClassName="bg-background/10 backdrop-blur-sm"
+                    >
+                      <DialogHeader className="border-b px-6 py-5 text-left" >
+                        <div>
+                          <DialogTitle>Select a bank</DialogTitle>
+                          <DialogDescription>
+                            Search and choose the issuing bank you want to add to your affiliate portfolio.
+                          </DialogDescription>
                         </div>
-                      </div>
-                      <Command shouldFilter>
-                        <CommandInput
-                          placeholder="Search banks by name or code..."
-                          value={bankSearch}
-                          onValueChange={(value) => setBankSearch(value || '')}
-                        />
-                        <CommandList className="max-h-[280px]">
+                      </DialogHeader>
+                      <Command shouldFilter className="flex min-h-0 flex-1 flex-col rounded-none">
+                        <div className="border-b px-5 py-4">
+                          <CommandInput
+                            placeholder="Search banks by name or code..."
+                            value={bankSearch}
+                            onValueChange={(value) => setBankSearch(value || '')}
+                            className="h-11"
+                          />
+                        </div>
+                        <CommandList className="max-h-none flex-1 overflow-y-auto px-5 py-4">
                           <CommandEmpty>No banks found.</CommandEmpty>
-                          <CommandGroup>
+                          <CommandGroup className="">
                             {requestableBanks.map((bank) => {
                               const label = bank.bankName !== '' ? bank.bankName : bank.bankCode
+                              const isSelected = selectedBankId === bank.bankId
+                              const initials = label
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((part) => part.charAt(0).toUpperCase())
+                                .join('')
+                                .slice(0, 2)
                               return (
                                 <CommandItem
                                   key={bank.bankId}
@@ -217,15 +229,39 @@ export default function AffiliateBankRequestPage() {
                                     setBankSearch(label)
                                     setBankPickerOpen(false)
                                   }}
-                                  className='w-full'
+                                  className="w-full cursor-pointer rounded-md p-1 data-[selected=true]:bg-transparent"
                                 >
-                                  <div className={`w-full flex items-center justify-between ${selectedBankId === bank.bankId && 'px-3 pt-1 bg-muted/50  hover:bg-[var(--cs-green-300)]'}`}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                      <span className='bch-label'>{label}</span>
+                                  <div
+                                    className={cn(
+                                      'flex w-full items-center gap-3 rounded-md border px-4 py-3 transition-colors',
+                                      'border-transparent hover:border-[var(--cs-green-300)] hover:bg-[var(--cs-green-100)]',
+                                      isSelected && 'border-[var(--cs-green-700)] bg-[var(--cs-green-100)] shadow-sm'
+                                    )}
+                                  >
+                                    <div
+                                      className={cn(
+                                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                                        isSelected
+                                          ? 'bg-[var(--cs-green-700)] text-white'
+                                          : 'bg-muted text-muted-foreground'
+                                      )}
+                                    >
+                                      {initials || 'BK'}
                                     </div>
-                                    <Check
-                                      className={cn('h-4 w-4', selectedBankId === bank.bankId ? 'opacity-100' : 'opacity-0')}
-                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="truncate text-sm font-medium text-foreground">{label}</div>
+                                      <div className="truncate text-xs text-muted-foreground">
+                                        {bank.bankCode ? `Code: ${bank.bankCode}` : bank.bankId}
+                                      </div>
+                                    </div>
+                                    {isSelected && <input
+                                      type="radio"
+                                      name="selected-bank"
+                                      checked={isSelected}
+                                      readOnly
+                                      className="h-4 w-4 accent-[var(--cs-green-700)]"
+                                      aria-label={`${label} selected`}
+                                    />}
                                   </div>
                                 </CommandItem>
                               )
@@ -233,8 +269,8 @@ export default function AffiliateBankRequestPage() {
                           </CommandGroup>
                         </CommandList>
                       </Command>
-                    </PopoverContent>
-                  </Popover>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div>

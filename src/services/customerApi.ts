@@ -1,4 +1,4 @@
-import { ApiError } from '@/services/apiError';
+import { ApiError, getApiErrorMessage } from '@/services/apiError';
 import type {
   CreateCustomerDraftRequest,
   CreateCustomerDraftResponse,
@@ -45,7 +45,7 @@ async function getJson<TResponse>(path: string): Promise<TResponse> {
   const res = await fetch(`${baseUrl}${path}`, { method: 'GET' });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    throw new ApiError('Request failed', res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed (${res.status})`), res.status, errorBody);
   }
   return (await res.json()) as TResponse;
 }
@@ -60,11 +60,7 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as Record<string, unknown>)
-        ? String((errorBody as Record<string, unknown>).message)
-        : undefined) || `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed (${res.status})`), res.status, errorBody);
   }
   return (await res.json()) as TResponse;
 }
@@ -74,7 +70,7 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> 
     if ('status' in response && 'data' in response) {
       const envelope = response as ApiStatusEnvelope<TResponse>;
       if (envelope.status && envelope.status.toLowerCase() !== 'success') {
-        throw new ApiError(envelope.message || 'Request failed', 200, envelope.error);
+        throw new ApiError(getApiErrorMessage(response, 'Request failed'), 200, envelope.error);
       }
       if (envelope.data !== undefined) {
         return envelope.data;
@@ -84,7 +80,7 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> 
     if ('data' in response) {
       const envelope = response as ApiEnvelope<TResponse>;
       if (envelope.data?.isSuccess === false) {
-        throw new ApiError('Request failed', 200, envelope.data.error);
+        throw new ApiError(getApiErrorMessage(envelope.data.error, 'Request failed'), 200, envelope.data.error);
       }
 
       if (envelope.data?.value !== undefined) {
@@ -97,22 +93,15 @@ function unwrapApiValue<TResponse>(response: TResponse | ApiEnvelope<TResponse> 
 }
 
 export async function searchCustomers(request: SearchCustomersRequest): Promise<SearchCustomersResponse> {
-  const stripEmpty = (value: unknown): unknown => {
-    if (Array.isArray(value)) {
-      const next = value.map(stripEmpty).filter((item) => item !== undefined);
-      return next.length ? next : undefined;
-    }
-    if (value && typeof value === 'object') {
-      const entries = Object.entries(value as Record<string, unknown>)
-        .map(([key, item]) => [key, stripEmpty(item)] as const)
-        .filter(([, item]) => item !== undefined);
-      return entries.length ? Object.fromEntries(entries) : undefined;
-    }
-    if (value === null || value === undefined || value === '') return undefined;
-    return value;
-  };
+  const criteria = Object.fromEntries(
+    Object.entries(request.criteria || {}).filter(([, value]) => value !== null && value !== undefined && value !== '')
+  ) as SearchCustomersRequest['criteria'];
 
-  const sanitizedRequest = (stripEmpty(request) || {}) as SearchCustomersRequest;
+  const sanitizedRequest: SearchCustomersRequest = {
+    requestContext: request.requestContext,
+    criteria,
+    pagination: request.pagination,
+  };
 
   const value = unwrapApiValue(
     await postJson<

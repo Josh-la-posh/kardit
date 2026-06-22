@@ -103,7 +103,7 @@ export default function AffiliateBanksPage() {
                   <div className="empty-list-title">No bank partnerships yet</div>
                   <div className="empty-list-sub">Start by requesting a partnership with an issuing bank.</div>
                   <Link className="btn btn-primary" to="/banks/request-partnership">
-                    <Plus /> Request partnership
+                    <span className='text-xl'>+</span> <span>Request partnership</span>
                   </Link>
                 </div>
               ) : (

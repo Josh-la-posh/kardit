@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ApiError } from '@/services/apiError';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -96,6 +96,42 @@ interface UseCustomersOptions {
   enabled?: boolean;
 }
 
+function buildCustomerRequestContext(user: ReturnType<typeof useAuth>['user']): CustomerSearchRequestContext | null {
+  if (!user?.tenantId) return null;
+
+  if (user.stakeholderType === 'BANK') {
+    return {
+      actorUserId: '',
+      userType: 'BANK_ADMIN',
+      tenantId: user.tenantId,
+      scopeType: 'BANK_TENANT',
+    };
+  }
+
+  if (user.stakeholderType === 'SERVICE_PROVIDER') {
+    return {
+      actorUserId: '',
+      userType: 'SERVICE_PROVIDER',
+      tenantId: user.tenantId,
+      scopeType: 'BANK_TENANT',
+    };
+  }
+
+  let affiliateId = '';
+  try {
+    affiliateId = resolveAffiliateId(user);
+  } catch {
+    return null;
+  }
+
+  return {
+    actorUserId: '',
+    userType: 'AFFILIATE',
+    tenantId: user.tenantId,
+    scopeType: 'AFFILIATE_TENANT',
+  };
+}
+
 const buildCriteria = (query: string): CustomerSearchCriteria => {
   const trimmed = query.trim();
   if (!trimmed) {
@@ -122,10 +158,15 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const { user } = useAuth();
   const { requestContext, criteria, page = 1, pageSize = 20, disableStoreEnrichment = false, enabled = true } = options;
+  const resolvedRequestContext = useMemo(
+    () => requestContext === undefined ? buildCustomerRequestContext(user) : requestContext,
+    [requestContext, user]
+  );
 
   const fetch = useCallback(async () => {
-    if (!enabled) {
+    if (!enabled || !resolvedRequestContext) {
       setCustomers([]);
       setTotal(0);
       setError(null);
@@ -137,16 +178,12 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     setError(null);
     try {
       const response = await searchCustomers({
-        ...(requestContext
-          ? {
-              requestContext,
-            }
-          : {}),
+        requestContext: resolvedRequestContext,
         criteria: criteria || buildCriteria(query),
         pagination: { page, pageSize },
       });
 
-      const storeCustomers = disableStoreEnrichment ? [] : store.getCustomers(requestContext?.tenantId);
+      const storeCustomers = disableStoreEnrichment ? [] : store.getCustomers(resolvedRequestContext.tenantId);
 
       setCustomers(
         response.results.map((item) => {
@@ -180,7 +217,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, disableStoreEnrichment, enabled, page, pageSize, query, requestContext]);
+  }, [criteria, disableStoreEnrichment, enabled, page, pageSize, query, resolvedRequestContext]);
 
   useEffect(() => { fetch(); }, [fetch]);
 

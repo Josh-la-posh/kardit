@@ -88,7 +88,7 @@ export async function getBankPartnershipsByAffiliate(
   affiliateId: string
 ): Promise<GetAffiliateBankPartnershipsResponse> {
   const response = await getJson<GetBankPartnershipsByAffiliateResponse>(
-    `/banks/partnerships/${encodeURIComponent(affiliateId)}`
+    `/affiliates/${encodeURIComponent(affiliateId)}/bank-partnerships`
   );
 
   const items = Array.isArray(response?.banks)
