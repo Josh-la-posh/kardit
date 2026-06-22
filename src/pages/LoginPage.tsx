@@ -48,11 +48,11 @@ export default function LoginPage() {
               <div className="form-grid" style={{ gridTemplateColumns: '1fr', marginBottom: 24 }}>
                 <TextField
                   id="s-tenant"
-                  label="Tenant ID"
+                  label="Tenant Code"
                   name="tenantId"
                   type="text"
                   required
-                  placeholder="Enter your tenant ID"
+                  placeholder="Enter your tenant code"
                   autoComplete="organization"
                   value={tenantId}
                   onChange={(e) => setTenantId(e.target.value)}

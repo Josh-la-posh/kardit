@@ -17,7 +17,7 @@ export function getApiErrorMessage(errorBody: unknown, fallback: string): string
 
   if (typeof errorBody === 'object') {
     const body = errorBody as Record<string, unknown>;
-    const nestedError = body.Error;
+    const nestedError = body.Error || body.error;
 
     const validationErrors = body.errors;
     if (validationErrors && typeof validationErrors === 'object') {
@@ -33,7 +33,9 @@ export function getApiErrorMessage(errorBody: unknown, fallback: string): string
     if (nestedError && typeof nestedError === 'object') {
       const errorRecord = nestedError as Record<string, unknown>;
       if (typeof errorRecord.Message === 'string' && errorRecord.Message.trim()) return errorRecord.Message;
+      if (typeof errorRecord.message === 'string' && errorRecord.message.trim()) return errorRecord.message;
       if (typeof errorRecord.Code === 'string' && errorRecord.Code.trim()) return errorRecord.Code;
+      if (typeof errorRecord.code === 'string' && errorRecord.code.trim()) return errorRecord.code;
     }
 
     if (typeof body.Message === 'string' && body.Message.trim()) return body.Message;

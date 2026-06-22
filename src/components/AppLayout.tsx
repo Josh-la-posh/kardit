@@ -55,6 +55,12 @@ interface AppLayoutProps {
 
 type NavItem = { label: string; icon: LucideIcon; path: string; roles?: string[] };
 
+function getDisplayName(name?: string) {
+  const trimmed = name?.trim();
+  if (!trimmed) return 'User';
+  return trimmed;
+}
+
 const affiliateNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Banks', icon: Building2, path: '/banks' },
@@ -94,6 +100,8 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { unreadCount } = useRecentNotifications();
+  const displayName = getDisplayName(user?.name);
+  const profileMeta = [user?.role, user?.tenantName].filter(Boolean).join(' · ');
 
   const resolvedNavVariant: NonNullable<AppLayoutProps['navVariant']> =
     navVariant ??
@@ -273,19 +281,19 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                    {user?.name?.charAt(0) || 'U'}
+                    {displayName.charAt(0)}
                   </div>
                   <span className="hidden md:block text-sm">
-                    {user?.name || 'User'}
+                    {displayName}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
-                    <span>{user?.name}</span>
+                    <span>{displayName}</span>
                     <span className="text-xs font-normal text-muted-foreground">
-                      {user?.email}
+                      {profileMeta || 'Signed in'}
                     </span>
                   </div>
                 </DropdownMenuLabel>

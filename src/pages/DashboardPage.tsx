@@ -23,6 +23,19 @@ import './DashboardPage.css'
 
 type Range = 'today' | 'week' | 'month' | 'custom'
 
+function getTimeGreeting(date = new Date()) {
+  const hour = date.getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function getFirstName(name?: string) {
+  const trimmed = name?.trim()
+  if (!trimmed) return 'User'
+  return trimmed.split(/\s+/)[0]
+}
+
 const KPI_DATA: Record<
   Range,
   {
@@ -105,6 +118,7 @@ export default function DashboardPage() {
   const [tenantProfileError, setTenantProfileError] = useState<string | null>(null)
   const [tenantProfileLoading, setTenantProfileLoading] = useState(false)
   const d = useMemo(() => KPI_DATA[range], [range])
+  const greeting = useMemo(() => getTimeGreeting(), [])
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -173,43 +187,12 @@ export default function DashboardPage() {
           <div className="container">
             <header className="page-head">
               <div>
-                <h1 className="home-hello">Good afternoon, {user?.name?.split(' ')[0] || 'User'}</h1>
+                <h1 className="home-hello">{greeting}, {getFirstName(user?.name)}</h1>
                 <p className="home-org">
                   Signed in as {user?.role || 'Affiliate'} · <strong>{user?.tenantName || 'Tenant'}</strong>
                 </p>
               </div>
             </header>
-
-            <section>
-              <div className="section-head">
-                <div>
-                  <div className="section-title">Tenant profile response</div>
-                  <div className="section-sub">
-                    GET /api/v1/affiliates/{user?.tenantId || 'tenantId'}/profilebytenant
-                  </div>
-                </div>
-              </div>
-              <pre
-                style={{
-                  maxHeight: 360,
-                  overflow: 'auto',
-                  border: '1px solid var(--cs-border)',
-                  borderRadius: 8,
-                  background: 'var(--cs-bg-elevated)',
-                  padding: 16,
-                  fontSize: 12,
-                  lineHeight: 1.5,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {tenantProfileLoading
-                  ? 'Loading tenant profile...'
-                  : tenantProfileError
-                    ? tenantProfileError
-                    : JSON.stringify(tenantProfileResponse, null, 2)}
-              </pre>
-            </section>
 
             {/* <section>
               <div className="section-head">
@@ -285,12 +268,6 @@ export default function DashboardPage() {
             </section> */}
 
             <section>
-              <div className="section-head">
-                <div>
-                  <div className="section-title">Get started</div>
-                  <div className="section-sub">Available journeys in this build</div>
-                </div>
-              </div>
 
               <div className="action-grid">
                 <ActionCard

@@ -1,4 +1,4 @@
-export type TransactionType = 'POS' | 'ATM_WITHDRAWAL' | 'LOAD' | 'UNLOAD';
+export type TransactionType = 'LOADS' | 'UNLOADS';
 
 export type TransactionStatus =
   | 'AUTHORIZED'
