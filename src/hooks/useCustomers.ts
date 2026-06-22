@@ -97,11 +97,11 @@ interface UseCustomersOptions {
 }
 
 function buildCustomerRequestContext(user: ReturnType<typeof useAuth>['user']): CustomerSearchRequestContext | null {
-  if (!user?.tenantId) return null;
+  if (!user?.id || !user.tenantId) return null;
 
   if (user.stakeholderType === 'BANK') {
     return {
-      actorUserId: '',
+      actorUserId: user.id,
       userType: 'BANK_ADMIN',
       tenantId: user.tenantId,
       scopeType: 'BANK_TENANT',
@@ -110,7 +110,7 @@ function buildCustomerRequestContext(user: ReturnType<typeof useAuth>['user']): 
 
   if (user.stakeholderType === 'SERVICE_PROVIDER') {
     return {
-      actorUserId: '',
+      actorUserId: user.id,
       userType: 'SERVICE_PROVIDER',
       tenantId: user.tenantId,
       scopeType: 'BANK_TENANT',
@@ -125,7 +125,7 @@ function buildCustomerRequestContext(user: ReturnType<typeof useAuth>['user']): 
   }
 
   return {
-    actorUserId: '',
+    actorUserId: user.id,
     userType: 'AFFILIATE',
     tenantId: user.tenantId,
     scopeType: 'AFFILIATE_TENANT',
@@ -166,7 +166,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
   );
 
   const fetch = useCallback(async () => {
-    if (!enabled || !resolvedRequestContext) {
+    if (!enabled) {
       setCustomers([]);
       setTotal(0);
       setError(null);
@@ -178,12 +178,11 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     setError(null);
     try {
       const response = await searchCustomers({
-        requestContext: resolvedRequestContext,
         criteria: criteria || buildCriteria(query),
         pagination: { page, pageSize },
       });
 
-      const storeCustomers = disableStoreEnrichment ? [] : store.getCustomers(resolvedRequestContext.tenantId);
+      const storeCustomers = disableStoreEnrichment ? [] : store.getCustomers(resolvedRequestContext?.tenantId || user?.tenantId);
 
       setCustomers(
         response.results.map((item) => {
@@ -217,7 +216,7 @@ export function useCustomers(query = '', options: UseCustomersOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, disableStoreEnrichment, enabled, page, pageSize, query, resolvedRequestContext]);
+  }, [criteria, disableStoreEnrichment, enabled, page, pageSize, query, resolvedRequestContext?.tenantId, user?.tenantId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
