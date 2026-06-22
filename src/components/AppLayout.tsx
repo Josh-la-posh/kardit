@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { KarditLogo } from '@/components/KarditLogo';
+import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { isIamEnabled } from '@/config';
@@ -175,7 +175,13 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
               }
               className="flex items-center"
             >
-              <KarditLogo size="md" showText={!sidebarCollapsed} />
+              {sidebarCollapsed ? (
+                <span className="text-xl font-extrabold leading-none text-[var(--cs-green-900)]">
+                  K
+                </span>
+              ) : (
+                <Logo className="text-[26px]" />
+              )}
             </Link>
             
             {/* Mobile close button */}
