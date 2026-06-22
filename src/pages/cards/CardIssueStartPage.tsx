@@ -4,6 +4,7 @@ import { ArrowRight, UserPlus } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useCustomer } from '@/hooks/useCustomers'
+import unionPayLogo from '@/assets/UnionPay_logo.png'
 
 type WarmCustomer = {
   fullName: string
@@ -86,7 +87,7 @@ export default function CardIssueStartPage() {
                   </div>
                 )}
               </div>
-              <div className="iss-hero-art">VERVE - KARDIT</div>
+              <div> <img src={unionPayLogo} alt="UnionPay" /> </div>
             </section>
 
             <div className="notice info" style={{ marginTop: 24 }}>
