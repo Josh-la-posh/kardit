@@ -235,11 +235,15 @@ export const CURRENCIES = [
 ];
 
 export const ID_TYPES = [
-  { id: 'nin', label: 'National Identification Number (NIN)', code: 'NIN' },
-  { id: 'passport', label: 'Passport', code: 'PP' },
-  { id: 'national_id', label: 'National ID', code: 'NID' },
-  { id: 'driver_license', label: 'Driver License', code: 'DL' },
-  { id: 'residence_permit', label: 'Residence Permit', code: 'RP' },
+  { id: 'TAX_CLEARANCE', label: 'Tax Clearance', code: 'TAX_CLEARANCE' },
+  { id: 'UTILITY_BILL', label: 'Utility Bill', code: 'UTILITY_BILL' },
+  { id: 'PASSPORT', label: 'Passport', code: 'PASSPORT' },
+  { id: 'NATIONAL_ID', label: 'National ID', code: 'NATIONAL_ID' },
+  { id: 'DRIVERS_LICENSE', label: "Driver's License", code: 'DRIVERS_LICENSE' },
+  { id: 'VOTERS_CARD', label: "Voter's Card", code: 'VOTERS_CARD' },
+  { id: 'BVN_CERTIFICATE', label: 'BVN Certificate', code: 'BVN_CERTIFICATE' },
+  { id: 'NIN', label: 'NIN', code: 'NIN' },
+  { id: 'CIN', label: 'CIN', code: 'CIN' },
 ];
 
 export const DELIVERY_METHODS = [

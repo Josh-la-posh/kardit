@@ -8,14 +8,6 @@ import { useCreateCard } from '@/hooks/useCards'
 import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
-const ID_TYPE_TO_API: Record<string, string> = {
-  nin: 'NationalId',
-  passport: 'Passport',
-  national_id: 'NationalId',
-  driver_license: 'DriverLicense',
-  residence_permit: 'ResidencePermit',
-}
-
 export type Step = 'customer' | 'card' | 'review' | 'result'
 
 type CustomerForm = {
@@ -98,6 +90,20 @@ function mergeUniqueBanks(current: FlowBank[], incoming: FlowBank[]) {
   const byId = new Map(current.map((bank) => [bank.bankId, bank]))
   for (const bank of incoming) byId.set(bank.bankId, bank)
   return Array.from(byId.values())
+}
+
+function isAtLeastAge(dateValue: string, minAge: number) {
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return false
+
+  const today = new Date()
+  let age = today.getFullYear() - date.getFullYear()
+  const monthDelta = today.getMonth() - date.getMonth()
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < date.getDate())) {
+    age -= 1
+  }
+
+  return age >= minAge
 }
 
 export function CreateCustomerFlowProvider({ children }: { children: ReactNode }) {
@@ -221,7 +227,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
   const fullName = `${customerForm.firstName} ${customerForm.lastName}`.replace(/\s+/g, ' ').trim()
   const selectedBank = banks.find((bank) => bank.bankId === cardForm.bankId)
   const selectedProduct = CARD_PRODUCTS.find((product) => product.id === cardForm.productId)
-  const selectedIdType = ID_TYPE_TO_API[customerForm.idType]
+  const selectedIdType = customerForm.idType
 
   const combinedPhone = useMemo(() => {
     const local = customerForm.phone.trim().replace(/^\+/, '')
@@ -265,6 +271,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     if (!customerForm.firstName.trim()) next.firstName = 'Required'
     if (!customerForm.lastName.trim()) next.lastName = 'Required'
     if (!customerForm.dob) next.dob = 'Required'
+    else if (!isAtLeastAge(customerForm.dob, 14)) next.dob = 'Customer must be at least 14 years old'
     if (!combinedPhone) next.phone = 'Required'
     else if (!/^\+\d{7,20}$/.test(combinedPhone)) next.phone = 'Invalid phone'
     if (customerForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerForm.email)) next.email = 'Invalid email'

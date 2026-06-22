@@ -188,9 +188,9 @@ export default function DashboardPage() {
             <header className="page-head">
               <div>
                 <h1 className="home-hello">{greeting}, {getFirstName(user?.name)}</h1>
-                <p className="home-org">
+                {/* <p className="home-org">
                   Signed in as {user?.role || 'Affiliate'} · <strong>{user?.tenantName || 'Tenant'}</strong>
-                </p>
+                </p> */}
               </div>
             </header>
 
@@ -307,7 +307,7 @@ export default function DashboardPage() {
                   cta="Open"
                   meta="Generate operational reports (daily activity, card issuance, funding volume, audit log). Download as CSV or PDF."
                 />
-                <ActionCard
+                {/* <ActionCard
                   to="/bank/dashboard"
                   tag="Bank role"
                   icon={<Building2 />}
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                   cta="Switch role"
                   dashed
                   meta="Demo: switch persona to a Bank user (Chioma N. at Zenith Bank). See the portfolio view across affiliates under your bank."
-                />
+                /> */}
               </div>
             </section>
 

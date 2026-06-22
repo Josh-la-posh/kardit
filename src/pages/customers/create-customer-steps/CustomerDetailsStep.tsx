@@ -8,6 +8,19 @@ import 'react-phone-input-2/lib/style.css'
 import type { City, Country, State } from 'react-country-state-city/dist/esm/types'
 import { ID_TYPES } from '@/stores/mockStore'
 
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getMinimumDobForAge(minAge: number) {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() - minAge)
+  return formatDateInputValue(date)
+}
+
 type CustomerForm = {
   firstName: string
   lastName: string
@@ -55,6 +68,8 @@ export default function CustomerDetailsStep({
   onBack,
   onContinue,
 }: Props) {
+  const maxDob = getMinimumDobForAge(14)
+
   return (
     <section className="scr-main">
       <div className="container container--narrow">
@@ -93,7 +108,15 @@ export default function CustomerDetailsStep({
                 <TextField label="Last name *" value={customerForm.lastName} onChange={(e) => setCustomer('lastName', e.target.value)} placeholder="Bakare" error={errors.lastName} />
               </div>
               <div className="field">
-                <TextField label="Date of birth *" type="date" value={customerForm.dob} onChange={(e) => setCustomer('dob', e.target.value)} error={errors.dob} />
+                <TextField
+                  label="Date of birth *"
+                  type="date"
+                  value={customerForm.dob}
+                  max={maxDob}
+                  onChange={(e) => setCustomer('dob', e.target.value)}
+                  error={errors.dob}
+                  hint="Customer must be at least 14 years old."
+                />
               </div>
             </div>
           </section>

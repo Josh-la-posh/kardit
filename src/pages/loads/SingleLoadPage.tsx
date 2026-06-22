@@ -230,7 +230,7 @@ export default function SingleLoadPage() {
                     <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading cards...
-                    </div>
+                    </div> 
                   ) : cardsError ? (
                     <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                       {cardsError}
@@ -346,7 +346,7 @@ export default function SingleLoadPage() {
                             className="rounded-full border border-border px-4 py-2 font-mono text-sm font-semibold hover:bg-muted"
                             onClick={() => setAmount(String(value))}
                           >
-                            ₦{value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatMoney(value, currency)}
                           </button>
                         ))}
                       </div>
@@ -565,7 +565,7 @@ export default function SingleLoadPage() {
 
                 <div className="bch-card card-pad-lg" style={{ textAlign: 'center' }}>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Amount loaded</p>
-                  <p className="mt-3 text-5xl font-semibold text-primary">{Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-3xl">{currency}</span></p>
+                  <p className="mt-3 text-5xl font-semibold text-primary">{formatMoney(Number(amount), currency)}</p>
                   <p className="mt-3 text-sm text-muted-foreground">
                     Posted to {selectedCard.maskedPan} • {selectedCard.customerId}
                   </p>

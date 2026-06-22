@@ -76,8 +76,8 @@ export default function CustomersListPage() {
               <div className="list-toolbar">
               </div>
 
-              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, justifyContent: 'space-between' }}>
-                <div>
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, justifyContent: 'end' }}>
+                {/* <div>
                   <FilterLabel>Status</FilterLabel>
                   <div className="filter-chips">
                     <Chip active={status === 'all'} onClick={() => { setStatus('all'); setPage(1) }}>All</Chip>
@@ -86,7 +86,7 @@ export default function CustomersListPage() {
                     <Chip active={status === 'FROZEN'} onClick={() => { setStatus('FROZEN'); setPage(1) }}>Frozen</Chip>
                     <Chip active={status === 'PENDING'} onClick={() => { setStatus('PENDING'); setPage(1) }}>Pending</Chip>
                   </div>
-                </div>
+                </div> */}
                 <div className="mt-3 flex gap-3">
                   <button className="btn btn-secondary btn-sm" onClick={clearFilters}>
                     <X /> Clear filters
@@ -132,12 +132,12 @@ export default function CustomersListPage() {
 }
 
 const customerColumns = [
-  {
-    key: 'customerRefId',
-    header: 'Reference',
-    className: 'id',
-    render: (c: CustomerListItem) => c.customerRefId,
-  },
+  // {
+  //   key: 'customerRefId',
+  //   header: 'Reference',
+  //   className: 'id',
+  //   render: (c: CustomerListItem) => c.customerRefId,
+  // },
   {
     key: 'fullName',
     header: 'Name',
@@ -162,11 +162,11 @@ const customerColumns = [
     header: 'KYC',
     render: (c: CustomerListItem) => <KycBadge level={c.kycLevel} />,
   },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (c: CustomerListItem) => <StatusBadge status={c.status} />,
-  },
+  // {
+  //   key: 'status',
+  //   header: 'Status',
+  //   render: (c: CustomerListItem) => <StatusBadge status={c.status} />,
+  // },
   {
     key: 'createdAt',
     header: 'Created',
