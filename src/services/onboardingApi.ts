@@ -176,6 +176,7 @@ function mapOrganization(response: any) {
   return organization
     ? {
         ...organization,
+        tenantId: organization.tenantId ?? organization.TenantId,
         legalName: organization.legalName ?? organization.LegalName,
         tradingName: organization.tradingName ?? organization.TradingName,
         registrationNumber: organization.registrationNumber ?? organization.RegistrationNumber,

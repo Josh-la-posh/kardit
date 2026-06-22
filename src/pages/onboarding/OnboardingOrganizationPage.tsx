@@ -9,6 +9,14 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import PublicOnboardingLayout from '@/components/onboarding/PublicOnboardingLayout';
 import { saveOrganization as saveOrganizationApi } from '@/services/onboardingApi';
 
+function RequiredLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span>
+      {children} <span className="text-destructive">*</span>
+    </span>
+  );
+}
+
 function normalizeCountryValue(value: string) {
   return value.trim().toLowerCase();
 }
@@ -30,6 +38,7 @@ function getSelectInputClassName(hasError?: boolean) {
 
 export default function OnboardingOrganizationPage() {
   type RequiredFieldKey =
+    | 'tenantId'
     | 'legalName'
     | 'registrationNumber'
     | 'addressLine1'
@@ -45,6 +54,7 @@ export default function OnboardingOrganizationPage() {
 
   const initial = useMemo(() => {
     return {
+      tenantId: draft?.organization?.tenantId || '',
       legalName: draft?.organization?.legalName || '',
       tradingName: draft?.organization?.tradingName || '',
       registrationNumber: draft?.organization?.registrationNumber || '',
@@ -66,6 +76,7 @@ export default function OnboardingOrganizationPage() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<RequiredFieldKey, string>>>({});
   const requiredFieldKeys: RequiredFieldKey[] = [
+    'tenantId',
     'legalName',
     'registrationNumber',
     'addressLine1',
@@ -150,6 +161,7 @@ export default function OnboardingOrganizationPage() {
   const validateRequiredFields = () => {
     const errors: Partial<Record<RequiredFieldKey, string>> = {};
 
+    if (!form.tenantId.trim()) errors.tenantId = 'Tenant ID is required';
     if (!form.legalName.trim()) errors.legalName = 'Legal business name is required';
     if (!form.registrationNumber.trim()) errors.registrationNumber = 'Registration number is required';
     if (!form.addressLine1.trim()) errors.addressLine1 = 'Address line 1 is required';
@@ -195,6 +207,7 @@ export default function OnboardingOrganizationPage() {
 
       const payload = {
         onboardingSessionId: activeOnboardingSessionId,
+        tenantId: form.tenantId,
         legalName: form.legalName,
         tradingName: form.tradingName,
         registrationNumber: form.registrationNumber,
@@ -255,15 +268,18 @@ export default function OnboardingOrganizationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <TextField label="Legal Business Name" value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
+                  <TextField label={<RequiredLabel>Legal Business Name</RequiredLabel>} value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
                 </div>
                 <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
-                <TextField label="RC / Registration Number" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
+                <TextField label={<RequiredLabel>RC / Registration Number</RequiredLabel>} value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
+                <TextField label={<RequiredLabel>Tenant ID</RequiredLabel>} value={form.tenantId} onChange={(e) => set('tenantId', e.target.value)} disabled={saving} error={fieldErrors.tenantId} />
                 <div className="col-span-2">
-                  <TextField className="  md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
+                  <TextField className="  md:col-span-2" label={<RequiredLabel>Address Line 1</RequiredLabel>} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm md:text-base font-semibold text-foreground">Country</label>
+                  <label className="text-sm md:text-base font-semibold text-foreground">
+                    <RequiredLabel>Country</RequiredLabel>
+                  </label>
                   <CountrySelect
                     containerClassName={[toneClasses, fieldErrors.country ? 'border-[hsl(var(--destructive))]' : ''].join(' ')}
                     inputClassName={getSelectInputClassName(Boolean(fieldErrors.country))}
@@ -330,10 +346,10 @@ export default function OnboardingOrganizationPage() {
               </div>
               <div className="grid grid-col-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <TextField label="Full Name" value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
+                  <TextField label={<RequiredLabel>Full Name</RequiredLabel>} value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
                 </div>
-                <TextField label="Email" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} error={fieldErrors.contactEmail} />
-                <TextField label="Phone" type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} error={fieldErrors.contactPhone} />
+                <TextField label={<RequiredLabel>Email</RequiredLabel>} type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} error={fieldErrors.contactEmail} />
+                <TextField label={<RequiredLabel>Phone</RequiredLabel>} type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} error={fieldErrors.contactPhone} />
               </div>
             </section>
 

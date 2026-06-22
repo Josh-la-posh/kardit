@@ -217,6 +217,7 @@ export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptio
           updatedAt: item.submittedAt,
           organization: {
             onboardingSessionId: '',
+            tenantId: '',
             legalName: item.affiliateName,
             registrationNumber: '',
             address: {
