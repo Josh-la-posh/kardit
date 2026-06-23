@@ -136,7 +136,7 @@ export default function BankPartnershipRequestDetailPage() {
                 </div>
               </div>
 
-              <div className={sectionClassName}>
+              {/* <div className={sectionClassName}>
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Onboarding Snapshot</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className={fieldClassName}>
@@ -148,7 +148,7 @@ export default function BankPartnershipRequestDetailPage() {
                     <p className="text-sm font-medium">{onboardingSnapshot.status || '-'}</p>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div className={sectionClassName}>
                 <div className="mb-4 flex items-center gap-2">
