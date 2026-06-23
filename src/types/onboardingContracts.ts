@@ -61,7 +61,7 @@ export interface CreateOnboardingSessionResponse {
 
 export interface SaveOrganizationRequest {
   onboardingSessionId: string;
-  tenantId: string;
+  tenantId?: string;
   legalName: string;
   tradingName?: string;
   registrationNumber: string;

@@ -80,7 +80,6 @@ function isOrganizationComplete(draft?: OnboardingDraft | null) {
 
   return Boolean(
     draft?.consentAccepted &&
-      organization?.tenantId?.trim() &&
       organization?.legalName?.trim() &&
       organization?.tradingName?.trim() &&
       organization?.registrationNumber?.trim() &&

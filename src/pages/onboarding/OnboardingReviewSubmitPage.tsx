@@ -47,7 +47,6 @@ export default function OnboardingReviewSubmitPage() {
   const uploadedDocCount = requiredDocs.filter((doc) => Boolean(docsByType.get(doc.type))).length;
 
   const organizationRows = [
-    { label: 'TENANT ID', value: draft?.organization?.tenantId || '-' },
     { label: 'LEGAL NAME', value: draft?.organization?.legalName || '-' },
     { label: 'RC NUMBER', value: draft?.organization?.registrationNumber || '-' },
     { label: 'TIN', value: docsByType.get('TAX_IDENTIFICATION_CERTIFICATE') ? draft?.organization?.registrationNumber || '-' : '-' },

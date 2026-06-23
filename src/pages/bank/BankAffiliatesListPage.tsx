@@ -51,28 +51,27 @@ export default function BankAffiliatesListPage() {
         render: (affiliate: BankAffiliateSummary) => (
           <div>
             <p className="font-medium text-foreground">{affiliate.affiliateName || 'Unnamed Affiliate'}</p>
-            <p className="text-xs text-muted-foreground">{affiliate.affiliateId}</p>
           </div>
         ),
       },
-      {
-        key: 'tenantId',
-        header: 'Tenant ID',
-        className: 'text-sm text-muted-foreground',
-        render: (affiliate: BankAffiliateSummary) => affiliate.tenantId || '-',
-      },
-      {
-        key: 'totalCards',
-        header: 'Total Cards',
-        className: 'text-sm text-muted-foreground',
-        render: (affiliate: BankAffiliateSummary) => affiliate.totalCards.toLocaleString(),
-      },
-      {
-        key: 'activeCards',
-        header: 'Active Cards',
-        className: 'text-sm text-muted-foreground',
-        render: (affiliate: BankAffiliateSummary) => affiliate.activeCards.toLocaleString(),
-      },
+      // {
+      //   key: 'tenantId',
+      //   header: 'Tenant ID',
+      //   className: 'text-sm text-muted-foreground',
+      //   render: (affiliate: BankAffiliateSummary) => affiliate.tenantId || '-',
+      // },
+      // {
+      //   key: 'totalCards',
+      //   header: 'Total Cards',
+      //   className: 'text-sm text-muted-foreground',
+      //   render: (affiliate: BankAffiliateSummary) => affiliate.totalCards.toLocaleString(),
+      // },
+      // {
+      //   key: 'activeCards',
+      //   header: 'Active Cards',
+      //   className: 'text-sm text-muted-foreground',
+      //   render: (affiliate: BankAffiliateSummary) => affiliate.activeCards.toLocaleString(),
+      // },
       {
         key: 'totalFundingVolume',
         header: 'Funding Volume',

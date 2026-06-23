@@ -28,7 +28,6 @@ function normalizeStateValue(value: string) {
 
 export default function OnboardingOrganizationPage() {
   type RequiredFieldKey =
-    | 'tenantId'
     | 'legalName'
     | 'tradingName'
     | 'registrationNumber'
@@ -46,7 +45,6 @@ export default function OnboardingOrganizationPage() {
 
   const initial = useMemo(() => {
     return {
-      tenantId: draft?.organization?.tenantId || '',
       legalName: draft?.organization?.legalName || '',
       tradingName: draft?.organization?.tradingName || '',
       registrationNumber: draft?.organization?.registrationNumber || '',
@@ -67,7 +65,6 @@ export default function OnboardingOrganizationPage() {
   const [selectedState, setSelectedState] = useState<PelpayState | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<RequiredFieldKey, string>>>({});
   const requiredFieldKeys: RequiredFieldKey[] = [
-    'tenantId',
     'legalName',
     'tradingName',
     'registrationNumber',
@@ -139,7 +136,6 @@ export default function OnboardingOrganizationPage() {
   const validateRequiredFields = () => {
     const errors: Partial<Record<RequiredFieldKey, string>> = {};
 
-    if (!form.tenantId.trim()) errors.tenantId = 'Tenant ID is required';
     if (!form.legalName.trim()) errors.legalName = 'Legal business name is required';
     if (!form.tradingName.trim()) errors.tradingName = 'Trading name is required';
     if (!form.registrationNumber.trim()) errors.registrationNumber = 'Registration number is required';
@@ -187,7 +183,6 @@ export default function OnboardingOrganizationPage() {
 
       const payload = {
         onboardingSessionId: activeOnboardingSessionId,
-        tenantId: form.tenantId,
         legalName: form.legalName,
         tradingName: form.tradingName,
         registrationNumber: form.registrationNumber,
@@ -258,7 +253,6 @@ export default function OnboardingOrganizationPage() {
                 </div>
                 <TextField label={<RequiredLabel>Trading Name</RequiredLabel>} value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} error={fieldErrors.tradingName} />
                 <TextField label={<RequiredLabel>RC / Registration Number</RequiredLabel>} value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
-                <TextField label={<RequiredLabel>Tenant ID</RequiredLabel>} value={form.tenantId} onChange={(e) => set('tenantId', e.target.value)} disabled={saving} error={fieldErrors.tenantId} />
                 <div className="col-span-2">
                   <TextField className="md:col-span-2" label={<RequiredLabel>Address Line 1</RequiredLabel>} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
                 </div>
