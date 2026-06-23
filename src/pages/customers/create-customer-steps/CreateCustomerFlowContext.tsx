@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useCreateCustomer } from '@/hooks/useCustomers'
 import { useCreateCard } from '@/hooks/useCards'
 import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi'
+import { approvedBanksCacheKey } from '@/lib/bankCache'
 import type { PelpayCountry, PelpayState } from '@/services/locationApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
 
@@ -148,6 +149,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
   })
 
   const saveBanksToCache = useCallback((affiliateId: string, items: FlowBank[]) => {
+    window.localStorage.setItem(approvedBanksCacheKey(affiliateId), JSON.stringify(items))
     window.localStorage.setItem(`${CUSTOMER_BANKS_CACHE_KEY}:${affiliateId}`, JSON.stringify(items))
   }, [])
 
@@ -158,8 +160,9 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
       setBanksLoading(true)
       try {
         const affiliateId = resolveAffiliateId(user)
-        const cacheKey = `${CUSTOMER_BANKS_CACHE_KEY}:${affiliateId}`
-        const raw = window.localStorage.getItem(cacheKey)
+        const approvedCacheKey = approvedBanksCacheKey(affiliateId)
+        const legacyCacheKey = `${CUSTOMER_BANKS_CACHE_KEY}:${affiliateId}`
+        const raw = window.localStorage.getItem(approvedCacheKey) || window.localStorage.getItem(legacyCacheKey)
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as unknown[]
@@ -173,7 +176,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
               return
             }
           } catch {
-            window.localStorage.removeItem(cacheKey)
+            window.localStorage.removeItem(approvedCacheKey)
+            window.localStorage.removeItem(legacyCacheKey)
           }
         }
 

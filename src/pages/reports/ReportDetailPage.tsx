@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -6,10 +6,31 @@ import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useReportDefinitions, useRunReport } from '@/hooks/useReports';
 import { useAuth } from '@/hooks/useAuth';
+import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi';
 import { isBankReadOnlyUser } from '@/lib/permissions';
+import { approvedBanksCacheKey, cacheApprovedBanks, type CachedBank, readCachedBanks } from '@/lib/bankCache';
 import { ArrowLeft, ArrowRight, Download, FileText, Loader2, Play } from 'lucide-react';
 
 const PAGE_SIZES = ['10', '20', '50', '100'];
+const EXPORT_FORMATS = ['CSV', 'EXCEL'] as const;
+const TRANSACTION_STATUSES = [
+  'AUTHORIZED',
+  'DECLINED',
+  'PENDING',
+  'SETTLED',
+  'FAILED',
+  'REFUNDED',
+  'CHARGEBACK',
+  'CANCELLED',
+  'REFUSED',
+] as const;
+
+function toIsoDate(value: string, endOfDay = false) {
+  if (!value) return undefined;
+  const suffix = endOfDay ? 'T23:59:59.999' : 'T00:00:00.000';
+  const date = new Date(`${value}${suffix}`);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
 
 export default function ReportDetailPage() {
   const { reportDefinitionId } = useParams<{ reportDefinitionId: string }>();
@@ -31,21 +52,64 @@ export default function ReportDetailPage() {
   const [productType, setProductType] = useState('');
   const [status, setStatus] = useState('');
   const [operationType, setOperationType] = useState('');
+  const [bankId, setBankId] = useState('');
+  const [exportFormat, setExportFormat] = useState<(typeof EXPORT_FORMATS)[number]>('CSV');
+  const [affiliateId, setAffiliateId] = useState('');
+  const [approvedBanks, setApprovedBanks] = useState<CachedBank[]>([]);
+  const [banksLoading, setBanksLoading] = useState(false);
+  const [banksError, setBanksError] = useState<string | null>(null);
 
+  const isTransactionExportReport = ['card-loads', 'card-unloads'].includes(reportDefinitionId || '');
   const needsCardId = useMemo(
-    () => ['card-transactions', 'card-loads', 'card-unloads', 'card-lifecycle-events', 'card-balances'].includes(reportDefinitionId || ''),
+    () => ['card-lifecycle-events', 'card-balances'].includes(reportDefinitionId || ''),
     [reportDefinitionId]
   );
 
   const needsCustomerRefId = reportDefinitionId === 'customer-support-view';
   const supportsDateRange = useMemo(
-    () => ['card-transactions', 'card-lifecycle-events', 'card-balances', 'card-issuance', 'card-fulfillment', 'batches', 'exceptions'].includes(reportDefinitionId || ''),
+    () => ['card-loads', 'card-unloads', 'card-lifecycle-events', 'card-balances', 'card-issuance', 'card-fulfillment', 'batches', 'exceptions'].includes(reportDefinitionId || ''),
     [reportDefinitionId]
   );
   const supportsOperationType = useMemo(
     () => ['batches', 'cms-traces', 'exceptions'].includes(reportDefinitionId || ''),
     [reportDefinitionId]
   );
+  const supportsPaging = !isTransactionExportReport;
+
+  useEffect(() => {
+    if (!isTransactionExportReport) return;
+
+    let mounted = true;
+
+    const loadApprovedBanks = async () => {
+      setBanksLoading(true);
+      setBanksError(null);
+
+      try {
+        const resolvedAffiliateId = resolveAffiliateId(user);
+        setAffiliateId(resolvedAffiliateId);
+
+        const cached = readCachedBanks(approvedBanksCacheKey(resolvedAffiliateId));
+        if (cached.length && mounted) setApprovedBanks(cached);
+
+        const response = await getBankPartnershipsByAffiliate(resolvedAffiliateId);
+        const normalized = cacheApprovedBanks(resolvedAffiliateId, response.banks || []);
+        if (mounted) setApprovedBanks(normalized);
+      } catch (error) {
+        if (mounted) {
+          setApprovedBanks([]);
+          setBanksError(error instanceof Error ? error.message : 'Failed to load approved banks');
+        }
+      } finally {
+        if (mounted) setBanksLoading(false);
+      }
+    };
+
+    void loadApprovedBanks();
+    return () => {
+      mounted = false;
+    };
+  }, [isTransactionExportReport, user]);
 
   if (group) {
     return (
@@ -115,11 +179,14 @@ export default function ReportDetailPage() {
       customerRefId: customerRefId.trim() || undefined,
       page: Number(page),
       pageSize: Number(pageSize),
-      fromDate: dateFrom || undefined,
-      toDate: dateTo || undefined,
+      fromDate: isTransactionExportReport ? toIsoDate(dateFrom) : dateFrom || undefined,
+      toDate: isTransactionExportReport ? toIsoDate(dateTo, true) : dateTo || undefined,
       productType: productType || undefined,
       status: status || undefined,
       operationType: operationType || undefined,
+      bankId: bankId || undefined,
+      affiliateId: affiliateId || undefined,
+      exportFormat,
     });
   };
 
@@ -150,6 +217,7 @@ export default function ReportDetailPage() {
     instance?.status === 'QUEUED' ||
     instance?.status === 'RUNNING' ||
     (needsCardId && !cardId.trim()) ||
+    (isTransactionExportReport && (!bankId || !affiliateId || banksLoading)) ||
     (needsCustomerRefId && !customerRefId.trim());
 
   return (
@@ -195,16 +263,48 @@ export default function ReportDetailPage() {
                   </Field>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Page">
-                    <input type="number" min="1" className="bch-input" value={page} onChange={(e) => setPage(e.target.value)} />
-                  </Field>
-                  <Field label="Page Size">
-                    <select className="bch-select" value={pageSize} onChange={(e) => setPageSize(e.target.value)}>
-                      {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
-                    </select>
-                  </Field>
-                </div>
+                {isTransactionExportReport && (
+                  <>
+                    <Field label="Bank">
+                      <select className="bch-select" value={bankId} onChange={(e) => setBankId(e.target.value)} disabled={banksLoading}>
+                        <option value="">{banksLoading ? 'Loading approved banks...' : 'Select approved bank'}</option>
+                        {approvedBanks.map((bank) => (
+                          <option key={bank.bankId} value={bank.bankId}>
+                            {bank.bankName || bank.bankCode || bank.bankId}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <Field label="Status">
+                      <select className="bch-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <option value="">All</option>
+                        {TRANSACTION_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </Field>
+
+                    <Field label="Export Format">
+                      <select className="bch-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value as (typeof EXPORT_FORMATS)[number])}>
+                        {EXPORT_FORMATS.map((format) => <option key={format} value={format}>{format}</option>)}
+                      </select>
+                    </Field>
+
+                    {banksError && <p style={{ color: 'var(--cs-red-700)', fontSize: 12 }}>{banksError}</p>}
+                  </>
+                )}
+
+                {supportsPaging && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Page">
+                      <input type="number" min="1" className="bch-input" value={page} onChange={(e) => setPage(e.target.value)} />
+                    </Field>
+                    <Field label="Page Size">
+                      <select className="bch-select" value={pageSize} onChange={(e) => setPageSize(e.target.value)}>
+                        {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                )}
 
                 {supportsDateRange && (
                   <>
@@ -289,13 +389,15 @@ export default function ReportDetailPage() {
                         </tbody>
                       </table>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {def.allowedFormats.map((format) => (
-                        <Button key={format} variant="outline" size="sm" onClick={() => handleExport(format)}>
-                          <Download className="h-4 w-4 mr-1" /> Export {format}
-                        </Button>
-                      ))}
-                    </div>
+                    {!isTransactionExportReport && (
+                      <div className="flex gap-2 flex-wrap">
+                        {def.allowedFormats.map((format) => (
+                          <Button key={format} variant="outline" size="sm" onClick={() => handleExport(format)}>
+                            <Download className="h-4 w-4 mr-1" /> Export {format}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </section>

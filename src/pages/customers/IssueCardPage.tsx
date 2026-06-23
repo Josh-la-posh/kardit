@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCreateCard } from '@/hooks/useCards';
 import { useCustomer } from '@/hooks/useCustomers';
 import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi';
+import { approvedBanksCacheKey, cacheApprovedBanks, readCachedBanks } from '@/lib/bankCache';
 import { CARD_PRODUCTS, DELIVERY_METHODS, ID_TYPES, store } from '@/stores/mockStore';
 import { ArrowLeft, ArrowRight, CircleDollarSign, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,7 +18,6 @@ const CARD_TYPES = [
 ] as const;
 
 const BANK_LOGO_COLORS = ['#B82926', '#DC6B23', '#0027B6', '#DC0017', '#5C1E5C', '#0E7A46', '#0D4B8E'] as const;
-const AFFILIATE_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1';
 
 type CachedBank = {
   bankId: string;
@@ -25,18 +25,6 @@ type CachedBank = {
   bankCode: string;
   status: string;
 };
-
-function normalizeBank(candidate: any): CachedBank | null {
-  const bankId = String(candidate?.bankId || '').trim();
-  const bankName = String(candidate?.bankName || candidate?.bankDetails?.name || '').trim();
-  const bankCode = String(candidate?.bankCode || candidate?.bankDetails?.code || '').trim();
-  const status = String(candidate?.status || 'ACTIVE').trim();
-
-  if (!bankId) return null;
-  if (!bankName && !bankCode) return null;
-
-  return { bankId, bankName, bankCode, status };
-}
 
 type TypeTileProps = {
   type: (typeof CARD_TYPES)[number]['value'];
@@ -96,32 +84,16 @@ export default function IssueCardPage() {
 
       try {
         const affiliateId = resolveAffiliateId(user);
-        const cacheKey = `${AFFILIATE_BANKS_CACHE_KEY}:${affiliateId}`;
+        const cacheKey = approvedBanksCacheKey(affiliateId);
 
-        const raw = window.localStorage.getItem(cacheKey);
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw) as unknown[];
-            const normalized = Array.isArray(parsed)
-              ? parsed.map(normalizeBank).filter((bank): bank is CachedBank => Boolean(bank))
-              : [];
-
-            if (normalized.length > 0) {
-              if (mounted) setAllBanks(normalized);
-              window.localStorage.setItem(cacheKey, JSON.stringify(normalized));
-              return;
-            }
-          } catch {
-            window.localStorage.removeItem(cacheKey);
-          }
+        const cached = readCachedBanks(cacheKey);
+        if (cached.length > 0) {
+          if (mounted) setAllBanks(cached);
+          return;
         }
 
         const response = await getBankPartnershipsByAffiliate(affiliateId);
-        const normalized = (response.banks || [])
-          .map(normalizeBank)
-          .filter((bank): bank is CachedBank => Boolean(bank))
-          .filter((bank) => bank.status === 'ACTIVE');
-        window.localStorage.setItem(cacheKey, JSON.stringify(normalized));
+        const normalized = cacheApprovedBanks(affiliateId, response.banks || []);
         if (mounted) setAllBanks(normalized);
       } catch (e) {
         if (mounted) {

@@ -2,12 +2,16 @@ export type TransactionType = 'LOADS' | 'UNLOADS';
 
 export type TransactionStatus =
   | 'AUTHORIZED'
-  | 'REFUSED'
-  | 'CANCELLED'
-  | 'COMPLETED'
+  | 'DECLINED'
   | 'PENDING'
-  | 'SUCCESS'
-  | 'FAILED';
+  | 'SETTLED'
+  | 'FAILED'
+  | 'REFUNDED'
+  | 'CHARGEBACK'
+  | 'CANCELLED'
+  | 'REFUSED'
+  | 'COMPLETED'
+  | 'SUCCESS';
 
 export interface TransactionQueryFilters {
   bankId?: string;
@@ -87,7 +91,7 @@ export interface CustomerTransactionsResponse {
 
 export interface TransactionExportRequest {
   filters: TransactionQueryFilters;
-  exportFormat: 'CSV' | 'XLSX';
+  exportFormat: 'CSV' | 'EXCEL';
 }
 
 export interface TransactionExportResponse {

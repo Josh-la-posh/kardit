@@ -10,8 +10,7 @@ import type { BankQueryItem } from '@/types/bankContracts'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-
-const AFFILIATE_BANKS_CACHE_KEY = 'kardit.affiliate.bank-catalog.v1'
+import { ALL_BANKS_CACHE_KEY, LEGACY_ALL_BANKS_CACHE_KEY, cacheAllBanks } from '@/lib/bankCache'
 
 function normalizeBank(candidate: any): BankQueryItem | null {
   const bankId = String(candidate?.bankId || '').trim()
@@ -56,7 +55,9 @@ export default function AffiliateBankRequestPage() {
       setBankCatalogError(null)
 
       try {
-        const raw = window.localStorage.getItem(AFFILIATE_BANKS_CACHE_KEY)
+        const raw =
+          window.localStorage.getItem(ALL_BANKS_CACHE_KEY) ||
+          window.localStorage.getItem(LEGACY_ALL_BANKS_CACHE_KEY)
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as unknown[]
@@ -65,11 +66,12 @@ export default function AffiliateBankRequestPage() {
               : []
             if (normalized.length > 0) {
               if (mounted) setBankCatalog(normalized)
-              window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(normalized))
+              cacheAllBanks(normalized)
               return
             }
           } catch {
-            window.localStorage.removeItem(AFFILIATE_BANKS_CACHE_KEY)
+            window.localStorage.removeItem(ALL_BANKS_CACHE_KEY)
+            window.localStorage.removeItem(LEGACY_ALL_BANKS_CACHE_KEY)
           }
         }
 
@@ -78,7 +80,7 @@ export default function AffiliateBankRequestPage() {
           .map(normalizeBank)
           .filter((bank): bank is BankQueryItem => Boolean(bank))
           .filter((bank) => bank.status === 'ACTIVE')
-        window.localStorage.setItem(AFFILIATE_BANKS_CACHE_KEY, JSON.stringify(activeBanks))
+        cacheAllBanks(activeBanks)
         if (mounted) setBankCatalog(activeBanks)
       } catch (e) {
         if (mounted) {

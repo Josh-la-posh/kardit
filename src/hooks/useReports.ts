@@ -3,15 +3,13 @@ import {
   getBatchesReport,
   getCardBalancesReport,
   getCardLifecycleEventsReport,
-  getCardLoadsReport,
-  getCardTransactionsReport,
-  getCardUnloadsReport,
   getCardsFulfillmentReport,
   getCardsIssuanceReport,
   getCmsTracesReport,
   getCustomerSupportViewReport,
   getExceptionsReport,
 } from '@/services/reportApi';
+import { exportTransactions } from '@/services/transactionApi';
 
 export interface ReportGroup {
   id: string;
@@ -25,7 +23,7 @@ export interface ReportDefinition {
   name: string;
   description: string;
   category: string;
-  allowedFormats: ('CSV' | 'XLSX')[];
+  allowedFormats: ('CSV' | 'XLSX' | 'EXCEL')[];
   groupId: string;
 }
 
@@ -50,11 +48,11 @@ const REPORT_GROUPS: ReportGroup[] = [
 ];
 
 const REPORT_DEFINITIONS: ReportDefinition[] = [
-  { id: 'card-transactions', code: 'CARD_TRANSACTIONS', name: 'Card Transactions', description: 'Paginated transaction report for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'card-loads', code: 'CARD_LOADS', name: 'Card Loads', description: 'Funding history for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'card-unloads', code: 'CARD_UNLOADS', name: 'Card Unloads', description: 'Unload history for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'card-lifecycle-events', code: 'CARD_LIFECYCLE_EVENTS', name: 'Card Lifecycle Events', description: 'Freeze, unfreeze, terminate, and related lifecycle events', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
-  { id: 'card-balances', code: 'CARD_BALANCES', name: 'Card Balance', description: 'Historical balance snapshots for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
+  // { id: 'card-transactions', code: 'CARD_TRANSACTIONS', name: 'Transaction Report', description: 'Export loads and unloads by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
+  { id: 'card-loads', code: 'CARD_LOADS', name: 'Card Loads', description: 'Export card load activity by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
+  { id: 'card-unloads', code: 'CARD_UNLOADS', name: 'Card Unloads', description: 'Export card unload activity by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
+  // { id: 'card-lifecycle-events', code: 'CARD_LIFECYCLE_EVENTS', name: 'Card Lifecycle Events', description: 'Freeze, unfreeze, terminate, and related lifecycle events', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
+  // { id: 'card-balances', code: 'CARD_BALANCES', name: 'Card Balance', description: 'Historical balance snapshots for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   // { id: 'card-issuance', code: 'CARD_ISSUANCE', name: 'Card Issuance Report', description: 'Issued cards filtered by period and product type', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   // { id: 'card-fulfillment', code: 'CARD_FULFILLMENT', name: 'Card Fulfillment Report', description: 'Fulfillment and delivery tracking report', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   { id: 'batches', code: 'BATCHES', name: 'Batch Operations', description: 'Summary of batch operations filtered by date and operation type', category: 'Operations', groupId: 'operations', allowedFormats: ['CSV', 'XLSX'] },
@@ -83,6 +81,13 @@ function toTable(response: any): { columns: string[]; rows: (string | number | n
         item.authorizationCode,
         item.transactionDate,
       ]),
+    };
+  }
+
+  if (response?.exportId) {
+    return {
+      columns: ['Export ID', 'Status', 'Requested At'],
+      rows: [[response.exportId, response.status ?? null, response.requestedAt ?? null]],
     };
   }
 
@@ -328,13 +333,47 @@ export function useRunReport(definitionId: string) {
       let response: any;
       switch (definitionId) {
         case 'card-transactions':
-          response = await getCardTransactionsReport(filters.cardId, filters);
+          response = await exportTransactions({
+            filters: {
+              bankId: filters.bankId,
+              affiliateId: filters.affiliateId,
+              status: Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : undefined,
+              transactionType: Array.isArray(filters.transactionType)
+                ? filters.transactionType
+                : filters.transactionType
+                  ? [filters.transactionType]
+                  : undefined,
+              fromDate: filters.fromDate,
+              toDate: filters.toDate,
+            },
+            exportFormat: filters.exportFormat || 'CSV',
+          });
           break;
         case 'card-loads':
-          response = await getCardLoadsReport(filters.cardId, filters);
+          response = await exportTransactions({
+            filters: {
+              bankId: filters.bankId,
+              affiliateId: filters.affiliateId,
+              status: Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : undefined,
+              transactionType: ['LOADS'],
+              fromDate: filters.fromDate,
+              toDate: filters.toDate,
+            },
+            exportFormat: filters.exportFormat || 'CSV',
+          });
           break;
         case 'card-unloads':
-          response = await getCardUnloadsReport(filters.cardId, filters);
+          response = await exportTransactions({
+            filters: {
+              bankId: filters.bankId,
+              affiliateId: filters.affiliateId,
+              status: Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : undefined,
+              transactionType: ['UNLOADS'],
+              fromDate: filters.fromDate,
+              toDate: filters.toDate,
+            },
+            exportFormat: filters.exportFormat || 'CSV',
+          });
           break;
         case 'card-lifecycle-events':
           response = await getCardLifecycleEventsReport(filters.cardId, filters);
