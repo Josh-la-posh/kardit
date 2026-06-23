@@ -2,13 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ChevronLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 
 interface PendingAffiliate {
   id: string;
@@ -78,107 +73,75 @@ export default function PendingApprovalPage() {
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in space-y-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/super-admin/dashboard')}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </Button>
-            <div>
-              <PageHeader
-                title="Pending Approvals"
-                subtitle={`${filteredAffiliates.length} submission${filteredAffiliates.length !== 1 ? 's' : ''} awaiting review`}
-                showBack={false}
-              />
-            </div>
-          </div>
-
-          {/* Filters Section */}
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Filters</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
               <div>
-                <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
-                <Input
-                  id="search"
-                  placeholder="Search by name, email, or contact..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <button className="back-link" onClick={() => navigate('/super-admin/dashboard')}>
+                  <ArrowLeft /> Back to dashboard
+                </button>
+                <h1 className="page-title">Pending Approvals</h1>
+                <p className="page-sub">{filteredAffiliates.length} submission{filteredAffiliates.length !== 1 ? 's' : ''} awaiting review</p>
               </div>
+            </header>
 
-              <div>
-                <Label htmlFor="bank" className="text-sm font-semibold mb-2 block">Issuing Bank</Label>
-                <select
-                  id="bank"
-                  value={filterBank}
-                  onChange={(e) => setFilterBank(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+              <div className="section-head" style={{ marginTop: 0 }}>
+                <div>
+                  <div className="section-title">Filters</div>
+                  <div className="section-sub">Filter pending affiliate submissions.</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterBank('all');
+                    setFilterDate('');
+                  }}
                 >
-                  <option value="all">All Banks</option>
-                  {banks.map(bank => (
-                    <option key={bank} value={bank}>
-                      {getBankLabel(bank)}
-                    </option>
-                  ))}
-                </select>
+                  Clear Filters
+                </Button>
               </div>
-
-              <div>
-                <Label htmlFor="date" className="text-sm font-semibold mb-2 block">Submitted Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Field label="Search">
+                  <input className="bch-input" placeholder="Search by name, email, or contact..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </Field>
+                <Field label="Issuing Bank">
+                  <select className="bch-select" value={filterBank} onChange={(e) => setFilterBank(e.target.value)}>
+                    <option value="all">All Banks</option>
+                    {banks.map(bank => <option key={bank} value={bank}>{getBankLabel(bank)}</option>)}
+                  </select>
+                </Field>
+                <Field label="Submitted Date">
+                  <input className="bch-input" type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+                </Field>
               </div>
-            </div>
+            </section>
 
-            <div className="mt-4 flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilterBank('all');
-                  setFilterDate('');
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </Card>
-
-          {/* Pending Submissions Table */}
-          <Card className="border-0 shadow-lg">
-            <div className="p-6">
+            <section className="bch-card" style={{ marginTop: 14, overflow: 'hidden' }}>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="data">
                   <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Contact Person</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Bank</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Submitted Date</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
+                    <tr>
+                      <th>Affiliate Name</th>
+                      <th>Contact Person</th>
+                      <th>Email</th>
+                      <th>Bank</th>
+                      <th>Submitted Date</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAffiliates.length > 0 ? (
                       filteredAffiliates.map((affiliate) => (
-                        <tr key={affiliate.id} className="border-b border-border hover:bg-muted">
-                          <td className="px-4 py-3 text-sm text-foreground">{affiliate.affiliateName}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.contactPerson}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.email}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{getBankLabel(affiliate.issuingBank)}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.submittedDate}</td>
-                          <td className="px-4 py-3 text-sm">
+                        <tr key={affiliate.id}>
+                          <td>{affiliate.affiliateName}</td>
+                          <td>{affiliate.contactPerson}</td>
+                          <td>{affiliate.email}</td>
+                          <td>{getBankLabel(affiliate.issuingBank)}</td>
+                          <td>{affiliate.submittedDate}</td>
+                          <td>
                             <Button
                               variant="outline"
                               size="sm"
@@ -193,7 +156,7 @@ export default function PendingApprovalPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={6}>
                           <p>{affiliates.length === 0 ? 'All submissions approved or rejected!' : 'No pending submissions found matching your filters.'}</p>
                         </td>
                       </tr>
@@ -201,13 +164,20 @@ export default function PendingApprovalPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </Card>
-
-
-        </div>
+            </section>
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="bch-label">{label}</label>
+      {children}
+    </div>
   );
 }
 

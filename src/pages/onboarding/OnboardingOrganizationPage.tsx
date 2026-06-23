@@ -30,8 +30,10 @@ export default function OnboardingOrganizationPage() {
   type RequiredFieldKey =
     | 'tenantId'
     | 'legalName'
+    | 'tradingName'
     | 'registrationNumber'
     | 'addressLine1'
+    | 'city'
     | 'country'
     | 'contactFullName'
     | 'contactEmail'
@@ -67,8 +69,10 @@ export default function OnboardingOrganizationPage() {
   const requiredFieldKeys: RequiredFieldKey[] = [
     'tenantId',
     'legalName',
+    'tradingName',
     'registrationNumber',
     'addressLine1',
+    'city',
     'country',
     'contactFullName',
     'contactEmail',
@@ -137,8 +141,10 @@ export default function OnboardingOrganizationPage() {
 
     if (!form.tenantId.trim()) errors.tenantId = 'Tenant ID is required';
     if (!form.legalName.trim()) errors.legalName = 'Legal business name is required';
+    if (!form.tradingName.trim()) errors.tradingName = 'Trading name is required';
     if (!form.registrationNumber.trim()) errors.registrationNumber = 'Registration number is required';
     if (!form.addressLine1.trim()) errors.addressLine1 = 'Address line 1 is required';
+    if (!form.city.trim()) errors.city = 'City is required';
     if (!form.country.trim()) errors.country = 'Country is required';
     if (!form.contactFullName.trim()) errors.contactFullName = 'Full name is required';
     if (!form.contactEmail.trim()) errors.contactEmail = 'Email is required';
@@ -250,11 +256,11 @@ export default function OnboardingOrganizationPage() {
                 <div className="col-span-2">
                   <TextField label={<RequiredLabel>Legal Business Name</RequiredLabel>} value={form.legalName} onChange={(e) => set('legalName', e.target.value)} disabled={saving} error={fieldErrors.legalName} />
                 </div>
-                <TextField label="Trading Name" value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} />
+                <TextField label={<RequiredLabel>Trading Name</RequiredLabel>} value={form.tradingName} onChange={(e) => set('tradingName', e.target.value)} disabled={saving} error={fieldErrors.tradingName} />
                 <TextField label={<RequiredLabel>RC / Registration Number</RequiredLabel>} value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} disabled={saving} error={fieldErrors.registrationNumber} />
                 <TextField label={<RequiredLabel>Tenant ID</RequiredLabel>} value={form.tenantId} onChange={(e) => set('tenantId', e.target.value)} disabled={saving} error={fieldErrors.tenantId} />
                 <div className="col-span-2">
-                  <TextField className="md:col-span-2" label="Address Line 1" value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
+                  <TextField className="md:col-span-2" label={<RequiredLabel>Address Line 1</RequiredLabel>} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} disabled={saving} error={fieldErrors.addressLine1} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm md:text-base font-semibold text-foreground"><RequiredLabel>Country</RequiredLabel></label>
@@ -315,11 +321,12 @@ export default function OnboardingOrganizationPage() {
                   </Select>
                 </div>
                 <TextField
-                  label="City"
+                  label={<RequiredLabel>City</RequiredLabel>}
                   value={form.city}
                   onChange={(e) => set('city', e.target.value)}
                   placeholder="Enter city"
                   disabled={saving}
+                  error={fieldErrors.city}
                 />
               </div>
             </section>

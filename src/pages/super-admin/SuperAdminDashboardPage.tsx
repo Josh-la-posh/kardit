@@ -20,7 +20,7 @@ const modules: Array<{ label: string; icon: LucideIcon; path: string; descriptio
     description: 'Manage platform banks and their configurations.',
   },
   {
-    label: 'Onboarding',
+    label: 'Onboarding Cases',
     icon: ClipboardCheck,
     path: '/super-admin/onboarding/cases',
     description: 'Review affiliate onboarding submissions and outcomes.',

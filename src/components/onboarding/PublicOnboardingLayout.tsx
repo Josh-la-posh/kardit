@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Building2, Check, FileText, Landmark, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OnboardingDraft } from '@/types/onboardingContracts';
@@ -82,8 +82,10 @@ function isOrganizationComplete(draft?: OnboardingDraft | null) {
     draft?.consentAccepted &&
       organization?.tenantId?.trim() &&
       organization?.legalName?.trim() &&
+      organization?.tradingName?.trim() &&
       organization?.registrationNumber?.trim() &&
       organization?.address?.line1?.trim() &&
+      organization?.address?.city?.trim() &&
       organization?.address?.country?.trim() &&
       contact?.fullName?.trim() &&
       contact?.email?.trim() &&
@@ -145,8 +147,15 @@ export default function PublicOnboardingLayout({
   description,
   children,
 }: PublicOnboardingLayoutProps) {
+  const location = useLocation();
+  const contentRef = useRef<HTMLElement | null>(null);
   const normalizedStep = currentStep === 'start' ? 'organization' : currentStep;
   const currentStepIndex = getStepIndex(normalizedStep as OnboardingStepId);
+
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-[var(--cs-paper)]">
@@ -219,7 +228,7 @@ export default function PublicOnboardingLayout({
             </div>
           </aside>
 
-          <main className="overflow-auto bg-[var(--cs-paper)] p-8 md:p-20">
+          <main ref={contentRef} className="overflow-auto bg-[var(--cs-paper)] p-8 md:p-20">
             <div className="mx-auto w-full">
               {/* <div className="mb-6 rounded-2xl border border-[var(--cs-line)] bg-[var(--cs-bg-elevated)] p-4">
                 <div className="flex items-center justify-between gap-3">

@@ -2,14 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { StatusChip, type StatusType } from "@/components/ui/status-chip";
 import {
-  ChevronLeft, Eye, Download, Loader2, RefreshCw,
+  ArrowLeft, Eye, Download, Loader2, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { queryAffiliates } from "@/services/superAdminApi";
@@ -121,41 +117,47 @@ export default function AffiliatesPage() {
   const filteredAffiliates = useMemo(() => affiliates, [affiliates]);
 
   const getStatusBadge = (status: string) => {
+    const chipStatus: StatusType = (() => {
+      switch (status.toUpperCase()) {
+        case 'APPROVED':
+        case 'ACTIVE':
+          return 'SUCCESS';
+        case 'REJECTED':
+          return 'FAILED';
+        case 'SUSPENDED':
+        case 'PENDING':
+        default:
+          return 'WARNING';
+      }
+    })();
+
     switch (status.toUpperCase()) {
       case 'APPROVED':
-        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Approved</Badge>;
+        return <StatusChip status={chipStatus} label="Approved" />;
       case 'ACTIVE':
-        return <Badge className="bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))]">Active</Badge>;
+        return <StatusChip status={chipStatus} label="Active" />;
       case 'REJECTED':
-        return <Badge className="bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]">Rejected</Badge>;
+        return <StatusChip status={chipStatus} label="Rejected" />;
       case 'SUSPENDED':
-        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Suspended</Badge>;
+        return <StatusChip status={chipStatus} label="Suspended" />;
       case 'PENDING':
       default:
-        return <Badge className="bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]">Pending</Badge>;
+        return <StatusChip status={chipStatus} label="Pending" />;
     }
   };
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
       <AppLayout navVariant="service-provider">
-        <div className="animate-fade-in space-y-6">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/super-admin/dashboard')}
-                className="gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </Button>
-              <PageHeader
-                title="All Affiliates"
-                subtitle="View and manage all onboarded affiliates"
-                showBack={false}
-              />
+        <main className="scr-main">
+          <div className="container">
+          <header className="page-head">
+            <div>
+              <button className="back-link" onClick={() => navigate('/super-admin/dashboard')}>
+                <ArrowLeft /> Back to dashboard
+              </button>
+              <h1 className="page-title">All Affiliates</h1>
+              <p className="page-sub">View and manage all onboarded affiliates.</p>
             </div>
             {/* <Button
               onClick={handleDownloadReport}
@@ -165,29 +167,49 @@ export default function AffiliatesPage() {
               <Download className="w-4 h-4" />
               {downloading ? 'Downloading...' : 'Download Report'}
             </Button> */}
-          </div>
+          </header>
 
-          {/* Filters Section */}
-          <Card className="border-0 shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Filters</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <section className="bch-card card-pad" style={{ marginTop: 14 }}>
+            <div className="section-head" style={{ marginTop: 0 }}>
               <div>
-                <Label htmlFor="search" className="text-sm font-semibold mb-2 block">Search</Label>
-                <Input
-                  id="search"
+                <div className="section-title">Filters</div>
+                <div className="section-sub">Showing {filteredAffiliates.length} of {total} affiliates</div>
+              </div>
+              <div className="row-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterStatus('all');
+                    setFilterBank('all');
+                    setFilterDate('');
+                    setCurrentPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+                <Button variant="outline" size="sm" onClick={loadAffiliates} disabled={isLoading} className="gap-2">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Refresh
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Field label="Search">
+                <input
+                  className="bch-input"
                   placeholder="Search by name, tenant, or registration..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <Label htmlFor="status" className="text-sm font-semibold mb-2 block">Status</Label>
+              <Field label="Status">
                 <select
-                  id="status"
                   value={filterStatus}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="bch-select"
                 >
                   <option value="all">All Statuses</option>
                   {statusOptions.map(status => (
@@ -196,7 +218,7 @@ export default function AffiliatesPage() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </Field>
 
               {/* <div>
                 <Label htmlFor="bank" className="text-sm font-semibold mb-2 block">Bank ID</Label>
@@ -208,53 +230,31 @@ export default function AffiliatesPage() {
                 />
               </div> */}
 
-              <div>
-                <Label htmlFor="date" className="text-sm font-semibold mb-2 block">Submitted Date</Label>
-                <Input
-                  id="date"
+              <Field label="Submitted Date">
+                <input
+                  className="bch-input"
                   type="date"
                   value={filterDate}
                   onChange={(e) => handleDateChange(e.target.value)}
                 />
-              </div>
-            </div>
+              </Field>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilterStatus('all');
-                  setFilterBank('all');
-                  setFilterDate('');
-                  setCurrentPage(1);
-                }}
-              >
-                Clear Filters
-              </Button>
-              <Button variant="outline" onClick={loadAffiliates} disabled={isLoading} className="gap-2">
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Refresh
-              </Button>
-              <select
-                aria-label="Page size"
-                value={String(selectedPageSize)}
-                onChange={(e) => handlePageSizeChange(e.target.value)}
-                className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {pageSizeOptions.map(size => (
-                  <option key={size} value={size}>{size} / page</option>
-                ))}
-              </select>
-              <span className="text-sm text-muted-foreground self-center ml-auto">
-                Showing {filteredAffiliates.length} of {total} affiliates
-              </span>
+              <Field label="Page Size">
+                <select
+                  aria-label="Page size"
+                  value={String(selectedPageSize)}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
+                  className="bch-select"
+                >
+                  {pageSizeOptions.map(size => (
+                    <option key={size} value={size}>{size} / page</option>
+                  ))}
+                </select>
+              </Field>
             </div>
-          </Card>
+          </section>
 
-          {/* Affiliates Table */}
-          <Card className="border-0 shadow-lg">
-            <div className="p-6">
+          <section className="bch-card" style={{ marginTop: 14, overflow: 'hidden' }}>
               <div className="overflow-x-auto">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
@@ -265,30 +265,30 @@ export default function AffiliatesPage() {
                     <p>{error}</p>
                   </div>
                 ) : (
-                  <table className="w-full">
+                  <table className="data">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Affiliate Name</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Trading Name</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Tenant ID</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Registration</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Country</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Status</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Submitted Date</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-secondary))]">Actions</th>
+                      <tr>
+                        <th>Affiliate Name</th>
+                        <th>Trading Name</th>
+                        <th>Tenant ID</th>
+                        <th>Registration</th>
+                        <th>Country</th>
+                        <th>Status</th>
+                        <th>Submitted Date</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredAffiliates.map((affiliate) => (
-                        <tr key={affiliate.affiliateId} className="border-b border-border hover:bg-muted">
-                          <td className="px-4 py-3 text-sm text-foreground">{affiliate.legalName}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tradingName || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
-                          <td className="px-4 py-3 text-sm">{getStatusBadge(affiliate.status)}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(affiliate.createdAt)}</td>
-                          <td className="px-4 py-3 text-sm">
+                        <tr key={affiliate.affiliateId}>
+                          <td>{affiliate.legalName}</td>
+                          <td>{affiliate.tradingName || '-'}</td>
+                          <td>{affiliate.tenantId}</td>
+                          <td>{affiliate.registrationNumber}</td>
+                          <td>{affiliate.country}</td>
+                          <td>{getStatusBadge(affiliate.status)}</td>
+                          <td>{formatDate(affiliate.createdAt)}</td>
+                          <td>
                             <Button
                               variant="outline"
                               size="sm"
@@ -309,8 +309,9 @@ export default function AffiliatesPage() {
               </div>
 
               {!isLoading && !error && filteredAffiliates.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No affiliates found matching your filters.</p>
+                <div className="empty-list">
+                  <div className="empty-list-title">No affiliates found</div>
+                  <div className="empty-list-sub">Adjust filters and try again.</div>
                 </div>
               )}
 
@@ -337,12 +338,20 @@ export default function AffiliatesPage() {
                   </Button>
                 </div>
               </div>
-            </div>
-          </Card>
-        </div>
+          </section>
+          </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="bch-label">{label}</label>
+      {children}
+    </div>
+  );
+}
 
