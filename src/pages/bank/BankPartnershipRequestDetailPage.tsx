@@ -77,12 +77,24 @@ export default function BankPartnershipRequestDetailPage() {
     );
   }
 
+  const affiliate = request.affiliate ?? {
+    affiliateId: '-',
+    legalName: 'Partnership Request',
+    tradingName: '-',
+    registrationNumber: '-',
+  };
+  const onboardingSnapshot = request.onboardingSnapshot ?? {
+    caseId: '',
+    status: '',
+    documents: [],
+  };
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
         <div className="animate-fade-in">
           <PageHeader
-            title={request.affiliate.legalName || 'Partnership Request'}
+            title={affiliate.legalName || 'Partnership Request'}
             subtitle={`Request ${request.partnershipRequestId}`}
             actions={
               <div className="flex items-center gap-2">
@@ -104,19 +116,19 @@ export default function BankPartnershipRequestDetailPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Legal Name</p>
-                    <p className="text-sm font-medium">{request.affiliate.legalName || '-'}</p>
+                    <p className="text-sm font-medium">{affiliate.legalName || '-'}</p>
                   </div>
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Affiliate ID</p>
-                    <p className="text-sm font-medium">{request.affiliate.affiliateId || '-'}</p>
+                    <p className="text-sm font-medium">{affiliate.affiliateId || '-'}</p>
                   </div>
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Trading Name</p>
-                    <p className="text-sm font-medium">{request.affiliate.tradingName || '-'}</p>
+                    <p className="text-sm font-medium">{affiliate.tradingName || '-'}</p>
                   </div>
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Registration Number</p>
-                    <p className="text-sm font-medium">{request.affiliate.registrationNumber || '-'}</p>
+                    <p className="text-sm font-medium">{affiliate.registrationNumber || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -126,11 +138,11 @@ export default function BankPartnershipRequestDetailPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Case ID</p>
-                    <p className="text-sm font-medium">{request.onboardingSnapshot.caseId || '-'}</p>
+                    <p className="text-sm font-medium">{onboardingSnapshot.caseId || '-'}</p>
                   </div>
                   <div className="rounded-md border border-border p-4">
                     <p className="text-xs text-muted-foreground">Snapshot Status</p>
-                    <p className="text-sm font-medium">{request.onboardingSnapshot.status || '-'}</p>
+                    <p className="text-sm font-medium">{onboardingSnapshot.status || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -140,11 +152,11 @@ export default function BankPartnershipRequestDetailPage() {
                   <FileText className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documents</h2>
                 </div>
-                {request.onboardingSnapshot.documents.length === 0 ? (
+                {onboardingSnapshot.documents.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No onboarding documents attached to this request.</p>
                 ) : (
                   <div className="space-y-3">
-                    {request.onboardingSnapshot.documents.map((document) => (
+                    {onboardingSnapshot.documents.map((document) => (
                       <div key={document.documentId} className="rounded-md border border-border bg-muted/30 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">

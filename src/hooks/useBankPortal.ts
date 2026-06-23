@@ -531,6 +531,9 @@ export function usePendingPartnershipRequests() {
   const { user } = useAuth();
   const [bankId, setBankId] = useState<string | null>(null);
   const [requests, setRequests] = useState<Array<PartnershipRequestQueryItem>>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -549,26 +552,19 @@ export function usePendingPartnershipRequests() {
           fromDate: null,
           toDate: null,
         },
-        page: 1,
-        pageSize: 25,
+        page,
+        pageSize,
       });
-      const requestIds = queryResponse.data
-        .filter((request) => request.status === 'PENDING_BANK_APPROVAL')
-        .map((request) => request.partnershipRequestId);
-
-      if (!requestIds.length) {
-        setRequests([]);
-        return;
-      }
-
       setRequests(queryResponse.data.filter((request) => request.status === 'PENDING_BANK_APPROVAL'));
+      setTotal(queryResponse.total);
     } catch (e: any) {
       setError(e?.message || 'Failed to load pending partnership requests');
       setRequests([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [page, pageSize, user]);
 
   useEffect(() => {
     refresh();
@@ -610,5 +606,5 @@ export function usePendingPartnershipRequests() {
     [refresh]
   );
 
-  return { bankId, requests, isLoading, isActing, error, refresh, approve, reject };
+  return { bankId, requests, page, pageSize, total, setPage, isLoading, isActing, error, refresh, approve, reject };
 }

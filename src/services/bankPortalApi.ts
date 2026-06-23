@@ -119,9 +119,10 @@ export async function getPartnershipRequest(
   bankId: string,
   partnershipRequestId: string
 ): Promise<GetPartnershipRequestResponse> {
-  return getJson<GetPartnershipRequestResponse>(
+  const response = await getJson<GetPartnershipRequestResponse | { data?: GetPartnershipRequestResponse }>(
     `/banks/${encodeURIComponent(bankId)}/affiliate-partnership-requests/${encodeURIComponent(partnershipRequestId)}`
   );
+  return 'data' in response && response.data ? response.data : response;
 }
 
 export async function queryPartnershipRequests(

@@ -5,14 +5,14 @@ import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { PaginatedTable, type PaginatedColumn } from '@/components/ui/paginated-table';
 import { usePendingPartnershipRequests } from '@/hooks/useBankPortal';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import type { PartnershipRequestQueryItem } from '@/types/bankPortalContracts';
 
 export default function BankPartnershipRequestsPage() {
   const navigate = useNavigate();
-  const { bankId, requests, isLoading, isActing, error, refresh } = usePendingPartnershipRequests();
+  const { bankId, requests, page, pageSize, total, setPage, isLoading, isActing, error, refresh } = usePendingPartnershipRequests();
 
   const handleRefreshAll = async () => {
     await refresh();
@@ -22,15 +22,14 @@ export default function BankPartnershipRequestsPage() {
     navigate(`/bank/affiliate-partnership-requests/${request.partnershipRequestId}`);
   };
 
-  const columns = useMemo<Column<PartnershipRequestQueryItem>[]>(
+  const columns = useMemo<PaginatedColumn<PartnershipRequestQueryItem>[]>(
     () => [
       {
         key: 'affiliate',
         header: 'Affiliate',
         render: (request) => (
           <div>
-            <p className="font-medium">{request.bankName || 'Pending Affiliate Request'}</p>
-            <p className="text-xs text-muted-foreground">{request.affiliateId}</p>
+            <p className="font-medium">Fix It</p>
           </div>
         ),
       },
@@ -49,11 +48,11 @@ export default function BankPartnershipRequestsPage() {
         header: 'Requested',
         render: (request) => format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm'),
       },
-      {
-        key: 'note',
-        header: 'Note',
-        render: (request) => <span className="text-muted-foreground">{request.note || '-'}</span>,
-      },
+      // {
+      //   key: 'note',
+      //   header: 'Note',
+      //   render: (request) => <span className="text-muted-foreground">{request.note || '-'}</span>,
+      // },
       {
         key: 'actions',
         header: 'View',
@@ -97,14 +96,18 @@ export default function BankPartnershipRequestsPage() {
             </header>
 
             <div style={{ marginTop: 14 }}>
-              <DataTable<PartnershipRequestQueryItem>
+              <PaginatedTable<PartnershipRequestQueryItem>
                 columns={columns}
-                data={requests}
+                rows={requests}
                 isLoading={isLoading}
                 error={error || undefined}
                 emptyMessage="No pending partnership requests found."
                 onRowClick={openRequest}
-                getRowKey={(request) => request.partnershipRequestId}
+                rowKey={(request) => request.partnershipRequestId}
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
                 className="shadow-none"
               />
             </div>
