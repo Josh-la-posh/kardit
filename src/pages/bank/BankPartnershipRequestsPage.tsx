@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
+import { DataTable, type Column } from '@/components/ui/data-table';
 import { usePendingPartnershipRequests } from '@/hooks/useBankPortal';
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import type { PartnershipRequestQueryItem } from '@/types/bankPortalContracts';
 
 export default function BankPartnershipRequestsPage() {
   const navigate = useNavigate();
@@ -17,86 +18,98 @@ export default function BankPartnershipRequestsPage() {
     await refresh();
   };
 
+  const openRequest = (request: PartnershipRequestQueryItem) => {
+    navigate(`/bank/affiliate-partnership-requests/${request.partnershipRequestId}`);
+  };
+
+  const columns = useMemo<Column<PartnershipRequestQueryItem>[]>(
+    () => [
+      {
+        key: 'affiliate',
+        header: 'Affiliate',
+        render: (request) => (
+          <div>
+            <p className="font-medium">{request.bankName || 'Pending Affiliate Request'}</p>
+            <p className="text-xs text-muted-foreground">{request.affiliateId}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'case',
+        header: 'Case',
+        render: (request) => <span className="text-xs text-muted-foreground">{request.partnershipRequestId}</span>,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (request) => <StatusChip status="PENDING" label={request.status} />,
+      },
+      {
+        key: 'requestedAt',
+        header: 'Requested',
+        render: (request) => format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm'),
+      },
+      {
+        key: 'note',
+        header: 'Note',
+        render: (request) => <span className="text-muted-foreground">{request.note || '-'}</span>,
+      },
+      {
+        key: 'actions',
+        header: 'View',
+        render: (request) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(event) => {
+              event.stopPropagation();
+              openRequest(request);
+            }}
+            disabled={isActing}
+          >
+            View more
+          </Button>
+        ),
+      },
+    ],
+    [isActing]
+  );
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
       <AppLayout navVariant="bank">
-        <div className="animate-fade-in">
-          <PageHeader
-            title="Pending Partnership Requests"
-            subtitle={bankId ? `Review incoming affiliate requests for ${bankId}` : 'Review incoming affiliate requests'}
-            actions={
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigate('/bank/affiliates')}>
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Back to Affiliates
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={isLoading || isActing}>
-                  <RefreshCw className="mr-1 h-4 w-4" /> Refresh
-                </Button>
+        <main className="scr-main">
+          <div className="container">
+            <header className="page-head">
+              <div>
+                <button className="back-link" onClick={() => navigate('/bank/affiliates')}>
+                  <ArrowLeft /> Back to Affiliates
+                </button>
+                <h1 className="page-title">Pending Partnership Requests</h1>
+                <p className="page-sub">
+                  {bankId ? `Review incoming affiliate requests for ${bankId}` : 'Review incoming affiliate requests'}
+                </p>
               </div>
-            }
-          />
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : requests.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">
-                No pending partnership requests found.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Case</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Requested</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Note</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">View</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {requests.map((request) => (
-                      <tr key={request.partnershipRequestId} className="align-top hover:bg-muted/30">
-                        <td className="px-4 py-4 text-sm">
-                          <>
-                            <p className="font-medium">{request.bankName || 'Pending Affiliate Request'}</p>
-                            <p className="text-xs text-muted-foreground">{request.affiliateId}</p>
-                          </>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">
-                          <p className="text-xs">{request.partnershipRequestId}</p>
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          <StatusChip status="PENDING" label={request.status} />
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">
-                          {format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm')}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">{request.note || '-'}</td>
-                        <td className="px-4 py-4">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/bank/affiliate-partnership-requests/${request.partnershipRequestId}`)}
-                            disabled={isActing}
-                          >
-                            View more
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={isLoading || isActing}>
+                <RefreshCw className="mr-1 h-4 w-4" /> Refresh
+              </Button>
+            </header>
+
+            <div style={{ marginTop: 14 }}>
+              <DataTable<PartnershipRequestQueryItem>
+                columns={columns}
+                data={requests}
+                isLoading={isLoading}
+                error={error || undefined}
+                emptyMessage="No pending partnership requests found."
+                onRowClick={openRequest}
+                getRowKey={(request) => request.partnershipRequestId}
+                className="shadow-none"
+              />
+            </div>
           </div>
-        </div>
+        </main>
       </AppLayout>
     </ProtectedRoute>
   );
