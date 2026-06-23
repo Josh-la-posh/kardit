@@ -15,6 +15,7 @@ import {
 import { queryCards } from '@/services/cardsApi';
 import type {
   ApprovePartnershipResponse,
+  ApprovePartnershipRequest,
   BankAffiliateSummary,
   BankAuditLogItem,
   BankCardItem,
@@ -25,6 +26,7 @@ import type {
   ListBankAuditLogsResponse,
   ListBankReportsResponse,
   PartnershipRequestQueryItem,
+  RejectPartnershipRequest,
   RejectPartnershipResponse,
   SuspendAffiliateResponse,
 } from '@/types/bankPortalContracts';
@@ -501,6 +503,8 @@ export function useBankAffiliateCards(affiliateId: string | undefined) {
 
 export function usePartnershipRequest(partnershipRequestId: string | undefined) {
   const { user } = useAuth();
+  const bankIdScope = user?.bankId;
+  const tenantIdScope = user?.tenantId;
   const [request, setRequest] = useState<GetPartnershipRequestResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -510,7 +514,7 @@ export function usePartnershipRequest(partnershipRequestId: string | undefined) 
     setIsLoading(true);
     setError(null);
     try {
-      const bankId = resolveBankId(user);
+      const bankId = resolveBankId({ bankId: bankIdScope, tenantId: tenantIdScope });
       setRequest(await getPartnershipRequest(bankId, partnershipRequestId));
     } catch (e: any) {
       setError(e?.message || 'Failed to load partnership request');
@@ -518,7 +522,7 @@ export function usePartnershipRequest(partnershipRequestId: string | undefined) 
     } finally {
       setIsLoading(false);
     }
-  }, [partnershipRequestId, user]);
+  }, [bankIdScope, partnershipRequestId, tenantIdScope]);
 
   useEffect(() => {
     refresh();
@@ -527,14 +531,17 @@ export function usePartnershipRequest(partnershipRequestId: string | undefined) 
   return { request, isLoading, error, refresh };
 }
 
-export function usePendingPartnershipRequests() {
+export function usePendingPartnershipRequests(options: { autoLoad?: boolean } = {}) {
   const { user } = useAuth();
+  const autoLoad = options.autoLoad ?? true;
+  const bankIdScope = user?.bankId;
+  const tenantIdScope = user?.tenantId;
   const [bankId, setBankId] = useState<string | null>(null);
   const [requests, setRequests] = useState<Array<PartnershipRequestQueryItem>>([]);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(autoLoad);
   const [isActing, setIsActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -542,7 +549,7 @@ export function usePendingPartnershipRequests() {
     setIsLoading(true);
     setError(null);
     try {
-      const resolvedBankId = resolveBankId(user);
+      const resolvedBankId = resolveBankId({ bankId: bankIdScope, tenantId: tenantIdScope });
       setBankId(resolvedBankId);
       const queryResponse = await queryPartnershipRequests({
         filters: {
@@ -564,19 +571,23 @@ export function usePendingPartnershipRequests() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, user]);
+  }, [bankIdScope, page, pageSize, tenantIdScope]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (autoLoad) {
+      refresh();
+    }
+  }, [autoLoad, refresh]);
 
   const approve = useCallback(
-    async (requestId: string): Promise<ApprovePartnershipResponse> => {
+    async (requestId: string, request: ApprovePartnershipRequest): Promise<ApprovePartnershipResponse> => {
       setIsActing(true);
       setError(null);
       try {
-        const response = await approvePartnershipRequest(requestId);
-        await refresh();
+        const response = await approvePartnershipRequest(requestId, request);
+        if (autoLoad) {
+          await refresh();
+        }
         return response;
       } catch (e: any) {
         setError(e?.message || 'Failed to approve partnership request');
@@ -589,12 +600,14 @@ export function usePendingPartnershipRequests() {
   );
 
   const reject = useCallback(
-    async (requestId: string, rejectionReason: string): Promise<RejectPartnershipResponse> => {
+    async (requestId: string, request: RejectPartnershipRequest): Promise<RejectPartnershipResponse> => {
       setIsActing(true);
       setError(null);
       try {
-        const response = await rejectPartnershipRequest(requestId, { rejectionReason });
-        await refresh();
+        const response = await rejectPartnershipRequest(requestId, request);
+        if (autoLoad) {
+          await refresh();
+        }
         return response;
       } catch (e: any) {
         setError(e?.message || 'Failed to reject partnership request');

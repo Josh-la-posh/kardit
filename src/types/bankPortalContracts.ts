@@ -193,6 +193,11 @@ export interface QueryPartnershipRequestsResponse {
   data: PartnershipRequestQueryItem[];
 }
 
+export interface ApprovePartnershipRequest {
+  reviewerNotes: string;
+  idempotencyKey: string;
+}
+
 export interface ApprovePartnershipResponse {
   partnershipId: string;
   status: string;
@@ -201,6 +206,8 @@ export interface ApprovePartnershipResponse {
 
 export interface RejectPartnershipRequest {
   rejectionReason: string;
+  reviewerNotes: string;
+  idempotencyKey: string;
 }
 
 export interface RejectPartnershipResponse {

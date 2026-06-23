@@ -33,11 +33,11 @@ export default function BankPartnershipRequestsPage() {
           </div>
         ),
       },
-      {
-        key: 'case',
-        header: 'Case',
-        render: (request) => <span className="text-xs text-muted-foreground">{request.partnershipRequestId}</span>,
-      },
+      // {
+      //   key: 'case',
+      //   header: 'Case',
+      //   render: (request) => <span className="text-xs text-muted-foreground">{request.partnershipRequestId}</span>,
+      // },
       {
         key: 'status',
         header: 'Status',

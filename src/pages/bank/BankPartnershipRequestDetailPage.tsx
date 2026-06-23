@@ -10,18 +10,48 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import { usePartnershipRequest, usePendingPartnershipRequests } from '@/hooks/useBankPortal';
 
+const PARTNERSHIP_IDEMPOTENCY_STORAGE_PREFIX = 'kardit.bank.partnership-request.idempotency';
+
+function createIdempotencyKey(operation: 'approve' | 'reject') {
+  const suffix =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return `partnership-${operation}-${suffix}`;
+}
+
+function getOperationIdempotencyKey(requestId: string, operation: 'approve' | 'reject') {
+  const storageKey = `${PARTNERSHIP_IDEMPOTENCY_STORAGE_PREFIX}.${requestId}.${operation}`;
+
+  try {
+    const existingKey = window.localStorage.getItem(storageKey);
+    if (existingKey) return existingKey;
+
+    const nextKey = createIdempotencyKey(operation);
+    window.localStorage.setItem(storageKey, nextKey);
+    return nextKey;
+  } catch {
+    return createIdempotencyKey(operation);
+  }
+}
+
 export default function BankPartnershipRequestDetailPage() {
   const { partnershipRequestId } = useParams<{ partnershipRequestId: string }>();
   const navigate = useNavigate();
   const { request, isLoading, error, refresh } = usePartnershipRequest(partnershipRequestId);
-  const { approve, reject, isActing } = usePendingPartnershipRequests();
+  const { approve, reject, isActing } = usePendingPartnershipRequests({ autoLoad: false });
+  const [reviewerNotes, setReviewerNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
   const handleApprove = async () => {
     if (!partnershipRequestId) return;
 
     try {
-      const response = await approve(partnershipRequestId);
+      const response = await approve(partnershipRequestId, {
+        reviewerNotes: reviewerNotes.trim(),
+        idempotencyKey: getOperationIdempotencyKey(partnershipRequestId, 'approve'),
+      });
       toast.success(`Partnership approved: ${response.partnershipId}`);
       navigate('/bank/affiliate-partnership-requests');
     } catch (e: any) {
@@ -36,7 +66,11 @@ export default function BankPartnershipRequestDetailPage() {
     }
 
     try {
-      const response = await reject(partnershipRequestId, rejectionReason.trim());
+      const response = await reject(partnershipRequestId, {
+        rejectionReason: rejectionReason.trim(),
+        reviewerNotes: reviewerNotes.trim(),
+        idempotencyKey: getOperationIdempotencyKey(partnershipRequestId, 'reject'),
+      });
       toast.error(`Partnership request rejected: ${response.requestId}`);
       navigate('/bank/affiliate-partnership-requests');
     } catch (e: any) {
@@ -199,6 +233,16 @@ export default function BankPartnershipRequestDetailPage() {
                   <Button className="w-full" onClick={handleApprove} disabled={isActing}>
                     Approve Request
                   </Button>
+                  <div>
+                    <label className="mb-2 block text-xs text-muted-foreground">Reviewer notes</label>
+                    <textarea
+                      className="min-h-24 w-full rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="Reviewed affiliate documents and request details"
+                      value={reviewerNotes}
+                      onChange={(e) => setReviewerNotes(e.target.value)}
+                      disabled={isActing}
+                    />
+                  </div>
                   <div>
                     <label className="mb-2 block text-xs text-muted-foreground">Rejection reason</label>
                     <textarea

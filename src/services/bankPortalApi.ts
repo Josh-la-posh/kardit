@@ -1,5 +1,6 @@
 import { ApiError, getApiErrorMessage } from '@/services/apiError';
 import type {
+  ApprovePartnershipRequest,
   ApprovePartnershipResponse,
   BlockAffiliateRequest,
   BlockAffiliateResponse,
@@ -131,8 +132,11 @@ export async function queryPartnershipRequests(
   return postJson<QueryPartnershipRequestsResponse>('/affiliates/partnership-requests/query', request);
 }
 
-export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {
-  return postJson<ApprovePartnershipResponse>(`/banks/partnerships/${encodeURIComponent(requestId)}/approve`, { requestId });
+export async function approvePartnershipRequest(
+  requestId: string,
+  request: ApprovePartnershipRequest
+): Promise<ApprovePartnershipResponse> {
+  return postJson<ApprovePartnershipResponse>(`/banks/partnerships/${encodeURIComponent(requestId)}/approve`, request);
 }
 
 export async function rejectPartnershipRequest(
