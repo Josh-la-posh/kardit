@@ -22,6 +22,10 @@ function normalizeCountryValue(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeStateValue(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export default function OnboardingOrganizationPage() {
   type RequiredFieldKey =
     | 'tenantId'
