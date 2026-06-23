@@ -88,6 +88,9 @@ export default function BankPartnershipRequestDetailPage() {
     status: '',
     documents: [],
   };
+  const sectionClassName = 'rounded-lg border border-[var(--cs-line)] bg-card p-6 shadow-sm';
+  const fieldClassName = 'rounded-md bg-muted/30 px-4 py-3 ring-1 ring-inset ring-border/50';
+  const documentClassName = 'rounded-md bg-muted/30 p-4 ring-1 ring-inset ring-border/50';
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
@@ -111,43 +114,43 @@ export default function BankPartnershipRequestDetailPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              <div className="kardit-card p-6">
+              <div className={sectionClassName}>
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Affiliate</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Legal Name</p>
                     <p className="text-sm font-medium">{affiliate.legalName || '-'}</p>
                   </div>
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Affiliate ID</p>
                     <p className="text-sm font-medium">{affiliate.affiliateId || '-'}</p>
                   </div>
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Trading Name</p>
                     <p className="text-sm font-medium">{affiliate.tradingName || '-'}</p>
                   </div>
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Registration Number</p>
                     <p className="text-sm font-medium">{affiliate.registrationNumber || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="kardit-card p-6">
+              <div className={sectionClassName}>
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Onboarding Snapshot</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Case ID</p>
                     <p className="text-sm font-medium">{onboardingSnapshot.caseId || '-'}</p>
                   </div>
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Snapshot Status</p>
                     <p className="text-sm font-medium">{onboardingSnapshot.status || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="kardit-card p-6">
+              <div className={sectionClassName}>
                 <div className="mb-4 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documents</h2>
@@ -157,7 +160,7 @@ export default function BankPartnershipRequestDetailPage() {
                 ) : (
                   <div className="space-y-3">
                     {onboardingSnapshot.documents.map((document) => (
-                      <div key={document.documentId} className="rounded-md border border-border bg-muted/30 p-4">
+                      <div key={document.documentId} className={documentClassName}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-medium">{document.docType}</p>
@@ -176,21 +179,21 @@ export default function BankPartnershipRequestDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="kardit-card p-6">
+              <div className={sectionClassName}>
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Request Details</h2>
                 <div className="space-y-4">
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Requested At</p>
                     <p className="text-sm font-medium">{format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm')}</p>
                   </div>
-                  <div className="rounded-md border border-border p-4">
+                  <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Note</p>
                     <p className="text-sm font-medium">{request.note || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="kardit-card p-6">
+              <div className={sectionClassName}>
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Decision</h2>
                 <div className="space-y-3">
                   <Button className="w-full" onClick={handleApprove} disabled={isActing}>
@@ -199,7 +202,7 @@ export default function BankPartnershipRequestDetailPage() {
                   <div>
                     <label className="mb-2 block text-xs text-muted-foreground">Rejection reason</label>
                     <textarea
-                      className="min-h-28 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="min-h-28 w-full rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                       placeholder="Affiliate documentation incomplete"
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
