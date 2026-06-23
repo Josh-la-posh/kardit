@@ -1,6 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Phone,
+  RefreshCw,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -58,6 +72,13 @@ export default function OnboardingCaseDetailPage() {
         phone: caseItem.contact.contactPhone,
       }
     : caseItem?.organization?.primaryContact;
+
+  const address = [
+    caseItem?.organization?.address?.line1 || caseItem?.organization?.addressLine1,
+    caseItem?.organization?.address?.city,
+    caseItem?.organization?.address?.state,
+    caseItem?.organization?.address?.country || caseItem?.organization?.country,
+  ].filter(Boolean).join(', ');
 
   const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'CLARIFY') => {
     if (!caseId) return;
@@ -118,7 +139,7 @@ export default function OnboardingCaseDetailPage() {
             </header>
 
             {isLoading ? (
-              <section className="bch-card" style={{ display: 'grid', placeItems: 'center', padding: 48, marginTop: 14 }}>
+              <section className="bch-card" style={{ display: 'grid', placeItems: 'center', padding: 56, marginTop: 14 }}>
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </section>
             ) : error || !caseItem ? (
@@ -127,32 +148,54 @@ export default function OnboardingCaseDetailPage() {
                 <div className="empty-list-sub">{error || 'The onboarding case could not be resolved.'}</div>
               </section>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
-                <section className="kpis">
-                  <Kpi label="Submitted" value={formatDateTime(caseItem.submittedAt)} sub={`Updated ${formatDateTime(caseItem.updatedAt)}`} />
-                  <Kpi label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} sub="Business identifier" />
-                  <Kpi label="Country" value={caseItem.kybSummary?.country || caseItem.organization?.country || caseItem.organization?.address?.country || '-'} sub="Operating jurisdiction" />
-                  <Kpi label="Documents" value={String(caseItem.documents.length)} sub="Submitted files" />
-                </section>
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]" style={{ marginTop: 14 }}>
+                <div className="space-y-4">
+                  <section className="bch-card card-pad">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--cs-green-700)]">
+                          <ShieldCheck className="h-4 w-4" />
+                          Compliance review workspace
+                        </div>
+                        <h2 className="mt-2 text-2xl font-bold text-foreground">{caseItem.organization?.legalName || caseItem.affiliateName || '-'}</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">{caseItem.organization?.tradingName || 'No trading name provided'}</p>
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <SummaryMetric label="Submitted" value={formatDateTime(caseItem.submittedAt)} icon={<Clock3 className="h-4 w-4" />} />
+                          <SummaryMetric label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} icon={<FileText className="h-4 w-4" />} />
+                          <SummaryMetric label="Documents" value={`${caseItem.documents.length}`} icon={<CheckCircle2 className="h-4 w-4" />} />
+                        </div>
+                      </div>
 
-                <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <InfoSection title="Organization">
-                    <Detail label="Legal name" value={caseItem.organization?.legalName || caseItem.affiliateName || '-'} />
-                    <Detail label="Trading name" value={caseItem.organization?.tradingName || '-'} />
-                    <Detail label="Affiliate ID" value={caseItem.affiliateId || '-'} mono />
-                    <Detail label="Address" value={caseItem.organization?.address?.line1 || caseItem.organization?.addressLine1 || '-'} />
-                  </InfoSection>
+                      <div className="rounded-md border border-border bg-muted/30 p-4 lg:w-[260px]">
+                        <p className="text-xs text-muted-foreground">Case ID</p>
+                        <p className="mono mt-1 break-all text-sm font-semibold">{caseItem.caseId}</p>
+                        <p className="mt-3 text-xs text-muted-foreground">Updated</p>
+                        <p className="mt-1 text-sm font-medium">{formatDateTime(caseItem.updatedAt)}</p>
+                      </div>
+                    </div>
+                  </section>
 
-                  <InfoSection title="Primary Contact">
-                    <Detail label="Name" value={primaryContact?.fullName || '-'} />
-                    <Detail label="Email" value={primaryContact?.email || '-'} />
-                    <Detail label="Phone" value={primaryContact?.phone || '-'} />
-                    <Detail label="KYB status" value={caseItem.kybSummary?.status || caseItem.status} />
-                  </InfoSection>
-                </section>
+                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <Panel title="Organization Profile" subtitle="Business identity and registered address">
+                      <div className="space-y-3">
+                        <InfoLine icon={<Building2 className="h-4 w-4" />} label="Legal name" value={caseItem.organization?.legalName || caseItem.affiliateName || '-'} />
+                        <InfoLine icon={<FileText className="h-4 w-4" />} label="Affiliate ID" value={caseItem.affiliateId || '-'} mono />
+                        <InfoLine icon={<MapPin className="h-4 w-4" />} label="Address" value={address || '-'} />
+                        <InfoLine icon={<ShieldCheck className="h-4 w-4" />} label="KYB status" value={caseItem.kybSummary?.status || caseItem.status} />
+                      </div>
+                    </Panel>
 
-                <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  <Panel title="Documents" subtitle={`${caseItem.documents.length} document${caseItem.documents.length === 1 ? '' : 's'}`}>
+                    <Panel title="Primary Contact" subtitle="Responsible contact for the application">
+                      <div className="space-y-3">
+                        <InfoLine icon={<UserRound className="h-4 w-4" />} label="Name" value={primaryContact?.fullName || '-'} />
+                        <InfoLine icon={<Mail className="h-4 w-4" />} label="Email" value={primaryContact?.email || '-'} />
+                        <InfoLine icon={<Phone className="h-4 w-4" />} label="Phone" value={primaryContact?.phone || '-'} />
+                        <InfoLine icon={<MapPin className="h-4 w-4" />} label="Country" value={caseItem.kybSummary?.country || caseItem.organization?.country || caseItem.organization?.address?.country || '-'} />
+                      </div>
+                    </Panel>
+                  </section>
+
+                  <Panel title="Submitted Documents" subtitle={`${caseItem.documents.length} document${caseItem.documents.length === 1 ? '' : 's'} attached`}>
                     {caseItem.documents.length === 0 ? (
                       <EmptyLine>No documents attached yet.</EmptyLine>
                     ) : (
@@ -190,123 +233,117 @@ export default function OnboardingCaseDetailPage() {
                     )}
                   </Panel>
 
-                  <Panel title="Timeline" subtitle={`${caseItem.timeline.length} event${caseItem.timeline.length === 1 ? '' : 's'}`}>
-                    {caseItem.timeline.length === 0 ? (
-                      <EmptyLine>No timeline events available.</EmptyLine>
+                  <Panel title="Messages" subtitle={`${caseItem.messages.length} message${caseItem.messages.length === 1 ? '' : 's'} recorded`}>
+                    {caseItem.messages.length === 0 ? (
+                      <EmptyLine>No case messages yet.</EmptyLine>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="data">
-                          <thead>
-                            <tr>
-                              <th>Status</th>
-                              <th>Time</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {caseItem.timeline.map((entry, index) => (
-                              <tr key={`${entry.status}-${entry.at}-${index}`}>
-                                <td>{entry.status}</td>
-                                <td>{formatDateTime(entry.at)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="space-y-3">
+                        {caseItem.messages.map((message, index) => (
+                          <div key={`${message.type}-${message.at}-${index}`} className="rounded-md border border-border bg-muted/20 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-sm font-semibold">
+                                <MessageSquare className="h-4 w-4 text-[var(--cs-green-700)]" />
+                                {message.type}
+                              </div>
+                              <span className="text-xs text-muted-foreground">{formatDateTime(message.at)}</span>
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">{message.text || message.message || '-'}</p>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </Panel>
-                </section>
 
-                <section className="bch-card card-pad">
-                  <div className="section-head" style={{ marginTop: 0 }}>
-                    <div>
-                      <div className="section-title">Reviewer Action</div>
-                      <div className="section-sub">Record the review outcome for this onboarding case.</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    <Field label="Reason">
-                      <input
-                        className="bch-input"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        disabled={working}
-                        placeholder="Reason for decision"
-                      />
-                    </Field>
-                    <Field label="Internal Reviewer Note">
-                      <textarea
-                        className="bch-input"
-                        style={{ minHeight: 94, resize: 'vertical' }}
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        disabled={working}
-                        placeholder="Internal reviewer note"
-                      />
-                    </Field>
-                  </div>
-
-                  <div className="row-end divider-top" style={{ marginTop: 16 }}>
-                    {canRequestClarification && (
-                      <Button variant="secondary" onClick={() => doDecision('CLARIFY')} disabled={working}>
-                        Request clarification
-                      </Button>
-                    )}
-                    {canReject && (
-                      <Button variant="danger" onClick={() => doDecision('REJECT')} disabled={working}>
-                        Reject
-                      </Button>
-                    )}
-                    {canApprove && (
-                      <Button onClick={() => doDecision('APPROVE')} disabled={working}>
-                        Approve
-                      </Button>
-                    )}
-                    <Button variant="secondary" onClick={doProvision} disabled={working || !canProvision}>
-                      Provision
-                    </Button>
-                  </div>
-                </section>
-
-                <Panel title="Messages" subtitle={`${caseItem.messages.length} message${caseItem.messages.length === 1 ? '' : 's'}`}>
-                  {caseItem.messages.length === 0 ? (
-                    <EmptyLine>No case messages yet.</EmptyLine>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="data">
-                        <thead>
-                          <tr>
-                            <th>Type</th>
-                            <th>Message</th>
-                            <th>Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {caseItem.messages.map((message, index) => (
-                            <tr key={`${message.type}-${message.at}-${index}`}>
-                              <td>{message.type}</td>
-                              <td>{message.text || message.message || '-'}</td>
-                              <td>{formatDateTime(message.at)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {caseItem.status === 'APPROVED' && (
+                    <Panel title="Affiliate Creation Payload" subtitle="Provisioning values for the approved case">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <DetailTile label="Type" value="EXTERNAL" />
+                        <DetailTile label="Case ID" value={caseItem.caseId} mono />
+                        <DetailTile label="Legal name" value={caseItem.organization?.legalName || caseItem.affiliateName || 'N/A'} />
+                        <DetailTile label="Short name" value={caseItem.organization?.tradingName || caseItem.organization?.legalName || caseItem.affiliateName || 'N/A'} />
+                        <DetailTile label="Selected banks" value={caseItem.issuingBankIds.length ? caseItem.issuingBankIds.join(', ') : 'None'} />
+                      </div>
+                    </Panel>
                   )}
-                </Panel>
+                </div>
 
-                {caseItem.status === 'APPROVED' && (
+                <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
                   <section className="bch-card card-pad">
-                    <div className="section-title">Affiliate Creation Payload</div>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2" style={{ marginTop: 12 }}>
-                      <DetailTile label="Type" value="EXTERNAL" />
-                      <DetailTile label="Case ID" value={caseItem.caseId} mono />
-                      <DetailTile label="Legal name" value={caseItem.organization?.legalName || caseItem.affiliateName || 'N/A'} />
-                      <DetailTile label="Short name" value={caseItem.organization?.tradingName || caseItem.organization?.legalName || caseItem.affiliateName || 'N/A'} />
-                      <DetailTile label="Selected banks" value={caseItem.issuingBankIds.length ? caseItem.issuingBankIds.join(', ') : 'None'} />
+                    <div className="section-head" style={{ marginTop: 0 }}>
+                      <div>
+                        <div className="section-title">Reviewer Decision</div>
+                        <div className="section-sub">Record the next review outcome.</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Field label="Reason">
+                        <input
+                          className="bch-input"
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                          disabled={working}
+                          placeholder="Reason for decision"
+                        />
+                      </Field>
+                      <Field label="Internal Reviewer Note">
+                        <textarea
+                          className="bch-input"
+                          style={{ minHeight: 112, resize: 'vertical' }}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          disabled={working}
+                          placeholder="Internal reviewer note"
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="divider-top mt-4 grid grid-cols-1 gap-2">
+                      {canApprove && (
+                        <Button onClick={() => doDecision('APPROVE')} disabled={working}>
+                          Approve
+                        </Button>
+                      )}
+                      {canRequestClarification && (
+                        <Button variant="secondary" onClick={() => doDecision('CLARIFY')} disabled={working}>
+                          Request clarification
+                        </Button>
+                      )}
+                      {canReject && (
+                        <Button variant="danger" onClick={() => doDecision('REJECT')} disabled={working}>
+                          Reject
+                        </Button>
+                      )}
+                      <Button variant="secondary" onClick={doProvision} disabled={working || !canProvision}>
+                        Provision
+                      </Button>
                     </div>
                   </section>
-                )}
+
+                  <section className="bch-card card-pad">
+                    <div className="section-head" style={{ marginTop: 0 }}>
+                      <div>
+                        <div className="section-title">Timeline</div>
+                        <div className="section-sub">{caseItem.timeline.length} event{caseItem.timeline.length === 1 ? '' : 's'}</div>
+                      </div>
+                    </div>
+
+                    {caseItem.timeline.length === 0 ? (
+                      <EmptyLine>No timeline events available.</EmptyLine>
+                    ) : (
+                      <ol className="space-y-3">
+                        {caseItem.timeline.map((entry, index) => (
+                          <li key={`${entry.status}-${entry.at}-${index}`} className="relative pl-6">
+                            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--cs-green-700)]" />
+                            {index !== caseItem.timeline.length - 1 && <span className="absolute left-[4px] top-5 h-[calc(100%+0.5rem)] w-px bg-border" />}
+                            <p className="text-sm font-semibold">{entry.status}</p>
+                            <p className="text-xs text-muted-foreground">{formatDateTime(entry.at)}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </section>
+                </aside>
               </div>
             )}
           </div>
@@ -316,12 +353,14 @@ export default function OnboardingCaseDetailPage() {
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
+function SummaryMetric({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="kpi">
-      <div className="kpi-label">{label}</div>
-      <div className="kpi-value">{value}</div>
-      <div className="kpi-sub">{sub}</div>
+    <div className="rounded-md border border-border bg-muted/20 p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -340,26 +379,23 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
   );
 }
 
-function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
+function InfoLine({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value: string; mono?: boolean }) {
   return (
-    <section className="bch-card card-pad">
-      <div className="section-title">{title}</div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" style={{ marginTop: 12 }}>
-        {children}
+    <div className="flex gap-3 rounded-md border border-border bg-muted/20 p-3">
+      <div className="mt-0.5 text-[var(--cs-green-700)]">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={mono ? 'mono break-all text-sm font-medium' : 'break-words text-sm font-medium'}>{value}</p>
       </div>
-    </section>
+    </div>
   );
-}
-
-function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return <DetailTile label={label} value={value} mono={mono} />;
 }
 
 function DetailTile({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-md border border-border p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={mono ? 'text-sm font-medium mono break-all' : 'text-sm font-medium break-words'}>{value}</p>
+      <p className={mono ? 'mono break-all text-sm font-medium' : 'break-words text-sm font-medium'}>{value}</p>
     </div>
   );
 }
