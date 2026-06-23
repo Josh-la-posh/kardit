@@ -17,7 +17,7 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
-import { getAffiliateProfileByTenant, getRouteForAffiliateType } from '@/services/affiliateApi'
+import { getRouteForAffiliateType, getServiceByTenantId } from '@/services/affiliateApi'
 import { saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
@@ -34,6 +34,12 @@ function getFirstName(name?: string) {
   const trimmed = name?.trim()
   if (!trimmed) return 'User'
   return trimmed.split(/\s+/)[0]
+}
+
+function profileString(profileResponse: unknown, key: string) {
+  if (!profileResponse || typeof profileResponse !== 'object') return ''
+  const value = (profileResponse as Record<string, unknown>)[key]
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 const KPI_DATA: Record<
@@ -130,19 +136,19 @@ export default function DashboardPage() {
     setTenantProfileLoading(true)
     setTenantProfileError(null)
 
-    getAffiliateProfileByTenant(tenantId)
+    getServiceByTenantId(tenantId)
       .then((response) => {
         if (cancelled) return
-        console.info('Affiliate profile by tenant response:', response)
+        console.info('Service by tenant response:', response)
         saveAuthProfile(response)
         setTenantProfileResponse(response)
-        const route = getRouteForAffiliateType((response as { affiliateType?: unknown }).affiliateType)
+        const route = getRouteForAffiliateType((response as { serviceType?: unknown }).serviceType)
         if (route !== '/dashboard') navigate(route, { replace: true })
       })
       .catch((error) => {
         if (cancelled) return
-        console.error('Affiliate profile by tenant failed:', error)
-        setTenantProfileError(error instanceof Error ? error.message : 'Unable to fetch tenant profile')
+        console.error('Service by tenant failed:', error)
+        setTenantProfileError(error instanceof Error ? error.message : 'Unable to fetch tenant service')
       })
       .finally(() => {
         if (!cancelled) setTenantProfileLoading(false)
@@ -180,6 +186,15 @@ export default function DashboardPage() {
     window.setTimeout(() => setRefreshing(false), 700)
   }
 
+  const dashboardName = useMemo(() => {
+    const tokenName = user?.name?.trim() || ''
+    const serviceUserName = profileString(tenantProfileResponse, 'serviceUserName')
+    if (!tokenName || tokenName === user?.email || tokenName.includes('@')) {
+      return serviceUserName || tokenName
+    }
+    return tokenName
+  }, [tenantProfileResponse, user?.email, user?.name])
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
       <AppLayout>
@@ -187,7 +202,7 @@ export default function DashboardPage() {
           <div className="container">
             <header className="page-head">
               <div>
-                <h1 className="home-hello">{greeting}, {getFirstName(user?.name)}</h1>
+                <h1 className="home-hello">{greeting}, {getFirstName(dashboardName)}</h1>
                 {/* <p className="home-org">
                   Signed in as {user?.role || 'Affiliate'} · <strong>{user?.tenantName || 'Tenant'}</strong>
                 </p> */}

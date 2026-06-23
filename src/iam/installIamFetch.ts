@@ -66,6 +66,7 @@ function withStoredSessionHeaders(input: RequestInfo | URL, init?: RequestInit):
   if (accessToken && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${accessToken}`);
   if (tenantId && !headers.has('X-Tenant-Id')) {
     headers.set('X-Tenant-Id', tenantId);
+    headers.set('tenantId', tenantId);
   }
 
   return { ...init, headers };

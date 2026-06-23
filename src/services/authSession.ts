@@ -1,3 +1,5 @@
+import { normalizeServiceType } from '@/services/affiliateApi';
+
 const AUTH_ACCESS_TOKEN_KEY = 'kardit.auth.accessToken.v1';
 const AUTH_REFRESH_TOKEN_KEY = 'kardit.auth.refreshToken.v1';
 const AUTH_TENANT_CODE_KEY = 'kardit.auth.tenantCode.v1';
@@ -50,7 +52,9 @@ export function getAuthAffiliateId(): string | null {
   const profile = getAuthProfile();
   if (!profile || typeof profile !== 'object') return null;
 
-  const affiliateId = (profile as Record<string, unknown>).affiliateId;
+  const record = profile as Record<string, unknown>;
+  const serviceType = normalizeServiceType(record.serviceType);
+  const affiliateId = record.affiliateId || (serviceType === 'AFFILIATE_SERVICE' ? record.serviceUserId : undefined);
   return typeof affiliateId === 'string' && affiliateId.trim() ? affiliateId.trim() : null;
 }
 

@@ -100,23 +100,36 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
   if (!profile) return user;
 
   const role = profileString(profile, ['role', 'userRole', 'primaryRole', 'roles'], user.role);
+  const serviceType = profileString(profile, ['serviceType'], '');
+  const serviceUserId = profileString(profile, ['serviceUserId'], '');
   const stakeholderType =
-    getStakeholderTypeForAffiliateType(profile.affiliateType) ||
+    getStakeholderTypeForAffiliateType(serviceType) ||
     normalizeStakeholderType(
       profileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles'])
     ) || user.stakeholderType;
+  const fallbackNameIsEmail = user.name === user.email || user.name.includes('@');
+  const profileName = profileString(profile, ['serviceUserName', 'fullName', 'name', 'displayName'], fallbackNameIsEmail ? '' : user.name);
+  const serviceEmail = profileString(profile, ['serviceUserEmail', 'email', 'username'], user.email);
+  const isBankService = stakeholderType === 'BANK';
+  const isAffiliateService = stakeholderType === 'AFFILIATE';
 
   return {
     ...user,
-    id: profileString(profile, ['userId', 'id'], user.id),
-    email: profileString(profile, ['email', 'username'], user.email),
-    name: profileString(profile, ['fullName', 'name', 'displayName'], user.name),
+    id: profileString(profile, ['userId', 'id'], serviceUserId || user.id),
+    email: serviceEmail,
+    name: profileName || serviceEmail || user.name,
     role,
     stakeholderType,
     tenantId: profileString(profile, ['tenantId', 'tenant_id'], user.tenantId),
-    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'legalName', 'tradingName', 'affiliateName', 'name'], user.tenantName),
-    affiliateId: profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') || user.affiliateId,
-    bankId: profileString(profile, ['ownerBankId', 'owner_bank_id', 'bankId', 'bank_id'], user.bankId || '') || user.bankId,
+    tenantName: profileString(profile, ['tenantName', 'tenant_name', 'legalName', 'tradingName', 'affiliateName', 'serviceUserName', 'name'], user.tenantName),
+    affiliateId:
+      profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') ||
+      (isAffiliateService ? serviceUserId : undefined) ||
+      user.affiliateId,
+    bankId:
+      profileString(profile, ['ownerBankId', 'owner_bank_id', 'bankId', 'bank_id'], user.bankId || '') ||
+      (isBankService ? serviceUserId : undefined) ||
+      user.bankId,
   };
 }
 

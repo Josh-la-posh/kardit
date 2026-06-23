@@ -5,21 +5,37 @@ import type {
   GetAffiliateKybSnapshotResponse,
 } from '@/types/affiliateContracts';
 
-export type AffiliateType = 'EXTERNAL' | 'INTERNAL' | 'INTERNAL_BANK';
+export type AffiliateType = 'EXTERNAL' | 'INTERNAL' | 'INTERNAL_BANK' | 'ADMINSERVICE';
+export type ServiceType = 'AffiliateService' | 'BankService' | 'AdminService';
+type NormalizedServiceType = 'AFFILIATE_SERVICE' | 'BANK_SERVICE' | 'ADMIN_SERVICE';
 
-export interface AffiliateProfileByTenantResponse {
-  affiliateType: AffiliateType;
-  affiliateId: string;
-  tenantId: string;
-  ownerBankId: string;
-  legalName: string;
-  tradingName: string;
-  registrationNumber: string;
-  country: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  isBankAffiliate: boolean;
+export interface ServiceByTenantResponse {
+  serviceType: ServiceType | string;
+  serviceUserId: string;
+  serviceUserName?: string;
+  serviceUserEmail?: string;
+  status: boolean;
+}
+
+export function normalizeServiceType(value: unknown): NormalizedServiceType | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().replace(/[\s-]+/g, '_').toUpperCase();
+
+  if (normalized === 'AFFILIATESERVICE' || normalized === 'AFFILIATE_SERVICE' || normalized === 'EXTERNAL') {
+    return 'AFFILIATE_SERVICE';
+  }
+  if (normalized === 'BANKSERVICE' || normalized === 'BANK_SERVICE' || normalized === 'INTERNAL_BANK') {
+    return 'BANK_SERVICE';
+  }
+  if (
+    normalized === 'ADMINSERVICE' ||
+    normalized === 'ADMIN_SERVICE' ||
+    normalized === 'INTERNAL'
+  ) {
+    return 'ADMIN_SERVICE';
+  }
+
+  return undefined;
 }
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
@@ -83,16 +99,26 @@ export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetA
   );
 }
 
-export async function getAffiliateProfileByTenant(tenantId: string): Promise<unknown> {
-  return getJson<AffiliateProfileByTenantResponse>(
-    `/affiliates/${encodeURIComponent(tenantId)}/profilebytenant`
+export async function getServiceByTenantId(tenantId: string): Promise<ServiceByTenantResponse> {
+  return getJson<ServiceByTenantResponse>(
+    `/affiliates/GetServiceByTenantId?tenantId=${encodeURIComponent(tenantId)}`
   );
 }
 
 export function normalizeAffiliateType(value: unknown): AffiliateType | undefined {
+  const serviceType = normalizeServiceType(value);
+  if (serviceType === 'AFFILIATE_SERVICE') return 'EXTERNAL';
+  if (serviceType === 'BANK_SERVICE') return 'INTERNAL_BANK';
+  if (serviceType === 'ADMIN_SERVICE') return 'ADMINSERVICE';
+
   if (typeof value !== 'string') return undefined;
   const normalized = value.trim().toUpperCase();
-  if (normalized === 'EXTERNAL' || normalized === 'INTERNAL' || normalized === 'INTERNAL_BANK') {
+  if (
+    normalized === 'EXTERNAL' ||
+    normalized === 'INTERNAL' ||
+    normalized === 'INTERNAL_BANK' ||
+    normalized === 'ADMINSERVICE'
+  ) {
     return normalized;
   }
   return undefined;
@@ -100,7 +126,8 @@ export function normalizeAffiliateType(value: unknown): AffiliateType | undefine
 
 export function getAffiliateTypeFromProfile(profile: unknown): AffiliateType | undefined {
   if (!profile || typeof profile !== 'object') return undefined;
-  return normalizeAffiliateType((profile as Record<string, unknown>).affiliateType);
+  const record = profile as Record<string, unknown>;
+  return normalizeAffiliateType(record.serviceType);
 }
 
 export function getStakeholderTypeForAffiliateType(
@@ -110,6 +137,7 @@ export function getStakeholderTypeForAffiliateType(
     case 'EXTERNAL':
       return 'AFFILIATE';
     case 'INTERNAL':
+    case 'ADMINSERVICE':
       return 'SERVICE_PROVIDER';
     case 'INTERNAL_BANK':
       return 'BANK';
@@ -121,6 +149,7 @@ export function getStakeholderTypeForAffiliateType(
 export function getRouteForAffiliateType(affiliateType: unknown): string {
   switch (normalizeAffiliateType(affiliateType)) {
     case 'INTERNAL':
+    case 'ADMINSERVICE':
       return '/super-admin/dashboard';
     case 'INTERNAL_BANK':
       return '/bank/dashboard';
