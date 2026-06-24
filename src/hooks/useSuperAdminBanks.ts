@@ -16,6 +16,8 @@ interface AffiliateQueryFiltersInput {
   country?: string | null;
   fromDate?: string | null;
   toDate?: string | null;
+  page?: number;
+  pageSize?: number;
 }
 
 export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
@@ -79,6 +81,8 @@ export function useSuperAdminBanks(filters: BankQueryFiltersInput) {
 export function useSuperAdminBankAffiliates(bankId: string | undefined, filters: AffiliateQueryFiltersInput) {
   const [affiliates, setAffiliates] = useState<AffiliateQueryItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [responsePage, setResponsePage] = useState(filters.page || 1);
+  const [responsePageSize, setResponsePageSize] = useState(filters.pageSize || 25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,23 +106,27 @@ export function useSuperAdminBankAffiliates(bankId: string | undefined, filters:
           ...(filters.toDate ? { toDate: filters.toDate } : {}),
           ...(filters.search?.trim() ? { search: filters.search.trim() } : {}),
         },
-        page: 1,
-        pageSize: 25,
+        page: filters.page || 1,
+        pageSize: filters.pageSize || 25,
       });
       setAffiliates(response.data);
       setTotal(response.total);
+      setResponsePage(response.page);
+      setResponsePageSize(response.pageSize);
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank affiliates');
       setAffiliates([]);
       setTotal(0);
+      setResponsePage(filters.page || 1);
+      setResponsePageSize(filters.pageSize || 25);
     } finally {
       setIsLoading(false);
     }
-  }, [bankId, filters.country, filters.fromDate, filters.search, filters.status, filters.toDate]);
+  }, [bankId, filters.country, filters.fromDate, filters.page, filters.pageSize, filters.search, filters.status, filters.toDate]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { affiliates, total, isLoading, error, refresh };
+  return { affiliates, total, page: responsePage, pageSize: responsePageSize, isLoading, error, refresh };
 }

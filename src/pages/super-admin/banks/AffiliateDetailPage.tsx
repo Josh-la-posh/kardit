@@ -207,7 +207,8 @@ export default function AffiliateDetailPage() {
     };
   }, [affiliateId, bankId]);
 
-  const bankName = bankSummary?.bankName || `Bank ${bankId}`;
+  const bankName = bankSummary?.bankName;
+  // const bankName = bankSummary?.bankName || `Bank ${bankId}`;
   const affiliateName = affiliateSummary?.legalName || `Affiliate ${affiliateId}`;
   const affiliateStatus = affiliateSummary?.status || 'INACTIVE';
   const registrationNumber = affiliateSummary?.registrationNumber || '-';
@@ -312,7 +313,7 @@ export default function AffiliateDetailPage() {
             </div>
 
             <div className="kardit-card p-6 mb-6">
-              {summaryLoading && (
+              {/* {summaryLoading && (
                 <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   Loading affiliate details...
@@ -322,7 +323,7 @@ export default function AffiliateDetailPage() {
                 <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                   {summaryError}
                 </div>
-              )}
+              )} */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Registration Number</p>

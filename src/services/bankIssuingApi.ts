@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/apiError";
+import { ApiError, getApiErrorMessage } from "@/services/apiError";
 import { CreateIssuingBankRequest, CreateIssuingBankResponse, getBankAffiliatesResponse, getBankCardsRequest, getBankCardsResponse, getIssuingBanksDashboardResponse } from "@/types/bankIssuingContracts";
 
 
@@ -25,7 +25,8 @@ async function getJson<TResponse>(path: string, init?: RequestInit): Promise<TRe
   const res = await fetch(`${baseUrl}${path}`, { method: 'GET', ...init });
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError('Request failed', res.status, body);
+    throw new ApiError(getApiErrorMessage(body, `Request failed (${res.status})`), res.status, body);
+    // throw new ApiError('Request failed', res.status, body);
   }
   return (await res.json()) as TResponse;
 }
@@ -41,11 +42,12 @@ async function postJson<TResponse>(path: string, body: unknown, init?: RequestIn
   });
   if (!res.ok) {
     const errorBody = await safeJson(res);
-    const message =
-      (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as any)
-        ? String((errorBody as any).message)
-        : undefined) || `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, errorBody);
+    throw new ApiError(getApiErrorMessage(errorBody, `Request failed (${res.status})`), res.status, errorBody);
+    // const message =
+    //   (typeof errorBody === 'object' && errorBody && 'message' in (errorBody as any)
+    //     ? String((errorBody as any).message)
+    //     : undefined) || `Request failed (${res.status})`;
+    // throw new ApiError(message, res.status, errorBody);
   }
   return (await res.json()) as TResponse;
 }

@@ -228,6 +228,7 @@ function mapDocuments(response: any) {
     type: (document.type || document.documentType || document.docType || document.Type || document.DocumentType || document.DocType || 'OTHER') as OnboardingDocumentType,
     documentType: (document.documentType || document.type || document.docType || document.DocumentType || document.Type || document.DocType || 'OTHER') as OnboardingDocumentType,
     fileName: document.fileName || document.FileName || document.documentType || document.type || document.DocumentType || document.Type || document.documentId || document.DocumentId,
+    downloadUrl: document.downloadUrl ?? document.DownloadUrl ?? document.url ?? document.Url ?? document.fileUrl ?? document.FileUrl,
     uploadedAt: document.uploadedAt || document.UploadedAt || response.submittedAt || response.SubmittedAt || new Date().toISOString(),
     verificationStatus: document.verificationStatus ?? document.VerificationStatus,
   }));

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { StatusType } from '@/components/ui/status-chip';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -12,7 +13,7 @@ import { useBankCardMetrics, useBankTransactionVolume } from '@/hooks/useTransac
 import { useSuperAdminBankAffiliates } from '@/hooks/useSuperAdminBanks';
 import { queryBanks } from '@/services/superAdminApi';
 import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
-import { AppCard } from '@/components/ui/app-card';
+import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
 
 const statusToChip: Record<string, StatusType> = {
   ACTIVE: 'SUCCESS',
@@ -20,6 +21,8 @@ const statusToChip: Record<string, StatusType> = {
   SUSPENDED: 'WARNING',
   INACTIVE: 'INACTIVE',
 };
+
+const pageSizeOptions = ['20', '50', '100'];
 
 function formatMoney(value: number | undefined) {
   if (value === undefined) return '-';
@@ -38,8 +41,8 @@ export default function BankDetailPage() {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { volume, isLoading: volumeLoading, error: volumeError } = useBankTransactionVolume(bankId);
-  const { metrics: cardMetrics, isLoading: cardMetricsLoading, error: cardMetricsError } = useBankCardMetrics(bankId);
+  const { volume, isLoading: volumeLoading, error: volumeError, refetch: refetchVolume } = useBankTransactionVolume(bankId);
+  const { metrics: cardMetrics, isLoading: cardMetricsLoading, error: cardMetricsError, refetch: refetchCardMetrics } = useBankCardMetrics(bankId);
   
   const routeState = location.state as { bank?: BankQueryItem } | null;
   const [bankSummary, setBankSummary] = useState<BankQueryItem | null>(
@@ -50,13 +53,14 @@ export default function BankDetailPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const { affiliates, total, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPageSize, setSelectedPageSize] = useState(20);
+  const { affiliates, total, page, pageSize, isLoading, error, refresh } = useSuperAdminBankAffiliates(bankId, {
     search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
+    page: currentPage,
+    pageSize: selectedPageSize,
   });
-    const [page, setPage] = useState(1)
-    const pageSize = 20
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const loadBankSummary = useCallback(async () => {
     if (!bankId) {
@@ -123,6 +127,106 @@ export default function BankDetailPage() {
     };
   }, [affiliates, total]);
 
+  const columns = useMemo(
+    () => [
+      {
+        key: 'affiliate',
+        header: 'Affiliate',
+        render: (affiliate: AffiliateQueryItem) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="action-icon" style={{ width: 34, height: 34 }}>
+              <Building2 style={{ width: 16, height: 16 }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--cs-ink-900)' }}>{affiliate.legalName}</div>
+              <div className="meta" style={{ fontSize: 11.5 }}>{affiliate.tradingName || affiliate.affiliateId}</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'affiliateId',
+        header: 'Affiliate ID',
+        className: 'id',
+        render: (affiliate: AffiliateQueryItem) => affiliate.affiliateId,
+      },
+      {
+        key: 'tenantId',
+        header: 'Tenant ID',
+        className: 'meta',
+        render: (affiliate: AffiliateQueryItem) => affiliate.tenantId || '-',
+      },
+      {
+        key: 'registrationNumber',
+        header: 'Registration',
+        className: 'meta',
+        render: (affiliate: AffiliateQueryItem) => affiliate.registrationNumber || '-',
+      },
+      {
+        key: 'country',
+        header: 'Country',
+        className: 'meta',
+        render: (affiliate: AffiliateQueryItem) => affiliate.country || '-',
+      },
+      {
+        key: 'createdAt',
+        header: 'Created',
+        className: 'meta',
+        render: (affiliate: AffiliateQueryItem) => format(new Date(affiliate.createdAt), 'MMM d, yyyy'),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (affiliate: AffiliateQueryItem) => (
+          <StatusChip status={statusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
+        ),
+      },
+      {
+        key: 'actions',
+        header: '',
+        className: 'right',
+        render: (affiliate: AffiliateQueryItem) => (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              openAffiliateDetail(affiliate);
+            }}
+          >
+            <Eye className="mr-1 h-3 w-3" /> View
+          </Button>
+        ),
+      },
+    ],
+    [bankId, bankSummary, navigate]
+  );
+
+  function handleStatusChange(value: string) {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  }
+
+  function handlePageSizeChange(value: string) {
+    setSelectedPageSize(Number(value));
+    setCurrentPage(1);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setCurrentPage(1);
+  }
+
+  function handleClearFilters() {
+    setSearch('');
+    setStatusFilter('ALL');
+    setCurrentPage(1);
+  }
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadBankSummary(), refresh(), refetchVolume(), refetchCardMetrics()]);
+  }, [loadBankSummary, refresh, refetchVolume, refetchCardMetrics]);
+
   if (!bankId) {
     return (
       <ProtectedRoute requiredStakeholderTypes={['SERVICE_PROVIDER']}>
@@ -151,16 +255,18 @@ export default function BankDetailPage() {
                   {`Affiliates under ${bankName}`}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="row-end">
                   {bankStatus && <StatusChip status={statusToChip[bankStatus] || 'INACTIVE'} label={bankStatus} />}
+                  <Button variant="outline" size="sm" onClick={refreshAll} disabled={bankLoading || isLoading || volumeLoading || cardMetricsLoading}>
+                    <RefreshCw className={bankLoading || isLoading || volumeLoading || cardMetricsLoading ? 'mr-1 h-4 w-4 animate-spin' : 'mr-1 h-4 w-4'} /> Refresh
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
                     <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
                   </Button>
                 </div>
             </header>
 
-            <AppCard padded="md" style={{ marginTop: 14 }}>
-            <div className="kardit-card p-6 mb-6">
+            <div className="kardit-card p-6 mb-6" style={{ marginTop: 14 }}>
               {bankLoading && (
                 <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -312,19 +418,27 @@ export default function BankDetailPage() {
               </div>
             </div>
 
-            <div className="kardit-card p-4 mb-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <AppCard padded="md" style={{ marginTop: 14 }}>
+              <AppCardHeader style={{ marginBottom: 12 }}>
+                <div>
+                  <AppCardTitle>Filters</AppCardTitle>
+                  <AppCardSub>Search and narrow affiliates for this bank.</AppCardSub>
+                </div>
+              </AppCardHeader>
+
+              <div className="banks-filters">
+                <div className="search-wrap" style={{ width: '100%' }}>
+                  <Search />
                   <input
-                    className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder="Search by affiliate name, tenant, or registration number..."
+                    className="bch-input bch-input-sm"
+                    placeholder="Search by affiliate name or registration number..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48 bg-muted border-border">
+
+                <Select value={statusFilter} onValueChange={handleStatusChange}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -334,109 +448,41 @@ export default function BankDetailPage() {
                     <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+
+                <Select value={String(selectedPageSize)} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Page size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" onClick={handleClearFilters} disabled={!search && statusFilter === 'ALL'}>
+                  Clear
                 </Button>
               </div>
-            </div>
+            </AppCard>
 
-            <div className="kardit-card overflow-hidden">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : error ? (
-                <div className="p-6 text-sm text-muted-foreground">{error}</div>
-              ) : affiliates.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Building2 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No affiliates found for this bank</p>
-                </div>
-              ) : (
-                <div>
-                  <section className="card" style={{ padding: 0 }}>
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Affiliate ID</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tenant ID</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Registration</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Country</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {affiliates.map((affiliate, i) => (
-                          <tr
-                            key={affiliate.affiliateId}
-                            className={`transition-colors hover:bg-muted/40 cursor-pointer ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
-                            onClick={() => openAffiliateDetail(affiliate)}
-                          >
-                            <td className="px-4 py-3 text-sm">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-primary/10">
-                                  <Building2 className="h-4 w-4 text-primary" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{affiliate.legalName}</p>
-                                  <p className="text-xs text-muted-foreground">{affiliate.tradingName || '-'}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.affiliateId}</td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.tenantId}</td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.registrationNumber}</td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{affiliate.country}</td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">
-                              {format(new Date(affiliate.createdAt), 'MMM d, yyyy')}
-                            </td>
-                            <td className="px-4 py-3">
-                              <StatusChip status={statusToChip[affiliate.status] || 'INACTIVE'} label={affiliate.status} />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openAffiliateDetail(affiliate);
-                                }}
-                              >
-                                <Eye className="h-3 w-3 mr-1" /> View
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </section>
-                  <div className="table-pager border-t border-border flex items-center justify-between px-4 py-3">
-                    <div className="table-pager__meta">
-                      Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-                    </div>
-                    <div className="table-pager__actions">
-                      <button
-                        className="btn btn-secondary table-pager__btn"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1 || isLoading}
-                      >
-                        Previous
-                      </button>
-                      <button
-                        className="btn btn-secondary table-pager__btn"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page >= totalPages || isLoading}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <AppCard style={{ marginTop: 14, overflow: 'hidden' }}>
+              <PaginatedTable
+                columns={columns}
+                rows={affiliates}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage="No affiliates found for this bank"
+                onRowClick={openAffiliateDetail}
+                rowKey={(affiliate) => affiliate.affiliateId}
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setCurrentPage}
+                className="border-0 shadow-none rounded-none"
+              />
             </AppCard>
           </div>
         </main>

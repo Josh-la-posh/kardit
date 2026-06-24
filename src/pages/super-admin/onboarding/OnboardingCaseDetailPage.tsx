@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  Download,
   FileText,
   Loader2,
   Mail,
@@ -40,6 +41,14 @@ function formatDateTime(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return format(date, 'MMM d, yyyy HH:mm');
+}
+
+function formatDocumentLabel(value?: string) {
+  if (!value) return 'Uploaded document';
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default function OnboardingCaseDetailPage() {
@@ -79,6 +88,24 @@ export default function OnboardingCaseDetailPage() {
     caseItem?.organization?.address?.state,
     caseItem?.organization?.address?.country || caseItem?.organization?.country,
   ].filter(Boolean).join(', ');
+
+  const handleDocumentDownload = (downloadUrl?: string, fileName?: string) => {
+    if (!downloadUrl) {
+      toast.error('No download link is available for this document yet.');
+      return;
+    }
+
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    if (fileName) {
+      anchor.download = fileName;
+    }
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
 
   const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'CLARIFY') => {
     if (!caseId) return;
@@ -148,7 +175,7 @@ export default function OnboardingCaseDetailPage() {
                 <div className="empty-list-sub">{error || 'The onboarding case could not be resolved.'}</div>
               </section>
             ) : (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]" style={{ marginTop: 14 }}>
+              <div className="mt-[14px] grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="space-y-4">
                   <section className="bch-card card-pad">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -159,23 +186,18 @@ export default function OnboardingCaseDetailPage() {
                         </div>
                         <h2 className="mt-2 text-2xl font-bold text-foreground">{caseItem.organization?.legalName || caseItem.affiliateName || '-'}</h2>
                         <p className="mt-1 text-sm text-muted-foreground">{caseItem.organization?.tradingName || 'No trading name provided'}</p>
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                          <SummaryMetric label="Submitted" value={formatDateTime(caseItem.submittedAt)} icon={<Clock3 className="h-4 w-4" />} />
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                          <SummaryMetric label="Submitted" value={formatDateTime(caseItem.submittedAt)} icon={<Clock3 className="h-6 w-6" />} />
                           <SummaryMetric label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} icon={<FileText className="h-4 w-4" />} />
                           <SummaryMetric label="Documents" value={`${caseItem.documents.length}`} icon={<CheckCircle2 className="h-4 w-4" />} />
+                          <SummaryMetric label="Updated" value={formatDateTime(caseItem.updatedAt)} icon={<CheckCircle2 className="h-4 w-4" />} />       
                         </div>
                       </div>
 
-                      <div className="rounded-md border border-border bg-muted/30 p-4 lg:w-[260px]">
-                        <p className="text-xs text-muted-foreground">Case ID</p>
-                        <p className="mono mt-1 break-all text-sm font-semibold">{caseItem.caseId}</p>
-                        <p className="mt-3 text-xs text-muted-foreground">Updated</p>
-                        <p className="mt-1 text-sm font-medium">{formatDateTime(caseItem.updatedAt)}</p>
-                      </div>
                     </div>
                   </section>
 
-                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <section className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
                     <Panel title="Organization Profile" subtitle="Business identity and registered address">
                       <div className="space-y-3">
                         <InfoLine icon={<Building2 className="h-4 w-4" />} label="Legal name" value={caseItem.organization?.legalName || caseItem.affiliateName || '-'} />
@@ -199,36 +221,89 @@ export default function OnboardingCaseDetailPage() {
                     {caseItem.documents.length === 0 ? (
                       <EmptyLine>No documents attached yet.</EmptyLine>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="data">
-                          <thead>
-                            <tr>
-                              <th>Document</th>
-                              <th>ID</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {caseItem.documents.map((document) => (
-                              <tr key={document.documentId}>
-                                <td>{document.documentType || document.type}</td>
-                                <td className="mono">{document.documentId}</td>
-                                <td>
-                                  <StatusChip
-                                    status={
-                                      document.verificationStatus === 'VERIFIED'
-                                        ? 'VERIFIED'
-                                        : document.verificationStatus === 'REJECTED'
-                                          ? 'REJECTED'
-                                          : 'PENDING'
-                                    }
-                                    label={document.verificationStatus || 'PENDING'}
-                                  />
-                                </td>
+                      <div className="space-y-3">
+                        <div className="grid gap-3 md:hidden">
+                          {caseItem.documents.map((document) => (
+                            <article key={document.documentId} className="rounded-md border border-border bg-muted/20 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground">
+                                    {formatDocumentLabel(document.documentType || document.type)}
+                                  </p>
+                                  <p className="mt-1 break-all text-xs text-muted-foreground">{document.fileName || document.documentId}</p>
+                                </div>
+                                <StatusChip
+                                  status={
+                                    document.verificationStatus === 'VERIFIED'
+                                      ? 'VERIFIED'
+                                      : document.verificationStatus === 'REJECTED'
+                                        ? 'REJECTED'
+                                        : 'PENDING'
+                                  }
+                                  label={document.verificationStatus || 'PENDING'}
+                                />
+                              </div>
+                              <div className="mt-3 flex items-center justify-between gap-3">
+                                <span className="mono text-xs text-muted-foreground">{document.documentId}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDocumentDownload(document.downloadUrl, document.fileName)}
+                                  disabled={!document.downloadUrl}
+                                >
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Download
+                                </Button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+
+                        <div className="hidden overflow-x-auto md:block">
+                          <table className="data">
+                            <thead>
+                              <tr>
+                                <th>Document</th>
+                                <th>Filename</th>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th className="text-right">Action</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {caseItem.documents.map((document) => (
+                                <tr key={document.documentId}>
+                                  <td>{formatDocumentLabel(document.documentType || document.type)}</td>
+                                  <td className="break-all text-sm text-muted-foreground">{document.fileName || '-'}</td>
+                                  <td className="mono">{document.documentId}</td>
+                                  <td>
+                                    <StatusChip
+                                      status={
+                                        document.verificationStatus === 'VERIFIED'
+                                          ? 'VERIFIED'
+                                          : document.verificationStatus === 'REJECTED'
+                                            ? 'REJECTED'
+                                            : 'PENDING'
+                                      }
+                                      label={document.verificationStatus || 'PENDING'}
+                                    />
+                                  </td>
+                                  <td className="text-right">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDocumentDownload(document.downloadUrl, document.fileName)}
+                                      disabled={!document.downloadUrl}
+                                    >
+                                      <Download className="mr-2 h-4 w-4" />
+                                      Download
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </Panel>
@@ -267,7 +342,7 @@ export default function OnboardingCaseDetailPage() {
                   )}
                 </div>
 
-                <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+                <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start w-[450px]">
                   <section className="bch-card card-pad">
                     <div className="section-head" style={{ marginTop: 0 }}>
                       <div>
@@ -298,20 +373,20 @@ export default function OnboardingCaseDetailPage() {
                       </Field>
                     </div>
 
-                    <div className="divider-top mt-4 grid grid-cols-1 gap-2">
+                    <div className="divider-top mt-4 grid grid-cols-2 gap-2">
                       {canApprove && (
                         <Button onClick={() => doDecision('APPROVE')} disabled={working}>
                           Approve
                         </Button>
                       )}
-                      {canRequestClarification && (
-                        <Button variant="secondary" onClick={() => doDecision('CLARIFY')} disabled={working}>
-                          Request clarification
-                        </Button>
-                      )}
                       {canReject && (
                         <Button variant="danger" onClick={() => doDecision('REJECT')} disabled={working}>
                           Reject
+                        </Button>
+                      )}
+                      {canRequestClarification && (
+                        <Button variant="secondary" onClick={() => doDecision('CLARIFY')} disabled={working}>
+                          Request clarification
                         </Button>
                       )}
                       <Button variant="secondary" onClick={doProvision} disabled={working || !canProvision}>
@@ -357,7 +432,7 @@ function SummaryMetric({ label, value, icon }: { label: string; value: string; i
   return (
     <div className="rounded-md border border-border bg-muted/20 p-4">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-        {icon}
+        <div className="mt-0.5 text-[var(--cs-green-700)]">{icon}</div>
         {label}
       </div>
       <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>

@@ -115,6 +115,7 @@ export interface OnboardingDocument {
   type: OnboardingDocumentType;
   documentType?: OnboardingDocumentType;
   fileName: string;
+  downloadUrl?: string;
   uploadedAt: string;
   verificationStatus?: string;
 }
