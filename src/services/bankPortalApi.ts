@@ -134,7 +134,7 @@ export async function getPendingBankAffiliateApprovals(
   });
 
   return getJson<unknown>(
-    `/bank/${encodeURIComponent(bankId)}/affiliates?${query.toString()}`
+    `/banks/${encodeURIComponent(bankId)}/affiliates?${query.toString()}`
   );
 }
 
