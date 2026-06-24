@@ -232,7 +232,7 @@ export default function OnboardingDocumentsPage() {
 
             <div className="mt-6 flex flex-col justify-between gap-3 border-t border-[hsl(var(--landing-panel-border))] pt-2 sm:flex-row">
               <Button type="button" variant="outline" className="h-11 rounded-xl border-[hsl(var(--landing-panel-border))] bg-card px-5" onClick={() => navigate(`/onboarding/${draftId}/organization`)} disabled={saving}>Back</Button>
-              <Button type="button" className="h-11 rounded-xl px-6" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={saving}>Banks</Button>
+              <Button type="button" className="h-11 rounded-xl px-6" onClick={() => navigate(`/onboarding/${draftId}/issuing-banks`)} disabled={saving}>Select Bank</Button>
             </div>
           </>
         )}
