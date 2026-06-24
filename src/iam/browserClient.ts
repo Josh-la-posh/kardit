@@ -1,5 +1,11 @@
 import { getRouteForAffiliateType, getServiceByTenantId } from '@/services/affiliateApi';
-import { clearAuthSession, saveAuthProfile } from '@/services/authSession';
+import {
+  clearAuthSession,
+  getAuthResumeIdentity,
+  getServiceIdentity,
+  saveAuthProfile,
+  type AuthResumeIdentity,
+} from '@/services/authSession';
 
 export interface TokenClaims {
   sub?: string;
@@ -106,6 +112,32 @@ function profileRedirectPath(profileResponse: unknown): string {
   }
 
   return '/dashboard';
+}
+
+function getPostLoginRedirect(
+  returnUrl: string,
+  profileResponse: unknown,
+  previousIdentity: AuthResumeIdentity | null
+): string {
+  const currentIdentity = getServiceIdentity(profileResponse);
+  const isSameServiceUser =
+    Boolean(previousIdentity) &&
+    previousIdentity?.serviceType === currentIdentity?.serviceType &&
+    previousIdentity?.serviceUserId === currentIdentity?.serviceUserId;
+
+  try {
+    const url = new URL(returnUrl, window.location.origin);
+    const isSameOrigin = url.origin === window.location.origin;
+    const isDefaultDestination = url.pathname === '/dashboard' && !url.search && !url.hash;
+
+    if (isSameOrigin && !isDefaultDestination && isSameServiceUser) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+  } catch {
+    // Fall through to the service-specific dashboard.
+  }
+
+  return profileRedirectPath(profileResponse);
 }
 
 async function sha256(input: string | Uint8Array): Promise<Uint8Array> {
@@ -237,8 +269,13 @@ export class IAMBrowserClient {
 
     await this.exchangeCode(code, state);
     const fallbackReturnUrl = this.consumeReturnUrl();
+    const previousIdentity = getAuthResumeIdentity();
     const profile = await this.loadCurrentTenantProfile();
-    window.location.replace(profile ? profileRedirectPath(profile) : fallbackReturnUrl);
+    window.location.replace(
+      profile
+        ? getPostLoginRedirect(fallbackReturnUrl, profile, previousIdentity)
+        : fallbackReturnUrl
+    );
   }
 
   async exchangeCode(code: string, state: string): Promise<void> {

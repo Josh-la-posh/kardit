@@ -334,7 +334,7 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section>
+            {/* <section>
               <div className="section-head">
                 <div>
                   <div className="section-title">Recent activity</div>
@@ -383,7 +383,7 @@ export default function DashboardPage() {
                   time="Yesterday"
                 />
               </div>
-            </section>
+            </section> */}
           </div>
         </main>
       </AppLayout>

@@ -246,7 +246,38 @@ export function getCustomerTransactions(customerId: string): Promise<CustomerTra
 }
 
 export function exportTransactions(request: TransactionExportRequest): Promise<TransactionExportResponse> {
-  return postJson<TransactionExportResponse>('/transactions/export', request);
+  return postJson<TransactionExportResponse | ApiEnvelope<TransactionExportResponse>>(
+    '/transactions/export',
+    request
+  ).then(unwrapApiValue);
+}
+
+export async function downloadTransactionExport(
+  exportId: string
+): Promise<{ blob: Blob; fileName?: string }> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
+
+  const response = await fetch(
+    `${baseUrl}/transactions/export/${encodeURIComponent(exportId)}/download`
+  );
+  if (!response.ok) {
+    const errorBody = await safeJson(response);
+    throw new ApiError(
+      getApiErrorMessage(errorBody, `Download failed (${response.status})`),
+      response.status,
+      errorBody
+    );
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+  const fileName = encodedName
+    ? decodeURIComponent(encodedName)
+    : plainName?.trim();
+
+  return { blob: await response.blob(), fileName };
 }
 
 export function getBankTransactionVolume(bankId: string): Promise<BankTransactionVolumeResponse> {

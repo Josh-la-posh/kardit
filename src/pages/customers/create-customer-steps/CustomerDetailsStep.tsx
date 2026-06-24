@@ -46,8 +46,17 @@ type Props = {
   setSelectedState: (v: PelpayState | null) => void
   phoneCode: string
   setPhoneCode: (v: string) => void
+  busy: boolean
   onBack: () => void
   onContinue: () => void
+}
+
+function RequiredLabel({ children }: { children: string }) {
+  return (
+    <>
+      {children}<span className="text-destructive"> *</span>
+    </>
+  )
 }
 
 export default function CustomerDetailsStep({
@@ -61,6 +70,7 @@ export default function CustomerDetailsStep({
   setSelectedState,
   phoneCode,
   setPhoneCode,
+  busy,
   onBack,
   onContinue,
 }: Props) {
@@ -100,6 +110,7 @@ export default function CustomerDetailsStep({
         <form
           onSubmit={(e) => {
             e.preventDefault()
+            if (busy) return
             onContinue()
           }}
           className="card-pad-lg"
@@ -112,20 +123,21 @@ export default function CustomerDetailsStep({
             </div>
             <div className="form-grid">
               <div className="field">
-                <TextField label="First name *" value={customerForm.firstName} onChange={(e) => setCustomer('firstName', e.target.value)} placeholder="Tunde" error={errors.firstName} />
+                <TextField required label={<RequiredLabel>First name</RequiredLabel>} value={customerForm.firstName} onChange={(e) => setCustomer('firstName', e.target.value)} placeholder="Tunde" error={errors.firstName} />
               </div>
               <div className="field">
-                <TextField label="Last name *" value={customerForm.lastName} onChange={(e) => setCustomer('lastName', e.target.value)} placeholder="Bakare" error={errors.lastName} />
+                <TextField required label={<RequiredLabel>Last name</RequiredLabel>} value={customerForm.lastName} onChange={(e) => setCustomer('lastName', e.target.value)} placeholder="Bakare" error={errors.lastName} />
               </div>
               <div className="field">
                 <TextField
-                  label="Date of birth *"
+                  required
+                  label={<RequiredLabel>Date of birth</RequiredLabel>}
                   type="date"
                   value={customerForm.dob}
                   max={maxDob}
                   onChange={(e) => setCustomer('dob', e.target.value)}
                   error={errors.dob}
-                  hint="Customer must be at least 14 years old."
+                  hint=""
                 />
               </div>
             </div>
@@ -138,7 +150,7 @@ export default function CustomerDetailsStep({
             </div>
             <div className="form-grid">
               <div className="field">
-                <label>Mobile number<span className="req">*</span></label>
+                <label>Mobile number<span className="text-destructive"> *</span></label>
                 <PhoneInput
                   country="ng"
                   value={`${phoneCode.replace('+', '')}${customerForm.phone}`}
@@ -150,6 +162,7 @@ export default function CustomerDetailsStep({
                   }}
                   enableSearch
                   countryCodeEditable={false}
+                  inputProps={{ required: true }}
                   placeholder="8054420098"
                   inputClass={`!w-full !h-10 !pl-14 !rounded-[var(--cs-radius-sm)] !text-sm !bg-[var(--cs-bg-elevated)] !border ${errors.phone ? '!border-destructive' : '!border-[var(--cs-border-strong)]'}`}
                   buttonClass="!border-[var(--cs-border-strong)] !bg-[var(--cs-bg-elevated)] !rounded-l-[var(--cs-radius-sm)]"
@@ -158,7 +171,7 @@ export default function CustomerDetailsStep({
                 {errors.phone ? <div className="help text-destructive">{errors.phone}</div> : <div className="help">Country code is selected automatically.</div>}
               </div>
               <div className="field">
-                <TextField label="Email" type="email" value={customerForm.email} onChange={(e) => setCustomer('email', e.target.value)} placeholder="tunde.bakare@example.com" error={errors.email} />
+                <TextField required label={<RequiredLabel>Email</RequiredLabel>} type="email" value={customerForm.email} onChange={(e) => setCustomer('email', e.target.value)} placeholder="tunde.bakare@example.com" error={errors.email} />
               </div>
             </div>
           </section>
@@ -166,14 +179,14 @@ export default function CustomerDetailsStep({
           <section className="form-section">
             <div className="form-section-head">
               <h2 className="form-section-title">Address</h2>
-              <span className="form-section-meta">Used for delivery if physical</span>
+              {/* <span className="form-section-meta">Used for delivery if physical</span> */}
             </div>
             <div className="form-grid">
               <div className="field form-row-full">
-                <TextField label="Street address *" value={customerForm.line1} onChange={(e) => setCustomer('line1', e.target.value)} placeholder="27 Awolowo Road, Ikoyi" error={errors.line1} />
+                <TextField required label={<RequiredLabel>Street address</RequiredLabel>} value={customerForm.line1} onChange={(e) => setCustomer('line1', e.target.value)} placeholder="27 Awolowo Road, Ikoyi" error={errors.line1} />
               </div>
               <div className="field">
-                <label>Country<span className="req">*</span></label>
+                <label>Country<span className="text-destructive"> *</span></label>
                 <Select
                   value={selectedCountry?.id ?? customerForm.country}
                   onValueChange={(countryId) => {
@@ -198,7 +211,7 @@ export default function CustomerDetailsStep({
                 {errors.country && <div className="help text-destructive">{errors.country}</div>}
               </div>
               <div className="field">
-                <label>State<span className="req">*</span></label>
+                <label>State<span className="text-destructive"> *</span></label>
                 <Select
                   value={selectedState?.id ?? customerForm.state}
                   onValueChange={(stateId) => {
@@ -221,7 +234,7 @@ export default function CustomerDetailsStep({
                 {errors.state && <div className="help text-destructive">{errors.state}</div>}
               </div>
               <div className="field">
-                <TextField label="City *" value={customerForm.city} onChange={(e) => setCustomer('city', e.target.value)} placeholder="Ikeja" error={errors.city} />
+                <TextField required label={<RequiredLabel>City</RequiredLabel>} value={customerForm.city} onChange={(e) => setCustomer('city', e.target.value)} placeholder="Ikeja" error={errors.city} />
               </div>
             </div>
           </section>
@@ -233,7 +246,7 @@ export default function CustomerDetailsStep({
             </div>
             <div className="form-grid">
               <div className="field">
-                <label htmlFor="idType">ID type<span className="req">*</span></label>
+                <label htmlFor="idType">ID type<span className="text-destructive"> *</span></label>
                 <Select value={customerForm.idType} onValueChange={(v) => setCustomer('idType', v)}>
                   <SelectTrigger><SelectValue placeholder="Select ID type" /></SelectTrigger>
                   <SelectContent>
@@ -245,7 +258,7 @@ export default function CustomerDetailsStep({
                 {errors.idType && <div className="help text-destructive">{errors.idType}</div>}
               </div>
               <div className="field is-mono">
-                <TextField label="ID number *" value={customerForm.idNumber} onChange={(e) => setCustomer('idNumber', e.target.value)} placeholder="A12345678" error={errors.idNumber} />
+                <TextField required label={<RequiredLabel>ID number</RequiredLabel>} value={customerForm.idNumber} onChange={(e) => setCustomer('idNumber', e.target.value)} placeholder="A12345678" error={errors.idNumber} />
               </div>
             </div>
           </section>
@@ -253,8 +266,8 @@ export default function CustomerDetailsStep({
             <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
               <ArrowLeft /> Back
             </button>
-            <button type="submit" className="btn btn-primary" disabled={!customerValid}>
-              Save &amp; continue <ArrowRight className="h-4 w-4" />
+            <button type="submit" className="btn btn-primary" disabled={!customerValid || busy}>
+              {busy ? 'Saving...' : 'Save & continue'} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </form>

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 /**
  * SessionExpiredDialog - Modal shown when user session expires
@@ -17,10 +17,12 @@ import { useNavigate } from 'react-router-dom';
 export function SessionExpiredDialog() {
   const { sessionExpired, dismissSessionExpired } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleGoToSignIn = () => {
+    const next = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
     dismissSessionExpired();
-    navigate('/login');
+    navigate(`/login?reason=session_expired&next=${next}`);
   };
 
   return (

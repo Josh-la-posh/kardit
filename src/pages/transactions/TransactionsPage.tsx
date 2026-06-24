@@ -9,6 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PaginatedTable } from '@/components/ui/paginated-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +25,7 @@ import { getBankAffiliates } from '@/services/bankPortalApi';
 import { getBanks } from '@/services/bankApi';
 import { queryAffiliates, queryBanks as querySuperAdminBanks } from '@/services/superAdminApi';
 import {
+  downloadTransactionExport,
   exportTransactions,
   getAffiliateTransactionVolume,
   getBankTransactionVolume,
@@ -106,6 +115,8 @@ export default function TransactionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isDownloadingExport, setIsDownloadingExport] = useState(false);
+  const [exportId, setExportId] = useState<string | null>(null);
   const [bankOptions, setBankOptions] = useState<FilterOption[]>([]);
   const [affiliateOptions, setAffiliateOptions] = useState<FilterOption[]>([]);
   const [isFilterOptionsLoading, setIsFilterOptionsLoading] = useState(true);
@@ -310,12 +321,44 @@ export default function TransactionsPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const response = await exportTransactions({ filters, exportFormat: 'CSV' });
-      toast.success(`Export requested: ${response.exportId}`);
+      const exportFilters = {
+        bankId: filters.bankId,
+        affiliateId: filters.affiliateId,
+        status: filters.status,
+        transactionType: filters.transactionType,
+        fromDate: filters.fromDate ? new Date(`${filters.fromDate}T00:00:00`).toISOString() : undefined,
+        toDate: filters.toDate ? new Date(`${filters.toDate}T23:59:59.999`).toISOString() : undefined,
+      };
+      const response = await exportTransactions({ filters: exportFilters, exportFormat: 'CSV' });
+      setExportId(response.exportId);
+      toast.success('Transaction export is ready to download.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Unable to request export');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleDownloadExport = async () => {
+    if (!exportId || isDownloadingExport) return;
+
+    setIsDownloadingExport(true);
+    try {
+      const { blob, fileName } = await downloadTransactionExport(exportId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName || `transactions-${exportId}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportId(null);
+      toast.success('Transaction export downloaded.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Unable to download export');
+    } finally {
+      setIsDownloadingExport(false);
     }
   };
 
@@ -423,7 +466,7 @@ export default function TransactionsPage() {
                 <Select value={bankId || ALL_FILTER_VALUE} onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}>
                   <SelectTrigger><SelectValue placeholder="Bank" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL_FILTER_VALUE}>All Banks</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>Select bank</SelectItem>
                     {bankOptions.map((bank) => (
                       <SelectItem key={bank.id} value={bank.id}>
                         {bank.label}{bank.meta ? ` - ${bank.meta}` : ''}
@@ -450,7 +493,7 @@ export default function TransactionsPage() {
                   <SelectTrigger><SelectValue placeholder="Transaction type" /></SelectTrigger>
                   <SelectContent>
                     {transactionTypeOptions.map((option) => (
-                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'All Types' : option}</SelectItem>
+                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'Types' : option}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -458,7 +501,7 @@ export default function TransactionsPage() {
                   <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     {transactionStatusOptions.map((option) => (
-                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'All Statuses' : option}</SelectItem>
+                      <SelectItem key={option} value={option}>{option === 'ALL' ? 'Status' : option}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -493,6 +536,33 @@ export default function TransactionsPage() {
             </AppCard>
           </div>
         </main>
+
+        <Dialog
+          open={Boolean(exportId)}
+          onOpenChange={(open) => {
+            if (!open && !isDownloadingExport) setExportId(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Export ready</DialogTitle>
+              <DialogDescription>
+                Your transaction report has been prepared. Download the CSV file to continue.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => void handleDownloadExport()}
+                disabled={isDownloadingExport}
+              >
+                {isDownloadingExport
+                  ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  : <Download className="mr-2 h-4 w-4" />}
+                {isDownloadingExport ? 'Downloading...' : 'Download'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     </ProtectedRoute>
   );

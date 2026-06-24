@@ -34,10 +34,10 @@ export function ProtectedRoute({
     }
 
     if (!isAuthenticated) {
-      const next = encodeURIComponent(`${location.pathname}${location.search}`);
+      const next = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
       navigate(`/login?reason=protected_route&next=${next}`, { replace: true });
     }
-  }, [isAuthenticated, navigate, location.pathname, location.search]);
+  }, [isAuthenticated, navigate, location.pathname, location.search, location.hash]);
 
   if (!isAuthenticated) {
     return null;

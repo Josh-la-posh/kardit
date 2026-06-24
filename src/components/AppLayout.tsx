@@ -29,6 +29,16 @@ import {
   Landmark,
 } from 'lucide-react';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -114,13 +124,25 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    if (isIamEnabled) return;
+    if (isLoggingOut) return;
 
-    toast.success('Successfully logged out');
-    navigate('/login');
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      if (isIamEnabled) return;
+
+      setLogoutDialogOpen(false);
+      toast.success('Successfully logged out');
+      navigate('/login');
+    } catch {
+      toast.error('Unable to log out. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -311,7 +333,7 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={handleLogout}
+                  onSelect={() => setLogoutDialogOpen(true)}
                   className="text-destructive focus:text-destructive cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -333,6 +355,31 @@ export function AppLayout({ children, navVariant }: AppLayoutProps) {
         open={notificationsPanelOpen} 
         onClose={() => setNotificationsPanelOpen(false)} 
       />
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !isLoggingOut && setLogoutDialogOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isLoggingOut}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleLogout();
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {isLoggingOut ? 'Logging out...' : 'Logout'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
