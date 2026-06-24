@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCards } from '@/hooks/useCards';
 import { Search, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PaginatedTable } from '@/components/ui/paginated-table';
 import type { CardQueryStatus, CardQueryType } from '@/types/cardContracts';
 
 const pageSizeOptions = ['25', '50', '100'];
@@ -55,9 +56,54 @@ export default function CardsListPage() {
     });
   }, [cards, search]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
   const resetToFirstPage = () => setCurrentPage(1);
+  const columns = useMemo(
+    () => [
+      {
+        key: 'maskedPan',
+        header: 'Masked PAN',
+        className: 'font-mono',
+        render: (card: (typeof cards)[number]) => card.maskedPan,
+      },
+      // {
+      //   key: 'id',
+      //   header: 'Card ID',
+      //   className: 'font-mono text-muted-foreground',
+      //   render: (card: (typeof cards)[number]) => card.id,
+      // },
+      // {
+      //   key: 'customerId',
+      //   header: 'Customer ID',
+      //   className: 'font-mono text-muted-foreground',
+      //   render: (card: (typeof cards)[number]) => card.customerId || '-',
+      // },
+      {
+        key: 'productName',
+        header: 'Product',
+        render: (card: (typeof cards)[number]) => card.productName,
+      },
+      {
+        key: 'issuingBankName',
+        header: 'Bank',
+        className: 'text-muted-foreground',
+        render: (card: (typeof cards)[number]) => card.issuingBankName,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (card: (typeof cards)[number]) => (
+          <StatusChip status={card.status as StatusType} label={card.status} />
+        ),
+      },
+      {
+        key: 'createdAt',
+        header: 'Issued',
+        className: 'text-muted-foreground',
+        render: (card: (typeof cards)[number]) => format(new Date(card.createdAt), 'MMM d, yyyy HH:mm'),
+      },
+    ],
+    []
+  );
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
@@ -171,73 +217,19 @@ export default function CardsListPage() {
             </div>
           </div>
 
-          <div className="kardit-card overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="p-6 text-sm text-muted-foreground">{error}</div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground text-sm">No cards match the current filters.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Masked PAN</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Bank</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Issued</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((card, index) => (
-                      <tr
-                        key={card.id}
-                        onClick={() => navigate(`/cards/${card.id}`)}
-                        className={`transition-colors hover:bg-muted/40 cursor-pointer ${index % 2 === 1 ? 'bg-muted/20' : ''}`}
-                      >
-                        <td className="px-4 py-3 text-sm font-mono">{card.maskedPan}</td>
-                        <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{card.id}</td>
-                        <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{card.customerId || '-'}</td>
-                        <td className="px-4 py-3 text-sm">{card.productName}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{card.issuingBankName}</td>
-                        <td className="px-4 py-3"><StatusChip status={card.status as StatusType} label={card.status} /></td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(card.createdAt), 'MMM d, yyyy HH:mm')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} - {total} total card{total === 1 ? '' : 's'}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || currentPage <= 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || currentPage >= totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </div>
+          <PaginatedTable
+            columns={columns}
+            rows={filtered}
+            isLoading={isLoading}
+            error={error}
+            emptyMessage="No cards match the current filters."
+            onRowClick={(card) => navigate(`/cards/${card.id}`)}
+            rowKey={(card) => card.id}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </AppLayout>
     </ProtectedRoute>
