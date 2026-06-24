@@ -45,7 +45,7 @@ export default function IssuingBankFailurePage() {
 
   const handleTryAgain = async () => {
     try {
-      toast.loading('Starting provisioning...');
+      // toast.loading('Starting provisioning...');
       navigate(`/issuing-banks/${sessionId}/provisioning`);
     } catch (err) {
       toast.error('Failed to start provisioning');

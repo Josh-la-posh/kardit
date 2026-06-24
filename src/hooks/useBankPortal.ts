@@ -17,6 +17,7 @@ import type {
   ApprovePartnershipResponse,
   ApprovePartnershipRequest,
   BankAffiliateSummary,
+  BankAffiliateStatus,
   BankAuditLogItem,
   BankCardItem,
   BankDashboardMetrics,
@@ -44,6 +45,24 @@ function extractAffiliates(payload: unknown): BankAffiliateSummary[] {
     return (payload as { data: BankAffiliateSummary[] }).data;
   }
   return [];
+}
+
+function extractAffiliateMeta(payload: unknown): { page: number; pageSize: number; total: number } {
+  const direct = payload as { page?: number; pageSize?: number; total?: number };
+  if (typeof direct?.page === 'number' || typeof direct?.pageSize === 'number' || typeof direct?.total === 'number') {
+    return {
+      page: direct.page ?? 1,
+      pageSize: direct.pageSize ?? 20,
+      total: direct.total ?? extractAffiliates(payload).length,
+    };
+  }
+
+  const wrapped = payload as { data?: { page?: number; pageSize?: number; total?: number } };
+  return {
+    page: wrapped?.data?.page ?? 1,
+    pageSize: wrapped?.data?.pageSize ?? 20,
+    total: wrapped?.data?.total ?? extractAffiliates(payload).length,
+  };
 }
 
 function toBankCardItem(card: {
@@ -381,34 +400,50 @@ export function useBankAuditLogs() {
   };
 }
 
-export function useBankAffiliates() {
+export function useBankAffiliates(options?: { page?: number; pageSize?: number; status?: BankAffiliateStatus }) {
   const { user } = useAuth();
   const [bankId, setBankId] = useState<string | null>(null);
   const [affiliates, setAffiliates] = useState<BankAffiliateSummary[]>([]);
+  const [page, setPage] = useState(options?.page ?? 1);
+  const [pageSize, setPageSize] = useState(options?.pageSize ?? 20);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (override?: { page?: number; pageSize?: number; status?: BankAffiliateStatus }) => {
     setIsLoading(true);
     setError(null);
     try {
       const resolvedBankId = resolveBankId(user);
       setBankId(resolvedBankId);
-      const response = await getBankAffiliates(resolvedBankId);
-      setAffiliates(extractAffiliates(response));
+      const nextPage = override?.page ?? options?.page ?? page;
+      const nextPageSize = override?.pageSize ?? options?.pageSize ?? pageSize;
+      const nextStatus = override?.status ?? options?.status;
+      const response = await getBankAffiliates(resolvedBankId, {
+        page: nextPage,
+        pageSize: nextPageSize,
+        status: nextStatus,
+      });
+      const nextAffiliates = extractAffiliates(response);
+      const meta = extractAffiliateMeta(response);
+      setAffiliates(nextAffiliates);
+      setPage(meta.page);
+      setPageSize(meta.pageSize);
+      setTotal(meta.total);
     } catch (e: any) {
       setError(e?.message || 'Failed to load bank affiliates');
       setAffiliates([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [options?.page, options?.pageSize, options?.status, page, pageSize, user]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { bankId, affiliates, isLoading, error, refresh };
+  return { bankId, affiliates, page, pageSize, total, isLoading, error, refresh, setPage, setPageSize };
 }
 
 export function useBankAffiliateCards(affiliateId: string | undefined) {

@@ -355,7 +355,7 @@ export default function IssuingBankCreatePage() {
                       <div className="space-y-4">
                         <div>
                           <label htmlFor="address" className="block text-sm font-medium mb-1">
-                            Bank Address
+                            Bank Address <span className="text-[hsl(var(--destructive))]">*</span>
                           </label>
                           <textarea
                             id="address"

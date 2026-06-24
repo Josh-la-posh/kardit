@@ -141,13 +141,16 @@ export default function IssuingBankSuccessPage() {
               </div>
 
               <div className="flex flex-col space-y-3">
-                <Button onClick={() => navigate('/issuing-banks')} className="w-full bg-primary hover:bg-primary/90">
+                <Button
+                  onClick={() => navigate(session.bankId ? `/super-admin/banks/${session.bankId}` : '/super-admin/banks')}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
                   View Bank Profile
                 </Button>
                 <Button onClick={() => navigate('/issuing-banks/new')} variant="outline" className="w-full">
                   Add Another Bank
                 </Button>
-                <Button onClick={() => navigate('/issuing-banks')} variant="ghost" className="w-full">
+                <Button onClick={() => navigate('/super-admin/banks')} variant="ghost" className="w-full">
                   Return to Dashboard
                 </Button>
               </div>
