@@ -36,6 +36,13 @@ function getOperationIdempotencyKey(requestId: string, operation: 'approve' | 'r
   }
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy HH:mm');
+}
+
 export default function BankPartnershipRequestDetailPage() {
   const { partnershipRequestId } = useParams<{ partnershipRequestId: string }>();
   const navigate = useNavigate();
@@ -218,7 +225,7 @@ export default function BankPartnershipRequestDetailPage() {
                 <div className="space-y-4">
                   <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Requested At</p>
-                    <p className="text-sm font-medium">{format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm')}</p>
+                    <p className="text-sm font-medium">{formatDateTime(request.requestedAt)}</p>
                   </div>
                   <div className={fieldClassName}>
                     <p className="text-xs text-muted-foreground">Note</p>

@@ -39,6 +39,19 @@ const safeJson = async (res: Response) => {
   }
 };
 
+function unwrapResponse<TResponse>(response: TResponse | { data?: TResponse }): TResponse {
+  if (
+    response &&
+    typeof response === 'object' &&
+    'data' in response &&
+    (response as { data?: TResponse }).data !== undefined
+  ) {
+    return (response as { data: TResponse }).data;
+  }
+
+  return response as TResponse;
+}
+
 async function getJson<TResponse>(path: string): Promise<TResponse> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new ApiError('Missing VITE_API_BASE_URL', 0, undefined);
@@ -119,9 +132,9 @@ export async function getPartnershipRequest(
   bankId: string,
   partnershipRequestId: string
 ): Promise<GetPartnershipRequestResponse> {
-  return getJson<GetPartnershipRequestResponse>(
+  return getJson<GetPartnershipRequestResponse | { data: GetPartnershipRequestResponse }>(
     `/banks/${encodeURIComponent(bankId)}/affiliate-partnership-requests/${encodeURIComponent(partnershipRequestId)}`
-  );
+  ).then(unwrapResponse);
 }
 
 export async function queryPartnershipRequests(
