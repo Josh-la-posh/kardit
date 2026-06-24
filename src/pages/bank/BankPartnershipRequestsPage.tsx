@@ -10,6 +10,12 @@ import { usePendingPartnershipRequests } from '@/hooks/useBankPortal';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import type { PartnershipRequestQueryItem } from '@/types/bankPortalContracts';
 
+function formatDateTime(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy HH:mm');
+}
+
 export default function BankPartnershipRequestsPage() {
   const navigate = useNavigate();
   const { bankId, requests, page, pageSize, total, setPage, isLoading, isActing, error, refresh } = usePendingPartnershipRequests();
@@ -29,7 +35,7 @@ export default function BankPartnershipRequestsPage() {
         header: 'Affiliate',
         render: (request) => (
           <div>
-            <p className="font-medium">Fix It</p>
+            <p className="font-medium">{request.affiliateName || request.affiliateId || '-'}</p>
           </div>
         ),
       },
@@ -46,7 +52,7 @@ export default function BankPartnershipRequestsPage() {
       {
         key: 'requestedAt',
         header: 'Requested',
-        render: (request) => format(new Date(request.requestedAt), 'MMM d, yyyy HH:mm'),
+        render: (request) => formatDateTime(request.requestedAt),
       },
       // {
       //   key: 'note',

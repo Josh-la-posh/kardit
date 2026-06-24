@@ -6,6 +6,7 @@ import type {
   GetAffiliateCardMetricsResponse,
   GetBankCardMetricsResponse,
   GetBankAffiliatesResponse,
+  GetBankAffiliatesQuery,
   GetBankDashboardResponse,
   GetPartnershipRequestResponse,
   ListBankAuditLogsRequest,
@@ -106,8 +107,35 @@ export async function getAffiliateCardMetrics(affiliateId: string): Promise<GetA
   return getJson<GetAffiliateCardMetricsResponse>(`/cards/metrics/affiliate/${encodeURIComponent(affiliateId)}`);
 }
 
-export async function getBankAffiliates(bankId: string): Promise<GetBankAffiliatesResponse> {
-  return getJson<GetBankAffiliatesResponse>(`/banks/${encodeURIComponent(bankId)}/affiliates`);
+export async function getBankAffiliates(
+  bankId: string,
+  query: GetBankAffiliatesQuery = {}
+): Promise<GetBankAffiliatesResponse | { data: GetBankAffiliatesResponse }> {
+  const params = new URLSearchParams({
+    page: String(query.page ?? 1),
+    pageSize: String(query.pageSize ?? 20),
+  });
+  if (query.status) params.set('status', query.status);
+
+  return getJson<GetBankAffiliatesResponse | { data: GetBankAffiliatesResponse }>(
+    `/banks/${encodeURIComponent(bankId)}/affiliates?${params.toString()}`
+  );
+}
+
+export async function getPendingBankAffiliateApprovals(
+  bankId: string,
+  page: number,
+  pageSize: number
+): Promise<unknown> {
+  const query = new URLSearchParams({
+    status: 'PENDING_BANK_APPROVAL',
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+
+  return getJson<unknown>(
+    `/bank/${encodeURIComponent(bankId)}/affiliate?${query.toString()}`
+  );
 }
 
 export async function listBankCards(bankId: string, request: ListBankCardsRequest): Promise<ListBankCardsResponse> {

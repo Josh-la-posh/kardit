@@ -39,14 +39,32 @@ export interface BankAffiliateSummary {
   affiliateId: string;
   tenantId: string;
   affiliateName: string;
+  relationshipStatus: BankAffiliateStatus;
   totalCards: number;
   activeCards: number;
   totalFundingVolume: number;
 }
 
+export type BankAffiliateStatus =
+  | 'ACTIVE'
+  | 'REJECTED'
+  | 'SUSPENDED'
+  | 'PENDING_BANK_APPROVAL';
+
+export interface GetBankAffiliatesQuery {
+  page?: number;
+  pageSize?: number;
+  status?: BankAffiliateStatus;
+}
+
 export interface GetBankAffiliatesResponse {
   bankId: string;
   affiliates: BankAffiliateSummary[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total?: number;
+  };
 }
 
 export interface BankCardsFilters {
@@ -178,6 +196,7 @@ export interface QueryPartnershipRequestsRequest {
 export interface PartnershipRequestQueryItem {
   partnershipRequestId: string;
   affiliateId: string;
+  affiliateName?: string;
   bankId: string;
   bankName?: string;
   status: string;

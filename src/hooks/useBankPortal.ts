@@ -4,10 +4,10 @@ import {
   approvePartnershipRequest,
   blockAffiliate,
   getBankAffiliates,
+  getPendingBankAffiliateApprovals,
   getPartnershipRequest,
   listBankAuditLogs,
   listBankReports,
-  queryPartnershipRequests,
   rejectPartnershipRequest,
   resolveBankId,
   suspendAffiliate,
@@ -48,7 +48,24 @@ function extractAffiliates(payload: unknown): BankAffiliateSummary[] {
 }
 
 function extractAffiliateMeta(payload: unknown): { page: number; pageSize: number; total: number } {
-  const direct = payload as { page?: number; pageSize?: number; total?: number };
+  const direct = payload as {
+    page?: number;
+    pageSize?: number;
+    total?: number;
+    pagination?: { page?: number; pageSize?: number; total?: number };
+  };
+  const directPagination = direct.pagination;
+  if (directPagination) {
+    const affiliates = extractAffiliates(payload);
+    const page = directPagination.page ?? 1;
+    const pageSize = directPagination.pageSize ?? 20;
+    return {
+      page,
+      pageSize,
+      total: directPagination.total ??
+        (affiliates.length < pageSize ? (page - 1) * pageSize + affiliates.length : page * pageSize + 1),
+    };
+  }
   if (typeof direct?.page === 'number' || typeof direct?.pageSize === 'number' || typeof direct?.total === 'number') {
     return {
       page: direct.page ?? 1,
@@ -57,11 +74,86 @@ function extractAffiliateMeta(payload: unknown): { page: number; pageSize: numbe
     };
   }
 
-  const wrapped = payload as { data?: { page?: number; pageSize?: number; total?: number } };
+  const wrapped = payload as {
+    data?: {
+      page?: number;
+      pageSize?: number;
+      total?: number;
+      pagination?: { page?: number; pageSize?: number; total?: number };
+    };
+  };
+  const wrappedPagination = wrapped?.data?.pagination;
+  if (wrappedPagination) {
+    const affiliates = extractAffiliates(payload);
+    const page = wrappedPagination.page ?? 1;
+    const pageSize = wrappedPagination.pageSize ?? 20;
+    return {
+      page,
+      pageSize,
+      total: wrappedPagination.total ??
+        (affiliates.length < pageSize ? (page - 1) * pageSize + affiliates.length : page * pageSize + 1),
+    };
+  }
   return {
     page: wrapped?.data?.page ?? 1,
     pageSize: wrapped?.data?.pageSize ?? 20,
     total: wrapped?.data?.total ?? extractAffiliates(payload).length,
+  };
+}
+
+function extractPendingPartnershipRequests(payload: unknown): {
+  requests: PartnershipRequestQueryItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+} {
+  const envelope = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : {};
+  const data = envelope.data && typeof envelope.data === 'object'
+    ? envelope.data as Record<string, unknown>
+    : envelope;
+  const rawItems =
+    Array.isArray(data.affiliates) ? data.affiliates :
+    Array.isArray(data.items) ? data.items :
+    Array.isArray(data.results) ? data.results :
+    Array.isArray(data.data) ? data.data :
+    [];
+
+  const requests = rawItems.map((item) => {
+    const record = item && typeof item === 'object'
+      ? item as Record<string, unknown>
+      : {};
+    const affiliate = record.affiliate && typeof record.affiliate === 'object'
+      ? record.affiliate as Record<string, unknown>
+      : record;
+
+    return {
+      partnershipRequestId: String(
+        record.partnershipRequestId ?? record.requestId ?? affiliate.partnershipRequestId ?? ''
+      ),
+      affiliateId: String(affiliate.affiliateId ?? record.affiliateId ?? ''),
+      affiliateName: String(
+        affiliate.affiliateName ??
+        affiliate.tradingName ??
+        affiliate.legalName ??
+        record.affiliateName ??
+        ''
+      ),
+      bankId: String(record.bankId ?? data.bankId ?? ''),
+      bankName: typeof record.bankName === 'string' ? record.bankName : undefined,
+      status: String(record.status ?? affiliate.status ?? 'PENDING_BANK_APPROVAL'),
+      note: typeof record.note === 'string' ? record.note : undefined,
+      requestedAt: String(record.requestedAt ?? affiliate.requestedAt ?? ''),
+      decisionedAt: typeof record.decisionedAt === 'string' ? record.decisionedAt : undefined,
+    };
+  }).filter((request) => request.status === 'PENDING_BANK_APPROVAL');
+
+  return {
+    requests,
+    page: Number(data.page ?? data.pageNumber ?? 1),
+    pageSize: Number(data.pageSize ?? 25),
+    total: Number(data.total ?? data.totalRecords ?? requests.length),
   };
 }
 
@@ -586,19 +678,11 @@ export function usePendingPartnershipRequests(options: { autoLoad?: boolean } = 
     try {
       const resolvedBankId = resolveBankId({ bankId: bankIdScope, tenantId: tenantIdScope });
       setBankId(resolvedBankId);
-      const queryResponse = await queryPartnershipRequests({
-        filters: {
-          bankId: resolvedBankId,
-          status: ['PENDING_BANK_APPROVAL'],
-          affiliateId: null,
-          fromDate: null,
-          toDate: null,
-        },
-        page,
-        pageSize,
-      });
-      setRequests(queryResponse.data.filter((request) => request.status === 'PENDING_BANK_APPROVAL'));
-      setTotal(queryResponse.total);
+      const response = await getPendingBankAffiliateApprovals(resolvedBankId, page, pageSize);
+      const pending = extractPendingPartnershipRequests(response);
+      setRequests(pending.requests);
+      setPage(pending.page);
+      setTotal(pending.total);
     } catch (e: any) {
       setError(e?.message || 'Failed to load pending partnership requests');
       setRequests([]);

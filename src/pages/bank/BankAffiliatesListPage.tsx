@@ -4,13 +4,35 @@ import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { PaginatedTable } from '@/components/ui/paginated-table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusChip, type StatusType } from '@/components/ui/status-chip';
 import { useBankAffiliates } from '@/hooks/useBankPortal';
-import type { BankAffiliateSummary } from '@/types/bankPortalContracts';
+import type { BankAffiliateStatus, BankAffiliateSummary } from '@/types/bankPortalContracts';
 import { Eye, RefreshCw, Search } from 'lucide-react';
+
+const relationshipStatusDisplay: Record<
+  BankAffiliateStatus,
+  { label: string; tone: StatusType }
+> = {
+  ACTIVE: { label: 'Approved', tone: 'ACTIVE' },
+  PENDING_BANK_APPROVAL: { label: 'Pending', tone: 'PENDING' },
+  SUSPENDED: { label: 'Suspended', tone: 'WARNING' },
+  REJECTED: { label: 'Rejected', tone: 'REJECTED' },
+};
 
 export default function BankAffiliatesListPage() {
   const navigate = useNavigate();
-  const { affiliates, isLoading, error, refresh } = useBankAffiliates();
+  const [status, setStatus] = useState<BankAffiliateStatus | 'ALL'>('ALL');
+  const {
+    affiliates,
+    page,
+    pageSize,
+    total,
+    isLoading,
+    error,
+    refresh,
+    setPage,
+  } = useBankAffiliates({ status: status === 'ALL' ? undefined : status });
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -73,6 +95,15 @@ export default function BankAffiliatesListPage() {
       //   render: (affiliate: BankAffiliateSummary) => affiliate.activeCards.toLocaleString(),
       // },
       {
+        key: 'relationshipStatus',
+        header: 'Status',
+        render: (affiliate: BankAffiliateSummary) => {
+          const display = relationshipStatusDisplay[affiliate.relationshipStatus] ??
+            { label: affiliate.relationshipStatus || '-', tone: 'INACTIVE' as StatusType };
+          return <StatusChip status={display.tone} label={display.label} />;
+        },
+      },
+      {
         key: 'totalFundingVolume',
         header: 'Funding Volume',
         className: 'text-sm text-muted-foreground',
@@ -127,7 +158,8 @@ export default function BankAffiliatesListPage() {
             </section> */}
 
             <section className="bch-card card-pad" style={{ marginTop: 14 }}>
-              <div className="relative">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+                <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -135,6 +167,25 @@ export default function BankAffiliatesListPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
+                </div>
+                <Select
+                  value={status}
+                  onValueChange={(value) => {
+                    setStatus(value as BankAffiliateStatus | 'ALL');
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="bg-muted border-border">
+                    <SelectValue placeholder="Relationship status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All statuses</SelectItem>
+                    <SelectItem value="ACTIVE">Approved</SelectItem>
+                    <SelectItem value="PENDING_BANK_APPROVAL">Pending</SelectItem>
+                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </section>
 
@@ -147,10 +198,10 @@ export default function BankAffiliatesListPage() {
               emptyMessage="No affiliates found for this bank."
               rowKey={(affiliate) => affiliate.affiliateId}
               onRowClick={(affiliate) => navigate(`/bank/affiliates/${affiliate.affiliateId}`)}
-              page={1}
-              pageSize={Math.max(filtered.length, 1)}
-              total={Math.max(filtered.length, 1)}
-              onPageChange={() => {}}
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
             />
           </div>
         </main>
