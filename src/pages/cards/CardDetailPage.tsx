@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import type { TransactionStatus as ApiTransactionStatus, TransactionType as ApiTransactionType } from '@/types/transactionContracts';
 import {
+  activateCard,
   completeCardLimitRequest,
   createCardLimitRequest,
   freezeCard,
@@ -41,9 +42,10 @@ import {
   ShieldCheck,
   Snowflake,
   Wallet,
+  CheckCircle2,
 } from 'lucide-react';
 
-type CardActionType = 'freeze' | 'unfreeze' | 'terminate' | null;
+type CardActionType = 'activate' | 'freeze' | 'unfreeze' | 'terminate' | null;
 
 function randomId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -226,7 +228,13 @@ export default function CardDetailPage() {
 
     setActionLoading(true);
     try {
-      if (actionType === 'freeze') {
+      if (actionType === 'activate') {
+        await activateCard(cardId, {
+          requestContext: buildAffiliateActionContext(),
+          reason: actionReason.trim(),
+        });
+        toast.success('Card activated successfully');
+      } else if (actionType === 'freeze') {
         await freezeCard(cardId, {
           requestContext: buildAffiliateActionContext(),
           reason: actionReason.trim(),
@@ -393,18 +401,22 @@ export default function CardDetailPage() {
     );
 
   const actionTitle =
-    actionType === 'freeze'
-      ? 'Freeze Card'
-      : actionType === 'unfreeze'
-        ? 'Unfreeze Card'
-        : 'Terminate Card';
+    actionType === 'activate'
+      ? 'Activate Card'
+      : actionType === 'freeze'
+        ? 'Freeze Card'
+        : actionType === 'unfreeze'
+          ? 'Unfreeze Card'
+          : 'Terminate Card';
 
   const defaultReason =
-    actionType === 'freeze'
-      ? 'CUSTOMER_REQUEST'
-      : actionType === 'unfreeze'
-        ? 'ISSUE_RESOLVED'
-        : 'CUSTOMER_ACCOUNT_CLOSED';
+    actionType === 'activate'
+      ? 'CUSTOMER_CARD_ACTIVATION'
+      : actionType === 'freeze'
+        ? 'CUSTOMER_REQUEST'
+        : actionType === 'unfreeze'
+          ? 'ISSUE_RESOLVED'
+          : 'CUSTOMER_ACCOUNT_CLOSED';
 
   const fundingAccount = fundingDetails?.virtualAccount;
   const fundingCustomer = fundingDetails?.customer;
@@ -442,6 +454,11 @@ export default function CardDetailPage() {
                 {/* <Button variant="outline" size="sm" onClick={handleRefresh}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Refresh
                 </Button> */}
+                {isAffiliate && card.status === 'PENDING_ACTIVATION' && (
+                  <Button variant="outline" size="sm" onClick={() => { setActionType('activate'); setActionReason('CUSTOMER_CARD_ACTIVATION'); }}>
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Activate
+                  </Button>
+                )}
                 {isAffiliate && card.status === 'ACTIVE' && (
                   <Button variant="outline" size="sm" onClick={() => { setActionType('freeze'); setActionReason('CUSTOMER_REQUEST'); }}>
                     <Snowflake className="h-4 w-4 mr-1" /> Freeze

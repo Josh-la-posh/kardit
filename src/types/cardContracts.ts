@@ -301,10 +301,12 @@ export interface ActivateCardRequest {
   requestContext: {
     requestId: string;
     actorUserId: string;
+    bankId: string;
+    role: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
     tenantId: string;
-    affiliateId?: string;
-    idempotencyKey?: string;
+    affiliateId: string;
+    idempotencyKey: string;
   };
   reason: string;
 }
