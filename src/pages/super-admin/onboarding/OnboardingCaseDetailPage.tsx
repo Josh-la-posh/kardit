@@ -89,16 +89,14 @@ export default function OnboardingCaseDetailPage() {
     caseItem?.organization?.address?.country || caseItem?.organization?.country,
   ].filter(Boolean).join(', ');
 
-  const downloadAPI = "http://167.172.49.177:8084";
   const handleDocumentDownload = (downloadUrl?: string, fileName?: string, documentId?: string) => {
     if (!downloadUrl) {
       toast.error('No download link is available for this document yet.');
       return;
     }
-    const fullDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `${downloadAPI}${downloadUrl}`; 
-
+    
     const anchor = document.createElement('a');
-    anchor.href = fullDownloadUrl;
+    anchor.href = downloadUrl;
     anchor.target = '_blank';
     anchor.rel = 'noopener noreferrer';
     if (fileName || documentId) {
@@ -108,7 +106,7 @@ export default function OnboardingCaseDetailPage() {
     anchor.click();
     anchor.remove();
 
-    window.open(fullDownloadUrl, '_blank', 'noopener,noreferrer');
+    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
   };
 
   const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'CLARIFY') => {
@@ -190,7 +188,7 @@ export default function OnboardingCaseDetailPage() {
                         </div>
                         <h2 className="mt-2 text-2xl font-bold text-foreground">{caseItem.organization?.legalName || caseItem.affiliateName || '-'}</h2>
                         <p className="mt-1 text-sm text-muted-foreground">{caseItem.organization?.tradingName || 'No trading name provided'}</p>
-                        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-4">
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
                           <SummaryMetric label="Submitted" value={formatDateTime(caseItem.submittedAt)} icon={<Clock3 className="h-6 w-6" />} />
                           <SummaryMetric label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} icon={<FileText className="h-6 w-6" />} />
                           <SummaryMetric label="Documents" value={`${caseItem.documents.length}`} icon={<CheckCircle2 className="h-6 w-6" />} />
@@ -435,11 +433,11 @@ export default function OnboardingCaseDetailPage() {
 function SummaryMetric({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
     <div className="rounded-md border border-border bg-muted/20 p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground text-center md:text-right">
         <div className="mt-0.5 text-[var(--cs-green-700)]">{icon}</div>
         {label}
       </div>
-      <p className="mt-2 truncate text-sm font-semibold text-foreground text-center">{value}</p>
+      <p className="mt-2 truncate text-sm font-semibold text-foreground text-left md:text-center">{value}</p>
     </div>
   );
 }
