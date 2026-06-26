@@ -89,22 +89,26 @@ export default function OnboardingCaseDetailPage() {
     caseItem?.organization?.address?.country || caseItem?.organization?.country,
   ].filter(Boolean).join(', ');
 
-  const handleDocumentDownload = (downloadUrl?: string, fileName?: string) => {
+  const downloadAPI = "http://167.172.49.177:8084";
+  const handleDocumentDownload = (downloadUrl?: string, fileName?: string, documentId?: string) => {
     if (!downloadUrl) {
       toast.error('No download link is available for this document yet.');
       return;
     }
+    const fullDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `${downloadAPI}${downloadUrl}`; 
 
     const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
+    anchor.href = fullDownloadUrl;
     anchor.target = '_blank';
     anchor.rel = 'noopener noreferrer';
-    if (fileName) {
-      anchor.download = fileName;
+    if (fileName || documentId) {
+      anchor.download = fileName || documentId || "";
     }
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
+
+    window.open(fullDownloadUrl, '_blank', 'noopener,noreferrer');
   };
 
   const doDecision = async (decision: 'APPROVE' | 'REJECT' | 'CLARIFY') => {
@@ -136,7 +140,7 @@ export default function OnboardingCaseDetailPage() {
       navigate(`/super-admin/onboarding/cases/${caseId}?provisioned=1`);
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to provision onboarding case');
+      toast.error(err instanceof Error ? err.message : 'Failed to provision onboarding case.');
     } finally {
       setWorking(false);
     }
@@ -175,22 +179,22 @@ export default function OnboardingCaseDetailPage() {
                 <div className="empty-list-sub">{error || 'The onboarding case could not be resolved.'}</div>
               </section>
             ) : (
-              <div className="mt-[14px] grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="mt-[14px] grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_350px]">
                 <div className="space-y-4">
                   <section className="bch-card card-pad">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--cs-green-700)]">
-                          <ShieldCheck className="h-4 w-4" />
-                          Compliance review workspace
+                        <div className="flex items-center gap-2 font-semibold text-[var(--cs-green-700)]">
+                          <ShieldCheck className="h-6 w-6" />
+                          <p className='text-[16px]'>Compliance review workspace</p>
                         </div>
                         <h2 className="mt-2 text-2xl font-bold text-foreground">{caseItem.organization?.legalName || caseItem.affiliateName || '-'}</h2>
                         <p className="mt-1 text-sm text-muted-foreground">{caseItem.organization?.tradingName || 'No trading name provided'}</p>
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-4">
                           <SummaryMetric label="Submitted" value={formatDateTime(caseItem.submittedAt)} icon={<Clock3 className="h-6 w-6" />} />
-                          <SummaryMetric label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} icon={<FileText className="h-4 w-4" />} />
-                          <SummaryMetric label="Documents" value={`${caseItem.documents.length}`} icon={<CheckCircle2 className="h-4 w-4" />} />
-                          <SummaryMetric label="Updated" value={formatDateTime(caseItem.updatedAt)} icon={<CheckCircle2 className="h-4 w-4" />} />       
+                          <SummaryMetric label="Registration" value={caseItem.kybSummary?.registrationNumber || caseItem.organization?.registrationNumber || '-'} icon={<FileText className="h-6 w-6" />} />
+                          <SummaryMetric label="Documents" value={`${caseItem.documents.length}`} icon={<CheckCircle2 className="h-6 w-6" />} />
+                          <SummaryMetric label="Updated" value={formatDateTime(caseItem.updatedAt)} icon={<CheckCircle2 className="h-6 w-6" />} />       
                         </div>
                       </div>
 
@@ -329,7 +333,7 @@ export default function OnboardingCaseDetailPage() {
                     )}
                   </Panel>
 
-                  {caseItem.status === 'APPROVED' && (
+                  {/* {caseItem.status === 'APPROVED' && (
                     <Panel title="Affiliate Creation Payload" subtitle="Provisioning values for the approved case">
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <DetailTile label="Type" value="EXTERNAL" />
@@ -339,10 +343,10 @@ export default function OnboardingCaseDetailPage() {
                         <DetailTile label="Selected banks" value={caseItem.issuingBankIds.length ? caseItem.issuingBankIds.join(', ') : 'None'} />
                       </div>
                     </Panel>
-                  )}
+                  )} */}
                 </div>
 
-                <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start w-[450px]">
+                <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start w-[450px] ">
                   <section className="bch-card card-pad">
                     <div className="section-head" style={{ marginTop: 0 }}>
                       <div>
@@ -435,7 +439,7 @@ function SummaryMetric({ label, value, icon }: { label: string; value: string; i
         <div className="mt-0.5 text-[var(--cs-green-700)]">{icon}</div>
         {label}
       </div>
-      <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>
+      <p className="mt-2 truncate text-sm font-semibold text-foreground text-center">{value}</p>
     </div>
   );
 }
@@ -478,7 +482,7 @@ function DetailTile({ label, value, mono }: { label: string; value: string; mono
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="bch-label">{label}</label>
+      <label className="bch-label">{label} <span className="text-[hsl(var(--destructive))]">*</span></label>
       {children}
     </div>
   );

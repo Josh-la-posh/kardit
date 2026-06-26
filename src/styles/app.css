@@ -2948,10 +2948,10 @@ dl.specs dd.danger  { color: var(--cs-red-700); }
   }
 }
 
-.onboarding-filters {
+/* .onboarding-filters {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) 220px 160px;
+  grid-template-columns: minmax(3fr, 1fr);
 }
 
 @media (max-width: 980px) {
@@ -2964,7 +2964,7 @@ dl.specs dd.danger  { color: var(--cs-red-700); }
   .onboarding-filters {
     grid-template-columns: 1fr;
   }
-}
+} */
 
 /* Reusable app card for portal pages */
 .app-card {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ChevronRight, RefreshCw, Search, SearchX, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, RefreshCw, Search, SearchX, X } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { queryAffiliates, queryBanks } from '@/services/superAdminApi';
@@ -9,6 +9,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import type { CustomerListItem } from '@/hooks/useCustomers';
 import type { CustomerSearchRequestContext } from '@/types/customerContracts';
 import type { AffiliateQueryItem, BankQueryItem } from '@/types/superAdminContracts';
+import { Button } from '@/components/ui/button';
 
 type KycFilter = 'all' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
 type StatusFilter = 'all' | 'DRAFT' | 'ACTIVE' | 'FROZEN' | 'PENDING';
@@ -199,9 +200,6 @@ export default function AffiliateCustomersPage() {
       <AppLayout navVariant="service-provider">
         <main className="scr-main">
           <div className="container">
-            <Link to={`/super-admin/banks/${bankId}/affiliates/${affiliateId}`} className="back-link">
-              Back to affiliate
-            </Link>
 
             <header className="page-head">
               <div>
@@ -238,6 +236,9 @@ export default function AffiliateCustomersPage() {
                 <button className="btn btn-secondary" onClick={() => refetch()} disabled={isLoading}>
                   <RefreshCw className={isLoading ? 'spin' : ''} /> Refresh
                 </button>
+                <Button  className="btn btn-secondary" size="md" onClick={() => navigate(`/super-admin/banks/${bankId}/affiliates/${affiliateId}`)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back to {affiliateSummary.legalName}
+                </Button>
               </div>
             </header>
 

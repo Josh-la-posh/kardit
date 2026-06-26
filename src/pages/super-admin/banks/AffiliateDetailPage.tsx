@@ -288,7 +288,7 @@ export default function AffiliateDetailPage() {
                 {/* <Button variant="destructive" size="sm" onClick={() => openActionDialog('block')}>
                   <ShieldAlert className="h-4 w-4 mr-1" /> Block
                 </Button> */}
-                <Button variant="outline" size="sm" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
+                <Button className='btn-secondary' variant="outline" size="sm" onClick={() => navigate(`/super-admin/banks/${bankId}`)}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back to {bankName}
                 </Button>
               </div>
