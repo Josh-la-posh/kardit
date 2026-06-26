@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getCountriesWithStates, type PelpayCountry } from '@/services/locationApi';
 import { toast } from 'sonner';
 import { AppCard } from '@/components/ui/app-card';
+import { ApiError, getApiErrorMessage } from '@/services/apiError';
 
 type Step = 'details' | 'review';
 
@@ -142,7 +143,13 @@ export default function IssuingBankCreatePage() {
       toast.success('Bank created successfully. Starting provisioning...');
       navigate(`/issuing-banks/${session.sessionId}/provisioning`);
     } catch (error) {
-      toast.error('Failed to create issuing bank');
+      const message =
+        error instanceof ApiError
+          ? getApiErrorMessage(error.body, error.message)
+          : error instanceof Error
+            ? error.message
+            : 'Failed to create issuing bank';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

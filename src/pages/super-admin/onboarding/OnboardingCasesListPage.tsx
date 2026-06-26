@@ -26,14 +26,14 @@ const statusToChip: Record<string, StatusType> = {
 
 const statusOptions: Array<OnboardingCaseStatus | 'ALL'> = [
   'ALL',
-  'SUBMITTED',
-  'IN_REVIEW',
-  'UNDER_REVIEW',
-  'CLARIFICATION_REQUIRED',
-  'CLARIFICATION_REQUESTED',
-  'REJECTED',
   'APPROVED',
-  'PROVISIONED',
+  'REJECTED',
+  'SUBMITTED',
+  'CLARIFICATION_REQUIRED',
+  // 'IN_REVIEW',
+  // 'UNDER_REVIEW',
+  // 'CLARIFICATION_REQUESTED',
+  // 'PROVISIONED',
 ];
 
 const pageSizeOptions = ['25', '50', '100'];
@@ -43,6 +43,7 @@ export default function OnboardingCasesListPage() {
   const [statusFilter, setStatusFilter] = useState<OnboardingCaseStatus | 'ALL'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState(25);
+  const hasActiveFilters = statusFilter !== 'ALL' || selectedPageSize !== 25;
 
   const { cases, total, page, pageSize, isLoading, error, refresh } = useReviewerOnboardingCases({
     status: statusFilter,
@@ -63,6 +64,12 @@ export default function OnboardingCasesListPage() {
 
   const handlePageSizeChange = (value: string) => {
     setSelectedPageSize(Number(value));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setStatusFilter('ALL');
+    setSelectedPageSize(25);
     setCurrentPage(1);
   };
 
@@ -117,11 +124,8 @@ export default function OnboardingCasesListPage() {
                 </div>
               </AppCardHeader>
 
-              <div className="onboarding-filters">
-                <div className="result-meta" style={{ alignSelf: 'center' }}>
-                  Filter onboarding cases by review status and page size.
-                </div>
-                <Select value={statusFilter} onValueChange={handleStatusChange}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <Select value={statusFilter} onValueChange={handleStatusChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -145,6 +149,9 @@ export default function OnboardingCasesListPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button className="btn btn-secondary" size="md" variant="outline" onClick={handleClearFilters} disabled={!hasActiveFilters}>
+                  Clear
+                </Button>
               </div>
             </AppCard>
 

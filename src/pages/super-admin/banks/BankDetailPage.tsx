@@ -260,7 +260,7 @@ export default function BankDetailPage() {
                   <Button variant="outline" size="sm" onClick={refreshAll} disabled={bankLoading || isLoading || volumeLoading || cardMetricsLoading}>
                     <RefreshCw className={bankLoading || isLoading || volumeLoading || cardMetricsLoading ? 'mr-1 h-4 w-4 animate-spin' : 'mr-1 h-4 w-4'} /> Refresh
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
+                  <Button className="btn-secondary" variant="outline" size="sm" onClick={() => navigate('/super-admin/banks')}>
                     <ArrowLeft className="h-4 w-4 mr-1" /> Back to Banks
                   </Button>
                 </div>
