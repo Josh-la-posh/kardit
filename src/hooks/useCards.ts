@@ -54,6 +54,7 @@ export interface UseCardsOptions {
   toDate?: string;
   page?: number;
   pageSize?: number;
+  enabled?: boolean;
 }
 
 function randomId(prefix: string) {
@@ -65,18 +66,20 @@ function randomId(prefix: string) {
 }
 
 function toCardStatus(status: string | undefined): Card['status'] {
+  const normalized = status?.toUpperCase();
+
   if (
-    status === 'ACTIVE' ||
-    status === 'PENDING' ||
-    status === 'PENDING_ACTIVATION' ||
-    status === 'FROZEN' ||
-    status === 'BLOCKED' ||
-    status === 'PERSONALIZING'
+    normalized === 'ACTIVE' ||
+    normalized === 'PENDING' ||
+    normalized === 'PENDING_ACTIVATION' ||
+    normalized === 'FROZEN' ||
+    normalized === 'BLOCKED' ||
+    normalized === 'PERSONALIZING'
   ) {
-    return status;
+    return normalized;
   }
 
-  const normalized = status?.toUpperCase();
+  if (normalized === 'PENDING_ISSUANCE' || normalized === 'ISSUANCE_PENDING') return 'PENDING';
   if (normalized === 'TERMINATED' || normalized === 'CLOSED') return 'TERMINATED';
   if (normalized === 'SUSPENDED') return 'FROZEN';
   return 'PENDING';
@@ -100,6 +103,12 @@ function toCardModel(
     issuedAt?: string;
     embossName?: string;
     deliveryMethod?: string;
+    bank?: {
+      bankName?: string;
+    } | null;
+    product?: {
+      name?: string;
+    } | null;
   },
   tenantId?: string
 ): Card {
@@ -108,9 +117,9 @@ function toCardModel(
     tenantId: tenantId || '',
     customerId: source.customerId || source.customerRefId || '',
     maskedPan: source.maskedPan || 'Unavailable',
-    productName: source.productName || source.productType || source.cardType || source.productId || 'Card',
+    productName: source.product?.name || source.productName || source.productType || source.cardType || source.productId || 'Card',
     productCode: source.productCode || source.productType || source.cardType || source.productId || 'N/A',
-    issuingBankName: source.bankId || 'Unknown Bank',
+    issuingBankName: source.bank?.bankName || source.bankId || 'Unknown Bank',
     status: toCardStatus(source.status),
     currency: source.currency || 'USD',
     currentBalance: 0,
@@ -229,8 +238,19 @@ export function useCards(options?: UseCardsOptions) {
   const toDate = options?.toDate;
   const requestedPage = options?.page || 1;
   const requestedPageSize = options?.pageSize || 25;
+  const enabled = options?.enabled ?? true;
 
   const fetch = useCallback(async () => {
+    if (!enabled) {
+      setCards([]);
+      setTotal(0);
+      setPage(requestedPage);
+      setPageSize(requestedPageSize);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -272,7 +292,7 @@ export function useCards(options?: UseCardsOptions) {
     } finally {
       setIsLoading(false);
     }
-  }, [affiliateId, bankId, cardType, customerId, fromDate, productId, requestedPage, requestedPageSize, status, toDate, user]);
+  }, [affiliateId, bankId, cardType, customerId, enabled, fromDate, productId, requestedPage, requestedPageSize, status, toDate, user]);
 
   useEffect(() => {
     fetch();

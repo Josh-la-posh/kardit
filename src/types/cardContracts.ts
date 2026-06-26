@@ -72,9 +72,34 @@ export interface CardListItem {
   deliveryMethod?: string;
   createdAt?: string;
   issuedAt?: string;
+  customer?: {
+    customerId: string;
+    displayName?: string;
+    emailMasked?: string;
+    phoneMasked?: string;
+    status?: string;
+  } | null;
+  bank?: {
+    bankId: string;
+    bankName?: string;
+    bankCode?: string;
+    status?: string;
+    country?: string;
+  } | null;
+  affiliate?: {
+    affiliateId: string;
+    legalName?: string;
+    tradingName?: string;
+    status?: string;
+  } | null;
+  product?: {
+    productId: string;
+    name?: string;
+    description?: string;
+  } | null;
 }
 
-export type CardQueryStatus = 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' | 'PENDING_ACTIVATION' | 'BLOCKED' | string;
+export type CardQueryStatus = 'ACTIVE' | 'FROZEN' | 'TERMINATED' | 'PENDING' | 'PENDING_ACTIVATION' | 'PENDING_ISSUANCE' | 'BLOCKED' | string;
 export type CardQueryType = 'VIRTUAL' | 'PHYSICAL' | string;
 
 export interface QueryCardsRequest {
@@ -148,6 +173,7 @@ export interface GetCardFundingDetails {
     accountNumber: string;
     accountName: string;
     bankName: string;
+    bankId?: string;
     status: string;
     linkedAt: string;
   };
@@ -156,6 +182,20 @@ export interface GetCardFundingDetails {
     message: string;
     referenceRequired: boolean;
   };
+  customer?: {
+    customerId: string;
+    displayName?: string;
+    emailMasked?: string;
+    phoneMasked?: string;
+    status?: string;
+  } | null;
+  bank?: {
+    bankId: string;
+    bankName?: string;
+    bankCode?: string;
+    status?: string;
+    country?: string;
+  } | null;
 }
 
 export interface GetCardFulfillmentStatusResponse {
@@ -176,6 +216,8 @@ export interface RefreshCardFulfillmentRequest {
   requestContext: {
     requestId: string;
     actorUserId: string;
+    bankId: string;
+    role: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
     tenantId: string;
     affiliateId: string;
@@ -211,6 +253,8 @@ export interface FreezeCardRequest {
   requestContext: {
     requestId: string;
     actorUserId: string;
+    bankId: string;
+    role: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
     tenantId: string;
     affiliateId: string;
@@ -233,6 +277,8 @@ export interface UnfreezeCardRequest {
   requestContext: {
     requestId: string;
     actorUserId: string;
+    bankId: string;
+    role: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
     tenantId: string;
     affiliateId: string;

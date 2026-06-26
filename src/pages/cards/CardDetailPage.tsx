@@ -17,7 +17,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import type { TransactionStatus as ApiTransactionStatus, TransactionType as ApiTransactionType } from '@/types/transactionContracts';
 import {
-  activateCard,
   completeCardLimitRequest,
   createCardLimitRequest,
   freezeCard,
@@ -32,12 +31,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Ban,
-  Calendar,
   ChevronLeft,
-  CreditCard,
-  Info,
   KeyRound,
-  Landmark,
   Loader2,
   Minus,
   OctagonAlert,
@@ -45,12 +40,10 @@ import {
   RefreshCw,
   ShieldCheck,
   Snowflake,
-  User,
   Wallet,
-  CheckCircle2,
 } from 'lucide-react';
 
-type CardActionType = 'activate' | 'freeze' | 'unfreeze' | 'terminate' | null;
+type CardActionType = 'freeze' | 'unfreeze' | 'terminate' | null;
 
 function randomId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -58,6 +51,33 @@ function randomId(prefix: string) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return 'Unavailable';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unavailable';
+  return format(date, 'PPP p');
+}
+
+function formatDateOnly(value?: string) {
+  if (!value) return 'Unavailable';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unavailable';
+  return format(date, 'PPP');
+}
+
+function formatMoney(value: number, currency: string) {
+  return value.toLocaleString('en-US', { style: 'currency', currency });
+}
+
+function DetailItem({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-sm ${mono ? 'font-mono break-all' : ''}`}>{value || 'Unavailable'}</p>
+    </div>
+  );
 }
 
 export default function CardDetailPage() {
@@ -81,12 +101,14 @@ export default function CardDetailPage() {
   const [balance, setBalance] = useState<Awaited<ReturnType<typeof getCardBalance>> | null>(null);
   const [actionType, setActionType] = useState<CardActionType>(null);
   const [actionReason, setActionReason] = useState('');
+  const [actionConfirmOpen, setActionConfirmOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [fulfillmentLoading, setFulfillmentLoading] = useState(false);
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const [limitLoading, setLimitLoading] = useState(false);
   const [requestedLimit, setRequestedLimit] = useState('');
   const [limitReason, setLimitReason] = useState('');
+  const [pinResetConfirmOpen, setPinResetConfirmOpen] = useState(false);
   const [pinResetLoading, setPinResetLoading] = useState(false);
   const [pinResetResult, setPinResetResult] = useState<Awaited<ReturnType<typeof resetCardPin>> | null>(null);
   const [opsDialogOpen, setOpsDialogOpen] = useState(false);
@@ -104,12 +126,14 @@ export default function CardDetailPage() {
     () => ({
       requestId: randomId('card-action'),
       actorUserId: user?.id || 'user_unknown',
+      bankId: fundingDetails?.bankId || fundingDetails?.virtualAccount.bankId || user?.bankId || 'bank_unknown',
+      role: user?.role || 'AFFILIATE_USER',
       userType: user?.stakeholderType || 'AFFILIATE',
       tenantId: user?.tenantId || 'tenant_unknown',
       affiliateId: resolveAffiliateId(user),
       idempotencyKey: randomId('idem'),
     }),
-    [user]
+    [fundingDetails?.bankId, fundingDetails?.virtualAccount.bankId, user]
   );
 
   const buildLimitRequestContext = useCallback(
@@ -202,13 +226,7 @@ export default function CardDetailPage() {
 
     setActionLoading(true);
     try {
-      if (actionType === 'activate') {
-        await activateCard(cardId, {
-          requestContext: buildAffiliateActionContext(),
-          reason: actionReason.trim(),
-        });
-        toast.success('Card activated successfully');
-      } else if (actionType === 'freeze') {
+      if (actionType === 'freeze') {
         await freezeCard(cardId, {
           requestContext: buildAffiliateActionContext(),
           reason: actionReason.trim(),
@@ -230,6 +248,7 @@ export default function CardDetailPage() {
 
       setActionType(null);
       setActionReason('');
+      setActionConfirmOpen(false);
       await refetchCard();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Card action failed');
@@ -275,6 +294,7 @@ export default function CardDetailPage() {
         reason: 'CUSTOMER_FORGOT_PIN',
       });
       setPinResetResult(response);
+      setPinResetConfirmOpen(false);
       toast.success(`PIN reset sent via ${response.smsDelivery.channel}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to reset PIN');
@@ -373,28 +393,37 @@ export default function CardDetailPage() {
     );
 
   const actionTitle =
-    actionType === 'activate'
-      ? 'Activate Card'
-      : actionType === 'freeze'
-        ? 'Freeze Card'
-        : actionType === 'unfreeze'
-          ? 'Unfreeze Card'
-          : 'Terminate Card';
+    actionType === 'freeze'
+      ? 'Freeze Card'
+      : actionType === 'unfreeze'
+        ? 'Unfreeze Card'
+        : 'Terminate Card';
 
   const defaultReason =
-    actionType === 'activate'
-      ? 'CUSTOMER_CARD_ACTIVATION'
-      : actionType === 'freeze'
+    actionType === 'freeze'
       ? 'CUSTOMER_REQUEST'
       : actionType === 'unfreeze'
         ? 'ISSUE_RESOLVED'
         : 'CUSTOMER_ACCOUNT_CLOSED';
 
+  const fundingAccount = fundingDetails?.virtualAccount;
+  const fundingCustomer = fundingDetails?.customer;
+  const fundingBank = fundingDetails?.bank;
+  const tracking = fulfillmentStatus?.fulfillment.tracking;
+  const hasTracking =
+    Boolean(tracking?.carrier?.trim()) ||
+    Boolean(tracking?.trackingNumber?.trim()) ||
+    Boolean(tracking?.trackingUrl?.trim());
+  const cardTitle = card.maskedPan && card.maskedPan !== 'Unavailable' ? card.maskedPan : card.id;
+  const customerName = fundingCustomer?.displayName || card.customerId || 'Customer unavailable';
+  const issuerName = fundingBank?.bankName || card.issuingBankName;
+  const productType = fulfillmentStatus?.productType || card.productCode;
+
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
-          <Button
+          {/* <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/cards')}
@@ -402,42 +431,17 @@ export default function CardDetailPage() {
             >
               <ChevronLeft className="w-4 h-4" />
               Back
-          </Button>
+          </Button> */}
             
           <PageHeader
-            title={card.maskedPan}
-            subtitle={`${card.productName} (${card.productCode}) - ${card.issuingBankName}`}
+            title={customerName}
+            subtitle={cardTitle}
             actions={
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusChip status={card.status as StatusType} />
-                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                {/* <Button variant="outline" size="sm" onClick={handleRefresh}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleBalanceFetch} disabled={balanceLoading}>
-                  {balanceLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wallet className="h-4 w-4 mr-1" />}
-                  Fetch Balance
-                </Button>
-                {isAffiliate && (
-                  <Button variant="outline" size="sm" onClick={handlePinReset} disabled={pinResetLoading}>
-                    {pinResetLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
-                    Reset PIN
-                  </Button>
-                )}
-                {isAffiliate && (
-                  <Button variant="outline" size="sm" onClick={() => setLimitDialogOpen(true)}>
-                    Request Limit
-                  </Button>
-                )}
-                {isServiceProvider && (
-                  <Button variant="outline" size="sm" onClick={() => setOpsDialogOpen(true)}>
-                    <ShieldCheck className="h-4 w-4 mr-1" /> Complete Limit
-                  </Button>
-                )}
-                {isAffiliate && card.status === 'PENDING_ACTIVATION' && (
-                  <Button variant="outline" size="sm" onClick={() => { setActionType('activate'); setActionReason('CUSTOMER_CARD_ACTIVATION'); }}>
-                    <CheckCircle2 className="h-4 w-4 mr-1" /> Activate Card
-                  </Button>
-                )}
+                </Button> */}
                 {isAffiliate && card.status === 'ACTIVE' && (
                   <Button variant="outline" size="sm" onClick={() => { setActionType('freeze'); setActionReason('CUSTOMER_REQUEST'); }}>
                     <Snowflake className="h-4 w-4 mr-1" /> Freeze
@@ -457,214 +461,121 @@ export default function CardDetailPage() {
             }
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Card Summary</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Product</p>
-                    <p className="text-sm">{card.productName}</p>
-                  </div>
+          <div className="panel-card border-border/40 shadow-none p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-xl font-semibold tracking-tight">{productType} Card</h2>
+                  <StatusChip status={card.status as StatusType} />
                 </div>
-                <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Customer Reference</p>
-                    <p className="text-sm">{card.customerId || 'Unavailable'}</p>
-                  </div>
+
+                <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <DetailItem label="Issuer" value={issuerName} />
+                  <DetailItem label="Currency" value={fundingDetails?.fundingInstructions.currency || card.currency} />
+                  <DetailItem label="Customer Reference" value={fundingDetails?.customerId || card.customerId} mono />
+                  <DetailItem label="Created" value={formatDateOnly(card.createdAt)} />
+                  <DetailItem label="Fulfillment" value={isFulfillmentLoading ? 'Loading...' : fulfillmentStatus?.fulfillment.bureauStatus || 'Unavailable'} />
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Created</p>
-                    <p className="text-sm">{format(new Date(card.createdAt), 'PPP')}</p>
+              </div>
+
+              <div className="min-w-full lg:min-w-80 lg:max-w-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Funding Account</p>
+                {isFundingLoading ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading funding details...
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Currency</p>
-                    <p className="text-sm">{card.currency}</p>
+                ) : fundingAccount ? (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="text-2xl font-semibold tracking-tight">{fundingAccount.accountNumber}</p>
+                      <p className="text-sm text-muted-foreground">{fundingAccount.accountName}</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2 lg:grid-cols-1">
+                      <DetailItem label="Virtual Account Bank" value={fundingAccount.bankName} />
+                      <DetailItem label="Status" value={<StatusChip status={fundingAccount.status as StatusType} />} />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">Funding details are not available for this card yet.</p>
+                )}
               </div>
             </div>
 
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Funding Details</h3>
-              {isFundingLoading ? (
-                <p className="text-sm text-muted-foreground">Loading funding details...</p>
-              ) : fundingDetails?.virtualAccount ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Landmark className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Virtual Account</p>
-                      <p className="text-sm font-mono">{fundingDetails.virtualAccount.accountNumber}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Account Name</p>
-                    <p className="text-sm">{fundingDetails.virtualAccount.accountName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bank</p>
-                    <p className="text-sm">{fundingDetails.virtualAccount.bankName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Funding Instructions</p>
-                    <p className="text-sm text-muted-foreground">{fundingDetails.fundingInstructions.message}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Funding details are not available for this card yet.</p>
-              )}
-            </div>
+            {fundingDetails?.fundingInstructions.message && (
+              <p className="mt-5 max-w-4xl text-sm text-muted-foreground">
+                {fundingDetails.fundingInstructions.message}
+              </p>
+            )}
 
-            <div className="kardit-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fulfillment</h3>
-                {card.productCode === 'PHYSICAL' || fulfillmentStatus ? (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleFulfillmentRefresh} disabled={fulfillmentLoading}>
-                      {fulfillmentLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Refresh Status
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleFulfillmentReinitiate} disabled={fulfillmentLoading}>
-                      Reinitiate
-                    </Button>
-                  </div>
-                ) : null}
+            {balance && (
+              <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-3">
+                <DetailItem label="Available Balance" value={formatMoney(balance.balance.availableBalance, balance.balance.currency)} />
+                <DetailItem label="Ledger Balance" value={formatMoney(balance.balance.ledgerBalance, balance.balance.currency)} />
+                <DetailItem label="Balance Retrieved" value={formatDateTime(balance.retrievedAt)} />
               </div>
-              {isFulfillmentLoading ? (
-                <p className="text-sm text-muted-foreground">Loading fulfillment status...</p>
-              ) : fulfillmentStatus ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <PackageCheck className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Bureau Status</p>
-                      <p className="text-sm">{fulfillmentStatus.fulfillment.bureauStatus}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Last Updated</p>
-                    <p className="text-sm">{format(new Date(fulfillmentStatus.fulfillment.lastUpdatedAt), 'PPP p')}</p>
-                  </div>
-                  {fulfillmentStatus.fulfillment.tracking && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Tracking</p>
-                      <p className="text-sm">{fulfillmentStatus.fulfillment.tracking.carrier} - {fulfillmentStatus.fulfillment.tracking.trackingNumber}</p>
-                      <a
-                        href={fulfillmentStatus.fulfillment.tracking.trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm text-secondary hover:underline"
-                      >
-                        Open tracking link
-                      </a>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No fulfillment tracking is available for this card.</p>
-              )}
-            </div>
+            )}
 
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Balance</h3>
-              {balance ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Available Balance</p>
-                    <p className="text-lg font-semibold text-primary">
-                      {balance.balance.availableBalance.toLocaleString('en-US', { style: 'currency', currency: balance.balance.currency })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Ledger Balance</p>
-                    <p className="text-sm">
-                      {balance.balance.ledgerBalance.toLocaleString('en-US', { style: 'currency', currency: balance.balance.currency })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Source</p>
-                    <p className="text-sm">{balance.source}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Retrieved At</p>
-                    <p className="text-sm">{format(new Date(balance.retrievedAt), 'PPP p')}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Fetch balance to load the current CMS-backed balances for this card.</p>
-              )}
-            </div>
+            {pinResetResult && (
+              <p className="mt-5 text-sm text-muted-foreground">
+                PIN reset {pinResetResult.status.toLowerCase()} via {pinResetResult.smsDelivery.channel} to {pinResetResult.smsDelivery.phoneMasked}.
+              </p>
+            )}
 
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">PIN Management</h3>
-              {pinResetResult ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="text-sm">{pinResetResult.status}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Delivery</p>
-                    <p className="text-sm">{pinResetResult.smsDelivery.channel} to {pinResetResult.smsDelivery.phoneMasked}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Sent At</p>
-                    <p className="text-sm">{format(new Date(pinResetResult.smsDelivery.sentAt), 'PPP p')}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">CMS Reference</p>
-                    <p className="text-sm font-mono">{pinResetResult.external.cmsReference}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {isAffiliate ? 'Use Reset PIN to trigger SMS delivery for the customer.' : 'PIN reset is only available to affiliate users on this screen.'}
-                </p>
-              )}
-            </div>
+            {limitCompletionResult && (
+              <p className="mt-5 text-sm text-muted-foreground">
+                Limit request {limitCompletionResult.limitRequestId} completed with {formatMoney(limitCompletionResult.appliedLimit.amount, limitCompletionResult.appliedLimit.currency)} applied.
+              </p>
+            )}
 
-            <div className="kardit-card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limit Operations</h3>
-              {limitCompletionResult ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Completed Request</p>
-                    <p className="text-sm font-mono">{limitCompletionResult.limitRequestId}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Applied Limit</p>
-                    <p className="text-sm">
-                      {limitCompletionResult.appliedLimit.amount.toLocaleString('en-US', {
-                        style: 'currency',
-                        currency: limitCompletionResult.appliedLimit.currency,
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Completed At</p>
-                    <p className="text-sm">{format(new Date(limitCompletionResult.completedAt), 'PPP p')}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">CMS Reference</p>
-                    <p className="text-sm font-mono">{limitCompletionResult.external.cmsReference}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {isServiceProvider ? 'Use Complete Limit to close a pending limit request from operations.' : 'Limit completion is handled by service provider operations users.'}
-                </p>
+            {hasTracking && (
+              <p className="mt-5 text-sm text-muted-foreground">
+                Tracking: {tracking?.carrier || 'Carrier unavailable'} {tracking?.trackingNumber ? `- ${tracking.trackingNumber}` : ''}
+                {tracking?.trackingUrl?.trim() && (
+                  <>
+                    {' '}
+                    <a href={tracking.trackingUrl} target="_blank" rel="noreferrer" className="text-secondary hover:underline">
+                      Open link
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={handleBalanceFetch} disabled={balanceLoading}>
+                {balanceLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wallet className="h-4 w-4 mr-1" />}
+                Fetch Balance
+              </Button>
+              {(productType === 'PHYSICAL' || fulfillmentStatus) && (
+                <>
+                  {/* <Button variant="outline" size="sm" onClick={handleFulfillmentRefresh} disabled={fulfillmentLoading}>
+                    {fulfillmentLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Refresh Fulfillment
+                  </Button> */}
+                  <Button variant="outline" size="sm" onClick={handleFulfillmentReinitiate} disabled={fulfillmentLoading}>
+                    <PackageCheck className="h-4 w-4 mr-1" /> Reinitiate
+                  </Button>
+                </>
+              )}
+              {isAffiliate && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setPinResetConfirmOpen(true)} disabled={pinResetLoading}>
+                    {pinResetLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
+                    Reset PIN
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setLimitDialogOpen(true)}>
+                    Request Limit
+                  </Button>
+                </>
+              )}
+              {isServiceProvider && (
+                <Button variant="outline" size="sm" onClick={() => setOpsDialogOpen(true)}>
+                  <ShieldCheck className="h-4 w-4 mr-1" /> Complete Limit
+                </Button>
               )}
             </div>
           </div>
 
-          <div className="kardit-card mt-4 p-6">
+          <div className="panel-card border-border/40 shadow-none mt-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Transactions</h3>
             </div>
@@ -681,7 +592,7 @@ export default function CardDetailPage() {
                 value={filters.dateTo || ''}
                 onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value || undefined }))}
               />
-              <Select
+              {/* <Select
                 value={filters.type || 'ALL'}
                 onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value as ApiTransactionType | 'ALL' }))}
               >
@@ -693,8 +604,8 @@ export default function CardDetailPage() {
                   <SelectItem value="LOAD">Load</SelectItem>
                   <SelectItem value="UNLOAD">Unload</SelectItem>
                 </SelectContent>
-              </Select>
-              <Select
+              </Select> */}
+              {/* <Select
                 value={filters.status || 'ALL'}
                 onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as ApiTransactionStatus | 'ALL' }))}
               >
@@ -707,7 +618,7 @@ export default function CardDetailPage() {
                   <SelectItem value="REFUSED">Refused</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
-              </Select>
+              </Select> */}
             </div>
 
             {txLoading ? (
@@ -720,7 +631,7 @@ export default function CardDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border bg-muted/50">
+                    <tr className="border-b border-border/40 bg-muted/40">
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
                       <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
@@ -729,7 +640,7 @@ export default function CardDetailPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Narrative</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border/40">
                     {transactions.map((tx, index) => (
                       <tr key={tx.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
                         <td className="px-4 py-3 text-sm">{format(new Date(tx.postedAt), 'MMM d, yyyy HH:mm')}</td>
@@ -749,11 +660,20 @@ export default function CardDetailPage() {
           </div>
         </div>
 
-        <Dialog open={actionType !== null} onOpenChange={(open) => { if (!open) { setActionType(null); setActionReason(''); } }}>
+        <Dialog
+          open={actionType !== null && !actionConfirmOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setActionType(null);
+              setActionReason('');
+              setActionConfirmOpen(false);
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{actionTitle}</DialogTitle>
-              <DialogDescription>Provide the API reason code or reason value for this card action.</DialogDescription>
+              <DialogDescription>Enter the reason for this card action.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               <div>
@@ -762,8 +682,62 @@ export default function CardDetailPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setActionType(null); setActionReason(''); }}>Cancel</Button>
-              <Button onClick={handleCardAction} disabled={actionLoading || !actionReason.trim()}>
+              <Button variant="outline" onClick={() => { setActionType(null); setActionReason(''); setActionConfirmOpen(false); }}>Cancel</Button>
+              <Button onClick={() => setActionConfirmOpen(true)} disabled={!actionReason.trim()}>
+                Submit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={pinResetConfirmOpen} onOpenChange={(open) => { if (!pinResetLoading) setPinResetConfirmOpen(open); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm PIN Reset</DialogTitle>
+              <DialogDescription>
+                This will trigger PIN reset delivery for card {card.id}.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPinResetConfirmOpen(false)} disabled={pinResetLoading}>
+                Cancel
+              </Button>
+              <Button onClick={handlePinReset} disabled={pinResetLoading}>
+                {pinResetLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={actionConfirmOpen}
+          onOpenChange={(open) => {
+            if (!open && !actionLoading) {
+              setActionConfirmOpen(false);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm {actionTitle}</DialogTitle>
+              <DialogDescription>
+                This will {actionType || 'update'} card {card.id}. Review the reason before continuing.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Reason</p>
+              <p className="text-sm">{actionReason}</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setActionConfirmOpen(false)} disabled={actionLoading}>
+                Back
+              </Button>
+              <Button
+                variant={actionType === 'terminate' ? 'danger' : 'default'}
+                onClick={handleCardAction}
+                disabled={actionLoading || !actionReason.trim()}
+              >
                 {actionLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Confirm
               </Button>
