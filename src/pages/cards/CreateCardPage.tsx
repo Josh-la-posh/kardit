@@ -135,7 +135,7 @@ export default function CreateCardPage() {
   };
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK']}>
       <AppLayout>
         <div className="animate-fade-in">
           <PageHeader

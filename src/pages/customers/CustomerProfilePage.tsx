@@ -21,7 +21,7 @@ export default function CustomerProfilePage() {
   })
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK']}>
       <AppLayout>
         <main className="scr-main">
           <div className="container">
@@ -66,7 +66,7 @@ function Profile({
         <div className="">
           <div className="profile-name">{fullName}</div>
           <div className="profile-meta-row">
-            <span className="profile-ref">{customer.email}</span>
+            <span className="profile-ref">{customer.id}</span>
             <StatusBadge status={customer.status} />
             <KycBadge level={customer.kycLevel || 'LEVEL_2'} />
             {/* <span>Captured {formatDate(customer.dateOfBirth)}</span> */}
@@ -94,7 +94,7 @@ function Profile({
           <div className="panel-head"><div className="panel-title">Identity</div></div>
           <div className="panel-body">
             <dl className="profile-specs">
-              {/* <div><dt>Title</dt><dd>-</dd></div> */}
+              {/* <div><dt>Customer ID</dt><dd>{customer.id}</dd></div> */}
               <div><dt>Full name</dt><dd>{fullName}</dd></div>
               <div><dt>Date of birth</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
               {/* <div><dt>Gender</dt><dd>-</dd></div> */}
@@ -122,7 +122,7 @@ function Profile({
               <div><dt>ID type</dt><dd>{customer.idType || <span className="muted">-</span>}</dd></div>
               <div><dt>ID number</dt><dd className="mono"><span className="muted">{customer.idNumber || <span className="muted">-</span>}</span></dd></div>
               <div><dt>Verified at</dt><dd>{customer.verifiedAt ? formatDate(customer.verifiedAt) : <span className="muted">pending</span>}</dd></div>
-              <div><dt>Created</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div>
+              {/* <div><dt>Created</dt><dd>{formatDate(customer.dateOfBirth)}</dd></div> */}
             </dl>
           </div>
         </AppCard>

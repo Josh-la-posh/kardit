@@ -9,7 +9,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { getBankPartnershipsByAffiliate, resolveAffiliateId } from '@/services/affiliateBankApi';
 import { isBankReadOnlyUser } from '@/lib/permissions';
 import { approvedBanksCacheKey, cacheApprovedBanks, type CachedBank, readCachedBanks } from '@/lib/bankCache';
+import { downloadTransactionExport } from '@/services/transactionApi';
+import type { TransactionType } from '@/types/transactionContracts';
 import { ArrowLeft, ArrowRight, Download, FileText, Loader2, Play } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PAGE_SIZES = ['10', '20', '50', '100'];
 const EXPORT_FORMATS = ['CSV', 'EXCEL'] as const;
@@ -51,6 +54,7 @@ export default function ReportDetailPage() {
   const [pageSize, setPageSize] = useState('20');
   const [productType, setProductType] = useState('');
   const [status, setStatus] = useState('');
+  const [transactionType, setTransactionType] = useState<TransactionType | ''>('');
   const [operationType, setOperationType] = useState('');
   const [bankId, setBankId] = useState('');
   const [exportFormat, setExportFormat] = useState<(typeof EXPORT_FORMATS)[number]>('CSV');
@@ -58,8 +62,9 @@ export default function ReportDetailPage() {
   const [approvedBanks, setApprovedBanks] = useState<CachedBank[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [banksError, setBanksError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const isTransactionExportReport = ['card-loads', 'card-unloads'].includes(reportDefinitionId || '');
+  const isTransactionExportReport = reportDefinitionId === 'card-transactions';
   const needsCardId = useMemo(
     () => ['card-lifecycle-events', 'card-balances'].includes(reportDefinitionId || ''),
     [reportDefinitionId]
@@ -67,7 +72,7 @@ export default function ReportDetailPage() {
 
   const needsCustomerRefId = reportDefinitionId === 'customer-support-view';
   const supportsDateRange = useMemo(
-    () => ['card-loads', 'card-unloads', 'card-lifecycle-events', 'card-balances', 'card-issuance', 'card-fulfillment', 'batches', 'exceptions'].includes(reportDefinitionId || ''),
+    () => ['card-transactions', 'card-lifecycle-events', 'card-balances', 'card-issuance', 'card-fulfillment', 'batches', 'exceptions'].includes(reportDefinitionId || ''),
     [reportDefinitionId]
   );
   const supportsOperationType = useMemo(
@@ -183,6 +188,7 @@ export default function ReportDetailPage() {
       toDate: isTransactionExportReport ? toIsoDate(dateTo, true) : dateTo || undefined,
       productType: productType || undefined,
       status: status || undefined,
+      transactionType: transactionType || undefined,
       operationType: operationType || undefined,
       bankId: bankId || undefined,
       affiliateId: affiliateId || undefined,
@@ -204,6 +210,32 @@ export default function ReportDetailPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleTransactionExportDownload = async () => {
+    const response = instance?.rawResponse as { exportId?: string } | undefined;
+    const exportId = response?.exportId;
+    if (!exportId || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      const { blob, fileName } = await downloadTransactionExport(exportId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download =
+        fileName ||
+        `${def.code}_${exportId}.${exportFormat === 'EXCEL' ? 'xlsx' : 'csv'}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded successfully.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to download report');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const statusMap: Record<string, StatusType> = {
     IDLE: 'INACTIVE',
     QUEUED: 'PENDING',
@@ -217,7 +249,7 @@ export default function ReportDetailPage() {
     instance?.status === 'QUEUED' ||
     instance?.status === 'RUNNING' ||
     (needsCardId && !cardId.trim()) ||
-    (isTransactionExportReport && (!bankId || !affiliateId || banksLoading)) ||
+    (isTransactionExportReport && (!transactionType || !bankId || !affiliateId || banksLoading)) ||
     (needsCustomerRefId && !customerRefId.trim());
 
   return (
@@ -265,6 +297,18 @@ export default function ReportDetailPage() {
 
                 {isTransactionExportReport && (
                   <>
+                    <Field label="Transaction Type">
+                      <select
+                        className="bch-select"
+                        value={transactionType}
+                        onChange={(e) => setTransactionType(e.target.value as TransactionType | '')}
+                      >
+                        <option value="">Select transaction type</option>
+                        <option value="LOADS">LOAD</option>
+                        <option value="UNLOADS">UNLOAD</option>
+                      </select>
+                    </Field>
+
                     <Field label="Bank">
                       <select className="bch-select" value={bankId} onChange={(e) => setBankId(e.target.value)} disabled={banksLoading}>
                         <option value="">{banksLoading ? 'Loading approved banks...' : 'Select approved bank'}</option>
@@ -389,7 +433,19 @@ export default function ReportDetailPage() {
                         </tbody>
                       </table>
                     </div>
-                    {!isTransactionExportReport && (
+                    {isTransactionExportReport ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleTransactionExportDownload()}
+                        disabled={isDownloading || !(instance.rawResponse as { exportId?: string } | undefined)?.exportId}
+                      >
+                        {isDownloading
+                          ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          : <Download className="h-4 w-4 mr-1" />}
+                        {isDownloading ? 'Downloading...' : `Download ${exportFormat}`}
+                      </Button>
+                    ) : (
                       <div className="flex gap-2 flex-wrap">
                         {def.allowedFormats.map((format) => (
                           <Button key={format} variant="outline" size="sm" onClick={() => handleExport(format)}>

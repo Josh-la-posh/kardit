@@ -123,7 +123,8 @@ function getPostLoginRedirect(
   const isSameServiceUser =
     Boolean(previousIdentity) &&
     previousIdentity?.serviceType === currentIdentity?.serviceType &&
-    previousIdentity?.serviceUserId === currentIdentity?.serviceUserId;
+    previousIdentity?.serviceUserId === currentIdentity?.serviceUserId &&
+    (previousIdentity?.serviceBankId || '') === (currentIdentity?.serviceBankId || '');
 
   try {
     const url = new URL(returnUrl, window.location.origin);

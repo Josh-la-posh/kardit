@@ -88,6 +88,8 @@ const affiliateNavItems: NavItem[] = [
 const bankNavItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/bank/dashboard' },
   { label: 'Affiliates', icon: Building2, path: '/bank/affiliates' },
+  { label: 'Customers', icon: Users, path: '/customers' },
+  { label: 'Cards', icon: CreditCard, path: '/cards' },
   { label: 'Transactions', icon: Receipt, path: '/transactions' },
   { label: 'Audit Logs', icon: History, path: '/bank/audit-logs' },
   { label: 'Reports', icon: FileText, path: '/reports' },

@@ -456,13 +456,6 @@ export default function TransactionsPage() {
                 </div>
               </AppCardHeader> */}
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <div className="relative xl:col-span-2">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
-                </div>
-                <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
-                <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
-                <Input title="Card no" placeholder="Card no" value={cardId} onChange={(e) => setCardId(e.target.value)} />
                 <Select value={bankId || ALL_FILTER_VALUE} onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}>
                   <SelectTrigger><SelectValue placeholder="Bank" /></SelectTrigger>
                   <SelectContent>
@@ -474,6 +467,13 @@ export default function TransactionsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {/* <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} /> */}
+                <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
+                <Input title="Card ID" placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
+                <div className="relative xl:col-span-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
+                </div>
                 {user?.stakeholderType !== 'AFFILIATE' && (
                   <Select value={affiliateIdFilter || ALL_FILTER_VALUE} onValueChange={(value) => setAffiliateIdFilter(value === ALL_FILTER_VALUE ? '' : value)}>
                     <SelectTrigger><SelectValue placeholder="Affiliate" /></SelectTrigger>

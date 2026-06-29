@@ -11,10 +11,12 @@ type NormalizedServiceType = 'AFFILIATE_SERVICE' | 'BANK_SERVICE' | 'ADMIN_SERVI
 
 export interface ServiceByTenantResponse {
   serviceType: ServiceType | string;
+  tenantId: string;
   serviceUserId: string;
+  serviceBankId: string;
   serviceUserName?: string;
   serviceUserEmail?: string;
-  status: boolean;
+  status: string;
 }
 
 export function normalizeServiceType(value: unknown): NormalizedServiceType | undefined {
@@ -100,9 +102,10 @@ export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetA
 }
 
 export async function getServiceByTenantId(tenantId: string): Promise<ServiceByTenantResponse> {
-  return getJson<ServiceByTenantResponse>(
+  const response = await getJson<ServiceByTenantResponse>(
     `/affiliates/GetServiceByTenantId?tenantId=${encodeURIComponent(tenantId)}`
   );
+  return response;
 }
 
 export function normalizeAffiliateType(value: unknown): AffiliateType | undefined {

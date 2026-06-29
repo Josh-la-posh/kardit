@@ -101,6 +101,7 @@ export default function CardDetailPage() {
 
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balance, setBalance] = useState<Awaited<ReturnType<typeof getCardBalance>> | null>(null);
+  const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<CardActionType>(null);
   const [actionReason, setActionReason] = useState('');
   const [actionConfirmOpen, setActionConfirmOpen] = useState(false);
@@ -166,39 +167,25 @@ export default function CardDetailPage() {
 
   const handleBalanceFetch = useCallback(async () => {
     if (!cardId) return;
+    setBalance(null);
+    setBalanceDialogOpen(true);
     setBalanceLoading(true);
     try {
       const response = await getCardBalance(cardId);
       setBalance(response);
-      toast.success('Balance refreshed');
     } catch (error) {
+      setBalanceDialogOpen(false);
       toast.error(error instanceof Error ? error.message : 'Unable to fetch balance');
     } finally {
       setBalanceLoading(false);
     }
   }, [cardId]);
 
-  const handleFulfillmentRefresh = useCallback(async () => {
-    if (!cardId) return;
-    setFulfillmentLoading(true);
-    try {
-      const response = await refreshCardFulfillment(cardId, {
-        requestContext: {
-          requestId: randomId('fulfillment-refresh'),
-          actorUserId: user?.id || 'user_unknown',
-          userType: user?.stakeholderType || 'AFFILIATE',
-          tenantId: user?.tenantId || 'tenant_unknown',
-          affiliateId: resolveAffiliateId(user),
-        },
-      });
-      toast.success(`Fulfillment updated to ${response.currentStatus}`);
-      await refetchCard();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to refresh fulfillment');
-    } finally {
-      setFulfillmentLoading(false);
-    }
-  }, [cardId, refetchCard, user]);
+  const handleBalanceDialogChange = useCallback((open: boolean) => {
+    if (balanceLoading) return;
+    setBalanceDialogOpen(open);
+    if (!open) setBalance(null);
+  }, [balanceLoading]);
 
   const handleFulfillmentReinitiate = useCallback(async () => {
     if (!cardId) return;
@@ -346,7 +333,7 @@ export default function CardDetailPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
         <AppLayout>
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -358,7 +345,7 @@ export default function CardDetailPage() {
 
   if (!card) {
     return (
-      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
+      <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
         <AppLayout>
           <div className="mx-auto max-w-2xl py-12">
 
@@ -432,7 +419,7 @@ export default function CardDetailPage() {
   const productType = fulfillmentStatus?.productType || card.productCode;
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'SERVICE_PROVIDER']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK', 'SERVICE_PROVIDER']}>
       <AppLayout>
         <div className="animate-fade-in">
           {/* <Button
@@ -491,7 +478,7 @@ export default function CardDetailPage() {
                   <DetailItem label="Currency" value={fundingDetails?.fundingInstructions.currency || card.currency} />
                   <DetailItem label="Customer Reference" value={fundingDetails?.customerId || card.customerId} mono />
                   <DetailItem label="Created" value={formatDateOnly(card.createdAt)} />
-                  <DetailItem label="Fulfillment" value={isFulfillmentLoading ? 'Loading...' : fulfillmentStatus?.fulfillment.bureauStatus || 'Unavailable'} />
+                  {/* <DetailItem label="Fulfillment" value={isFulfillmentLoading ? 'Loading...' : fulfillmentStatus?.fulfillment.bureauStatus || 'Unavailable'} /> */}
                 </div>
               </div>
 
@@ -522,14 +509,6 @@ export default function CardDetailPage() {
               <p className="mt-5 max-w-4xl text-sm text-muted-foreground">
                 {fundingDetails.fundingInstructions.message}
               </p>
-            )}
-
-            {balance && (
-              <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-3">
-                <DetailItem label="Available Balance" value={formatMoney(balance.balance.availableBalance, balance.balance.currency)} />
-                <DetailItem label="Ledger Balance" value={formatMoney(balance.balance.ledgerBalance, balance.balance.currency)} />
-                <DetailItem label="Balance Retrieved" value={formatDateTime(balance.retrievedAt)} />
-              </div>
             )}
 
             {pinResetResult && (
@@ -565,9 +544,6 @@ export default function CardDetailPage() {
               </Button>
               {(productType === 'PHYSICAL' || fulfillmentStatus) && (
                 <>
-                  {/* <Button variant="outline" size="sm" onClick={handleFulfillmentRefresh} disabled={fulfillmentLoading}>
-                    {fulfillmentLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Refresh Fulfillment
-                  </Button> */}
                   <Button variant="outline" size="sm" onClick={handleFulfillmentReinitiate} disabled={fulfillmentLoading}>
                     <PackageCheck className="h-4 w-4 mr-1" /> Reinitiate
                   </Button>
@@ -676,6 +652,76 @@ export default function CardDetailPage() {
             )}
           </div>
         </div>
+
+        <Dialog open={balanceDialogOpen} onOpenChange={handleBalanceDialogChange}>
+          <DialogContent
+            className="overflow-hidden border-border/60 p-0 sm:max-w-md"
+            onEscapeKeyDown={(event) => {
+              if (balanceLoading) event.preventDefault();
+            }}
+            onPointerDownOutside={(event) => {
+              if (balanceLoading) event.preventDefault();
+            }}
+          >
+            {balanceLoading ? (
+              <div className="flex min-h-80 flex-col items-center justify-center px-8 py-12 text-center">
+                <div className="relative mb-7 flex h-24 w-24 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse" />
+                  <div className="absolute inset-2 rounded-full border-2 border-primary/15 border-t-primary animate-spin" />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                    <Wallet className="h-6 w-6" />
+                  </div>
+                </div>
+                <DialogHeader className="space-y-2 text-center sm:text-center">
+                  <DialogTitle className="text-xl">Fetching card balance</DialogTitle>
+                  <DialogDescription>
+                    Securely retrieving the latest balance. This should only take a moment.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-7 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  Connecting to card services
+                </div>
+              </div>
+            ) : balance ? (
+              <>
+                <div className="bg-gradient-to-br from-primary/10 via-background to-secondary/10 px-6 pb-7 pt-8 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
+                  <DialogHeader className="space-y-2 text-center sm:text-center">
+                    <DialogTitle className="text-xl">Card balance</DialogTitle>
+                    <DialogDescription>Available balance as of the latest retrieval</DialogDescription>
+                  </DialogHeader>
+                  <p className="mt-5 text-4xl font-bold tracking-tight text-foreground">
+                    {formatMoney(balance.balance.availableBalance, balance.balance.currency)}
+                  </p>
+                  <div className="mt-3 inline-flex items-center rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                    Balance retrieved successfully
+                  </div>
+                </div>
+
+                <div className="space-y-5 px-6 py-6">
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-muted-foreground">Ledger balance</span>
+                      <span className="text-base font-semibold">
+                        {formatMoney(balance.balance.ledgerBalance, balance.balance.currency)}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/60 pt-4">
+                      <span className="text-sm text-muted-foreground">Retrieved</span>
+                      <span className="text-right text-sm font-medium">{formatDateTime(balance.retrievedAt)}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full" onClick={() => handleBalanceDialogChange(false)}>
+                    Done
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         <Dialog
           open={actionType !== null && !actionConfirmOpen}

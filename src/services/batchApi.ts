@@ -1,4 +1,5 @@
 import { ApiError } from '@/services/apiError';
+import { getAuthAccessToken } from '@/services/authSession';
 import type {
   GetBatchesRequest,
   GetBatchesResponse,
@@ -12,6 +13,7 @@ import type {
   UploadBatchResponse,
   ValidateBatchRequest,
   ValidateBatchResponse,
+  BatchResultsFormat,
 } from '@/types/batchContracts';
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
@@ -77,9 +79,7 @@ export function submitBatch(batchId: string, request: SubmitBatchRequest): Promi
 }
 
 export function getBatch(batchId: string): Promise<GetBatchResponse> {
-  return getJson<GetBatchResponse>(`/Batches/${batchId}`).catch(() =>
-    getJson<GetBatchResponse>(`/batches/${batchId}`)
-  );
+  return getJson<GetBatchResponse>(`/batches/${encodeURIComponent(batchId)}`);
 }
 
 export function getBatchRows(batchId: string, request: GetBatchRowsRequest = {}): Promise<GetBatchRowsResponse> {
@@ -91,8 +91,51 @@ export function getBatchRows(batchId: string, request: GetBatchRowsRequest = {})
   return getJson<GetBatchRowsResponse>(`/batches/${batchId}/rows${suffix}`);
 }
 
-export function getBatchResultsDownload(batchId: string): Promise<GetBatchResultsResponse> {
-  return getJson<GetBatchResultsResponse>(`/batches/${batchId}/results/download`);
+export function downloadBatchResults(
+  batchId: string,
+  format: BatchResultsFormat
+): Promise<GetBatchResultsResponse> {
+  const query = new URLSearchParams({ format });
+  return getJson<GetBatchResultsResponse>(
+    `/batches/${encodeURIComponent(batchId)}/results/download?${query.toString()}`
+  );
+}
+
+export async function downloadProtectedBatchFile(
+  downloadUrl: string,
+  fallbackFileName: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const accessToken = getAuthAccessToken();
+  if (!accessToken) {
+    throw new ApiError('Your session token is unavailable. Please sign in again.', 401, undefined);
+  }
+
+  const baseUrl = getApiBaseUrl();
+  const resolvedUrl = new URL(downloadUrl, baseUrl ? `${baseUrl}/` : window.location.origin).toString();
+  const response = await fetch(resolvedUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: accessToken.startsWith('Bearer ') ? accessToken : `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await safeJson(response);
+    const message =
+      (typeof errorBody === 'object' && errorBody && 'message' in errorBody
+        ? String((errorBody as { message: unknown }).message)
+        : undefined) || `Download failed (${response.status})`;
+    throw new ApiError(message, response.status, errorBody);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+  const fileName = encodedName
+    ? decodeURIComponent(encodedName)
+    : plainName?.trim() || fallbackFileName;
+
+  return { blob: await response.blob(), fileName };
 }
 
 export function getBatches(request: GetBatchesRequest = {}): Promise<GetBatchesResponse> {

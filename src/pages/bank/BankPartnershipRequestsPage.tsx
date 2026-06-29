@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,19 @@ function formatDateTime(value?: string) {
   return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy HH:mm');
 }
 
+function formatRelationshipStatus(status?: string) {
+  const labels: Record<string, string> = {
+    PENDING_BANK_APPROVAL: 'Pending',
+    ACTIVE: 'Approved',
+    APPROVED: 'Approved',
+    SUSPENDED: 'Suspended',
+    REJECTED: 'Rejected',
+  };
+
+  return labels[status || ''] || status?.replace(/_/g, ' ').toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()) || '-';
+}
+
 export default function BankPartnershipRequestsPage() {
   const navigate = useNavigate();
   const { bankId, requests, page, pageSize, total, setPage, isLoading, isActing, error, refresh } = usePendingPartnershipRequests();
@@ -25,7 +39,12 @@ export default function BankPartnershipRequestsPage() {
   };
 
   const openRequest = (request: PartnershipRequestQueryItem) => {
-    navigate(`/bank/affiliate-partnership-requests/${request.partnershipRequestId}`);
+    if (!request.partnershipRequestId) {
+      toast.error('This partnership request does not include a request ID.');
+      return;
+    }
+
+    navigate(`/bank/affiliate-partnership-requests/${encodeURIComponent(request.partnershipRequestId)}`);
   };
 
   const columns = useMemo<PaginatedColumn<PartnershipRequestQueryItem>[]>(
@@ -47,13 +66,13 @@ export default function BankPartnershipRequestsPage() {
       {
         key: 'status',
         header: 'Status',
-        render: (request) => <StatusChip status="PENDING" label={request.status} />,
+        render: (request) => <StatusChip status="PENDING" label={formatRelationshipStatus(request.status)} />,
       },
-      {
-        key: 'requestedAt',
-        header: 'Requested',
-        render: (request) => formatDateTime(request.requestedAt),
-      },
+      // {
+      //   key: 'requestedAt',
+      //   header: 'Requested',
+      //   render: (request) => formatDateTime(request.requestedAt),
+      // },
       // {
       //   key: 'note',
       //   header: 'Note',
@@ -70,7 +89,7 @@ export default function BankPartnershipRequestsPage() {
               event.stopPropagation();
               openRequest(request);
             }}
-            disabled={isActing}
+            disabled={isActing || !request.partnershipRequestId}
           >
             View more
           </Button>
@@ -109,7 +128,7 @@ export default function BankPartnershipRequestsPage() {
                 error={error || undefined}
                 emptyMessage="No pending partnership requests found."
                 onRowClick={openRequest}
-                rowKey={(request) => request.partnershipRequestId}
+                rowKey={(request) => request.partnershipRequestId || request.affiliateId}
                 page={page}
                 pageSize={pageSize}
                 total={total}

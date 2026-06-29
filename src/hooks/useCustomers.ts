@@ -251,7 +251,7 @@ export function useCustomer(customerId: string | undefined) {
         embossName: fullName.toUpperCase(),
         address: response.identity.address,
         idType: response.kyc.idType,
-        idNumber: response.kyc.idNumberMasked,
+        idNumber: response.kyc.idNumberMasked || response.kyc.idNumber || undefined,
         kycLevel: response.kyc.kycLevel,
         verifiedAt: response.kyc.verifiedAt,
         tenantId: response.tenantId,
@@ -264,7 +264,7 @@ export function useCustomer(customerId: string | undefined) {
           customerId: response.customerRefId,
           type: response.kyc.idType,
           status: 'VERIFIED',
-          fileName: response.kyc.idNumberMasked,
+          fileName: response.kyc.idNumberMasked || response.kyc.idNumber || undefined,
           uploadedAt: response.kyc.verifiedAt,
         },
       ]);

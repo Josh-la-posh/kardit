@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Link } from 'react-router-dom'
+import { toast } from 'sonner'
 import { AppLayout } from '@/components/AppLayout'
+import { BatchDownloadDialog } from '@/components/BatchDownloadDialog'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { getBatches } from '@/services/batchApi'
+import { PaginatedTable, type PaginatedColumn } from '@/components/ui/paginated-table'
+import { downloadBatchResults, getBatches } from '@/services/batchApi'
 import { CARD_PRODUCTS } from '@/stores/mockStore'
-import type { BatchSummary } from '@/types/batchContracts'
-import { Eye, Filter, Loader2, RefreshCw, Search, Upload } from 'lucide-react'
+import type { BatchResultsFormat, BatchSummary, GetBatchResultsResponse } from '@/types/batchContracts'
+import { Download, Eye, Filter, Loader2, RefreshCw, Search, Upload } from 'lucide-react'
 
 type UiStatus = 'PROCESSING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'PENDING'
 
@@ -33,6 +36,10 @@ export default function BatchOperationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | UiStatus>('ALL')
+  const [downloading, setDownloading] = useState<string | null>(null)
+  const [downloadDetails, setDownloadDetails] = useState<GetBatchResultsResponse | null>(null)
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   const refetch = useCallback(async () => {
     setIsLoading(true)
@@ -57,6 +64,10 @@ export default function BatchOperationsPage() {
     refetch()
   }, [refetch])
 
+  useEffect(() => {
+    setPage(1)
+  }, [query, statusFilter])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return batches.filter((b) => {
@@ -78,6 +89,105 @@ export default function BatchOperationsPage() {
       failedRows: batches.reduce((n, b) => n + (b.failedRows || 0), 0),
     }
   }, [batches])
+
+  const handleDownload = async (batchId: string, downloadFormat: BatchResultsFormat) => {
+    const downloadKey = `${batchId}:${downloadFormat}`
+    setDownloading(downloadKey)
+    try {
+      const response = await downloadBatchResults(batchId, downloadFormat)
+      setDownloadDetails(response)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not download batch results')
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const columns: PaginatedColumn<BatchSummary>[] = [
+    {
+      key: 'id',
+      header: 'Batch ID',
+      render: (batch) => <span className="font-mono text-xs font-medium">{batch.id}</span>,
+    },
+    {
+      key: 'batchType',
+      header: 'Batch type',
+      render: (batch) => <span className="text-muted-foreground">{batch.batchType}</span>,
+    },
+    {
+      key: 'productId',
+      header: 'Product',
+      render: (batch) => (
+        <span className="text-muted-foreground">
+          {CARD_PRODUCTS.find((product) => product.id === batch.productId)?.name || batch.productId || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Submitted',
+      render: (batch) => (
+        <span className="text-muted-foreground">
+          {formatDistanceToNow(new Date(batch.createdAt), { addSuffix: true })}
+        </span>
+      ),
+    },
+    {
+      key: 'totalRows',
+      header: 'Rows',
+      className: 'text-right tabular-nums',
+      render: (batch) => batch.totalRows.toLocaleString(),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (batch) => {
+        const status = normalizeStatus(batch.status)
+        return (
+          <span className={`badge ${STATUS_CLASS[status]}`}>
+            {status === 'PROCESSING' && <Loader2 className="spin" style={{ width: 11, height: 11 }} />}
+            {status}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      className: 'text-right',
+      render: (batch) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            title="Download CSV results"
+            onClick={() => handleDownload(batch.id, 'csv')}
+            disabled={downloading !== null}
+          >
+            {downloading === `${batch.id}:csv` ? <Loader2 className="spin" /> : <Download />} CSV
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            title="Download Excel results"
+            onClick={() => handleDownload(batch.id, 'excel')}
+            disabled={downloading !== null}
+          >
+            {downloading === `${batch.id}:excel` ? <Loader2 className="spin" /> : <Download />} Excel
+          </button>
+          <Link
+            to={`/batch-operations/${encodeURIComponent(batch.id)}`}
+            className="icon-button"
+            title="View batch details"
+          >
+            <Eye />
+          </Link>
+        </div>
+      ),
+    },
+  ]
+
+  const paginatedBatches = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
@@ -137,63 +247,21 @@ export default function BatchOperationsPage() {
                 </div>
               </div>
 
-              {isLoading ? (
-                <div style={{ padding: 40, display: 'grid', placeItems: 'center' }}>
-                  <Loader2 className="spin" style={{ width: 22, height: 22 }} />
-                </div>
-              ) : error ? (
-                <div className="empty-list" style={{ padding: 24 }}>
-                  <div className="empty-list-title">Could not load batches</div>
-                  <div className="empty-list-sub">{error}</div>
-                  <button className="btn btn-secondary" onClick={refetch}><RefreshCw /> Try again</button>
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="empty-list" style={{ padding: 24 }}>
-                  <div className="empty-list-title">No batches found</div>
-                  <div className="empty-list-sub">Try another filter, or upload a new batch.</div>
-                </div>
-              ) : (
-                <table className="data">
-                  <thead>
-                    <tr>
-                      <th>Batch ID</th>
-                      <th>Batch type</th>
-                      <th>Product</th>
-                      <th>Submitted</th>
-                      <th className="right">Rows</th>
-                      <th>Status</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((b) => {
-                      const status = normalizeStatus(b.status)
-                      const product = CARD_PRODUCTS.find((p) => p.id === b.productId)?.name || b.productId || '-'
-                      return (
-                        <tr key={b.id}>
-                          <td className="id">{b.id}</td>
-                          <td className="meta">{b.batchType}</td>
-                          <td className="meta">{product}</td>
-                          <td className="meta">{formatDistanceToNow(new Date(b.createdAt), { addSuffix: true })}</td>
-                          <td className="right tabular">{b.totalRows}</td>
-                          <td>
-                            <span className={`badge ${STATUS_CLASS[status]}`}>
-                              {status === 'PROCESSING' && <Loader2 className="spin" style={{ width: 11, height: 11 }} />}
-                              {status}
-                            </span>
-                          </td>
-                          <td className="right">
-                            <Link to={`/batch-operations/${encodeURIComponent(b.id)}`} className="icon-button" style={{ marginLeft: 'auto' }}>
-                              <Eye />
-                            </Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
+              <PaginatedTable
+                columns={columns}
+                rows={paginatedBatches}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage="No batches found. Try another filter, or upload a new batch."
+                rowKey={(batch) => batch.id}
+                page={page}
+                pageSize={pageSize}
+                total={filtered.length}
+                onPageChange={setPage}
+                className="rounded-none border-x-0 border-b-0 shadow-none"
+              />
             </section>
+            <BatchDownloadDialog download={downloadDetails} onClose={() => setDownloadDetails(null)} />
           </div>
         </main>
       </AppLayout>

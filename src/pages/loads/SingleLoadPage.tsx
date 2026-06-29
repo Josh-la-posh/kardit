@@ -6,12 +6,21 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { useAuth } from '@/hooks/useAuth';
 import { useCard, useCards } from '@/hooks/useCards';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import { createCardLoad, getCardBalance } from '@/services/cardsApi';
 import type { CardLoadResponse } from '@/types/cardContracts';
-import { ArrowLeft, Check, CheckCircle2, ChevronRight, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, ChevronRight, ChevronsUpDown, CreditCard, Landmark, Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 
 type Step = 1 | 2 | 3;
 
@@ -27,7 +36,11 @@ const proofTypeOptions = [
   //   description: 'Direct credit into the issuing bank virtual account.',
   // },
 ];
-const quickAmounts = [5000, 10000, 25000, 50000, 100000];
+const quickAmountsByCurrency: Record<'NGN' | 'USD' | 'CNY', number[]> = {
+  NGN: [5000, 10000, 25000, 50000, 100000],
+  USD: [10, 25, 50, 100, 250],
+  CNY: [50, 100, 250, 500, 1000],
+};
 
 function randomId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -108,6 +121,7 @@ export default function SingleLoadPage() {
 
   const [step, setStep] = useState<Step>(1);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardPickerOpen, setCardPickerOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<'NGN' | 'USD' | 'CNY'>('NGN');
   const [bankTransferReference, setBankTransferReference] = useState('');
@@ -121,6 +135,10 @@ export default function SingleLoadPage() {
   const filteredCards = useMemo(
     () => cards.filter((card) => card.status === 'ACTIVE'),
     [cards]
+  );
+  const selectedCardOption = useMemo(
+    () => filteredCards.find((card) => card.id === selectedCardId),
+    [filteredCards, selectedCardId]
   );
 
   const selectedProof = useMemo(
@@ -244,18 +262,69 @@ export default function SingleLoadPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="mb-2 block text-sm font-medium">Card <span className="text-destructive">*</span></label>
-                        <Select value={selectedCardId || ''} onValueChange={(value) => setSelectedCardId(value || null)}>
-                          <SelectTrigger className="h-11 rounded-xl">
-                            <SelectValue placeholder="Select a card" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredCards.map((card) => (
-                              <SelectItem key={card.id} value={card.id}>
-                                {card.productName} - {card.id}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={cardPickerOpen} onOpenChange={setCardPickerOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={cardPickerOpen}
+                              className="h-11 w-full justify-between rounded-xl px-3 font-normal"
+                            >
+                              <span className="min-w-0 truncate text-left">
+                                {selectedCardOption
+                                  ? `${selectedCardOption.id} - ${selectedCardOption.productName}`
+                                  : 'Select a card'}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            className="w-[var(--radix-popover-trigger-width)] p-0"
+                          >
+                            <Command>
+                              <CommandInput placeholder="Search by card ID, PAN, product, or bank..." />
+                              <CommandList>
+                                <CommandEmpty>No matching active card found.</CommandEmpty>
+                                <CommandGroup heading={`${filteredCards.length} active cards`}>
+                                  {filteredCards.map((card) => (
+                                    <CommandItem
+                                      key={card.id}
+                                      value={[
+                                        card.id,
+                                        card.maskedPan,
+                                        card.productName,
+                                        card.productCode,
+                                        card.issuingBankName,
+                                      ].filter(Boolean).join(' ')}
+                                      onSelect={() => {
+                                        setSelectedCardId(card.id);
+                                        setCardPickerOpen(false);
+                                      }}
+                                      className={`cursor-pointer p-0 transition-colors ${
+                                        selectedCardId === card.id
+                                          ? 'bg-primary text-white hover:bg-primary hover:text-white data-[selected=true]:bg-primary data-[selected=true]:text-white'
+                                          : 'hover:bg-green-500 hover:text-white data-[selected=true]:bg-green-500 data-[selected=true]:text-white'
+                                      }`}
+                                    >
+                                      <div className="flex w-full items-center justify-between gap-3 p-3">
+                                        <p className="truncate text-xs">
+                                          {card.productName || 'Card'} - {card.id}
+                                        </p>
+                                        <Check
+                                          className={`h-4 w-4 shrink-0 ${
+                                            selectedCardId === card.id ? 'opacity-100' : 'opacity-0'
+                                          }`}
+                                        />
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                       {!filteredCards.length && (
@@ -273,7 +342,7 @@ export default function SingleLoadPage() {
                           <div className="mt-2 text-sm text-muted-foreground">
                             {selectedCard.productName} · {fundingDetails?.virtualAccount.bankName || selectedCard.issuingBankName}
                           </div>
-                          <button type="button" className="mt-5 text-sm font-semibold text-primary" onClick={() => setSelectedCardId(null)}>
+                          <button type="button" className="mt-5 text-sm font-semibold text-primary" onClick={() => setCardPickerOpen(true)}>
                             Change card →
                           </button>
                         </div>
@@ -301,7 +370,7 @@ export default function SingleLoadPage() {
                       <div className="grid gap-3 md:grid-cols-3">
                         <div className="text-sm">
                           <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Card</p>
-                          <p className="font-mono">{selectedCard.maskedPan}</p>
+                          <p className="font-mono">{selectedCard.id}</p>
                         </div>
                         <div className="text-sm">
                           <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Virtual account</p>
@@ -344,7 +413,7 @@ export default function SingleLoadPage() {
                         onChange={(e) => setAmount(e.target.value)}
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {quickAmounts.map((value) => (
+                        {quickAmountsByCurrency[currency].map((value) => (
                           <button
                             key={value}
                             type="button"

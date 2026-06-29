@@ -102,6 +102,7 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
   const role = profileString(profile, ['role', 'userRole', 'primaryRole', 'roles'], user.role);
   const serviceType = profileString(profile, ['serviceType'], '');
   const serviceUserId = profileString(profile, ['serviceUserId'], '');
+  const serviceBankId = profileString(profile, ['serviceBankId'], '');
   const stakeholderType =
     getStakeholderTypeForAffiliateType(serviceType) ||
     normalizeStakeholderType(
@@ -115,7 +116,7 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
 
   return {
     ...user,
-    id: profileString(profile, ['userId', 'id'], serviceUserId || user.id),
+    id: profileString(profile, ['userId', 'id'], user.id),
     email: serviceEmail,
     name: profileName || serviceEmail || user.name,
     role,
@@ -124,10 +125,11 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
     tenantName: profileString(profile, ['tenantName', 'tenant_name', 'legalName', 'tradingName', 'affiliateName', 'serviceUserName', 'name'], user.tenantName),
     affiliateId:
       profileString(profile, ['affiliateId', 'affiliate_id'], user.affiliateId || '') ||
-      (isAffiliateService ? serviceUserId : undefined) ||
+      (isAffiliateService || isBankService ? serviceUserId : undefined) ||
       user.affiliateId,
     bankId:
       profileString(profile, ['ownerBankId', 'owner_bank_id', 'bankId', 'bank_id'], user.bankId || '') ||
+      serviceBankId ||
       (isBankService ? serviceUserId : undefined) ||
       user.bankId,
   };

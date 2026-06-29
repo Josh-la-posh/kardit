@@ -142,7 +142,13 @@ function extractPendingPartnershipRequests(payload: unknown): {
       ),
       bankId: String(record.bankId ?? data.bankId ?? ''),
       bankName: typeof record.bankName === 'string' ? record.bankName : undefined,
-      status: String(record.status ?? affiliate.status ?? 'PENDING_BANK_APPROVAL'),
+      status: String(
+        record.status ??
+        record.relationshipStatus ??
+        affiliate.status ??
+        affiliate.relationshipStatus ??
+        'PENDING_BANK_APPROVAL'
+      ),
       note: typeof record.note === 'string' ? record.note : undefined,
       requestedAt: String(record.requestedAt ?? affiliate.requestedAt ?? ''),
       decisionedAt: typeof record.decisionedAt === 'string' ? record.decisionedAt : undefined,

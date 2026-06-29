@@ -139,7 +139,6 @@ export default function DashboardPage() {
     getServiceByTenantId(tenantId)
       .then((response) => {
         if (cancelled) return
-        console.info('Service by tenant response:', response)
         saveAuthProfile(response)
         setTenantProfileResponse(response)
         const route = getRouteForAffiliateType((response as { serviceType?: unknown }).serviceType)

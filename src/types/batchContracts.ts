@@ -85,10 +85,12 @@ export interface GetBatchRowsResponse {
   data: BatchRow[];
 }
 
+export type BatchResultsFormat = 'csv' | 'excel';
+
 export interface GetBatchResultsResponse {
   batchId: string;
-  resultFile: string;
   downloadUrl: string;
+  resultFile: string;
 }
 
 export interface GetBatchesRequest {

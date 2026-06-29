@@ -9,6 +9,7 @@ const AUTH_RESUME_IDENTITY_KEY = 'kardit.auth.resumeIdentity.v1';
 export type AuthResumeIdentity = {
   serviceType: 'AFFILIATE_SERVICE' | 'BANK_SERVICE' | 'ADMIN_SERVICE';
   serviceUserId: string;
+  serviceBankId?: string;
 };
 
 function getSessionStorage(): Storage | null {
@@ -72,9 +73,11 @@ export function getServiceIdentity(profileResponse: unknown): AuthResumeIdentity
   const serviceType = normalizeServiceType(profile.serviceType);
   const serviceUserId =
     typeof profile.serviceUserId === 'string' ? profile.serviceUserId.trim() : '';
+  const serviceBankId =
+    typeof profile.serviceBankId === 'string' ? profile.serviceBankId.trim() : '';
 
   return serviceType && serviceUserId
-    ? { serviceType, serviceUserId }
+    ? { serviceType, serviceUserId, serviceBankId: serviceBankId || undefined }
     : null;
 }
 
@@ -98,7 +101,11 @@ export function getAuthAffiliateId(): string | null {
 
   const record = profile as Record<string, unknown>;
   const serviceType = normalizeServiceType(record.serviceType);
-  const affiliateId = record.affiliateId || (serviceType === 'AFFILIATE_SERVICE' ? record.serviceUserId : undefined);
+  const affiliateId =
+    record.affiliateId ||
+    (serviceType === 'AFFILIATE_SERVICE' || serviceType === 'BANK_SERVICE'
+      ? record.serviceUserId
+      : undefined);
   return typeof affiliateId === 'string' && affiliateId.trim() ? affiliateId.trim() : null;
 }
 

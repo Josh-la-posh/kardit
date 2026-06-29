@@ -43,14 +43,12 @@ export interface ReportInstance {
 
 const REPORT_GROUPS: ReportGroup[] = [
   { id: 'cards', name: 'Cards', description: 'Card activity, issuance, fulfillment, balances, and lifecycle reporting.' },
-  { id: 'operations', name: 'Operations', description: 'Batch processing, CMS traceability, and exception monitoring.' },
+  // { id: 'operations', name: 'Operations', description: 'Batch processing, CMS traceability, and exception monitoring.' },
   { id: 'customers', name: 'Customers', description: 'Support-facing customer report views across issued cards.' },
 ];
 
 const REPORT_DEFINITIONS: ReportDefinition[] = [
-  // { id: 'card-transactions', code: 'CARD_TRANSACTIONS', name: 'Transaction Report', description: 'Export loads and unloads by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
-  { id: 'card-loads', code: 'CARD_LOADS', name: 'Card Loads', description: 'Export card load activity by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
-  { id: 'card-unloads', code: 'CARD_UNLOADS', name: 'Card Unloads', description: 'Export card unload activity by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
+  { id: 'card-transactions', code: 'CARD_TRANSACTIONS', name: 'Card Loads & Unloads', description: 'Export card load or unload activity by approved bank, status, and date range', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'EXCEL'] },
   // { id: 'card-lifecycle-events', code: 'CARD_LIFECYCLE_EVENTS', name: 'Card Lifecycle Events', description: 'Freeze, unfreeze, terminate, and related lifecycle events', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   // { id: 'card-balances', code: 'CARD_BALANCES', name: 'Card Balance', description: 'Historical balance snapshots for a single card', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
   // { id: 'card-issuance', code: 'CARD_ISSUANCE', name: 'Card Issuance Report', description: 'Issued cards filtered by period and product type', category: 'Cards', groupId: 'cards', allowedFormats: ['CSV', 'XLSX'] },
@@ -343,32 +341,6 @@ export function useRunReport(definitionId: string) {
                 : filters.transactionType
                   ? [filters.transactionType]
                   : undefined,
-              fromDate: filters.fromDate,
-              toDate: filters.toDate,
-            },
-            exportFormat: filters.exportFormat || 'CSV',
-          });
-          break;
-        case 'card-loads':
-          response = await exportTransactions({
-            filters: {
-              bankId: filters.bankId,
-              affiliateId: filters.affiliateId,
-              status: Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : undefined,
-              transactionType: ['LOADS'],
-              fromDate: filters.fromDate,
-              toDate: filters.toDate,
-            },
-            exportFormat: filters.exportFormat || 'CSV',
-          });
-          break;
-        case 'card-unloads':
-          response = await exportTransactions({
-            filters: {
-              bankId: filters.bankId,
-              affiliateId: filters.affiliateId,
-              status: Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : undefined,
-              transactionType: ['UNLOADS'],
               fromDate: filters.fromDate,
               toDate: filters.toDate,
             },

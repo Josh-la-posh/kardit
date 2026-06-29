@@ -39,6 +39,7 @@ export interface BankAffiliateSummary {
   affiliateId: string;
   tenantId: string;
   affiliateName: string;
+  requestId?: string;
   relationshipStatus: BankAffiliateStatus;
   totalCards: number;
   activeCards: number;
@@ -168,9 +169,14 @@ export interface GetPartnershipRequestResponse {
   onboardingSnapshot: {
     caseId: string;
     status: string;
+    reviewersNotes?: string;
+    reviewedAt?: string;
+    kybLevel?: string;
+    submittedAt?: string;
     documents: Array<{
       documentId: string;
-      docType: string;
+      documentType: string;
+      docType?: string;
       verificationStatus: string;
     }>;
   };

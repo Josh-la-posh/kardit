@@ -457,7 +457,10 @@ export interface CardUnloadRequest {
   requestContext: {
     requestId: string;
     actorUserId: string;
+    bankId: string;
+    role: string;
     userType: 'AFFILIATE' | 'BANK' | 'SERVICE_PROVIDER' | string;
+    requestTenantId: string;
     tenantId: string;
     affiliateId: string;
     idempotencyKey: string;

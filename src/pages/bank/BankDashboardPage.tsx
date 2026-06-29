@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowRight,
@@ -7,11 +9,16 @@ import {
   Receipt,
   History,
   FileText,
+  Loader2,
+  RefreshCw,
   Users,
 } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { getServiceByTenantId } from '@/services/affiliateApi'
+import { getAuthProfile } from '@/services/authSession'
 
 const modules: Array<{ label: string; icon: LucideIcon; path: string; description: string }> = [
   {
@@ -55,6 +62,29 @@ const modules: Array<{ label: string; icon: LucideIcon; path: string; descriptio
 export default function BankDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [isFetchingTenantService, setIsFetchingTenantService] = useState(false)
+
+  useEffect(() => {
+    const tenantProfileResponse = getAuthProfile()
+  }, [])
+
+  const handleFetchTenantService = async () => {
+    if (!user?.tenantId) {
+      toast.error('Tenant ID is unavailable.')
+      return
+    }
+
+    setIsFetchingTenantService(true)
+    try {
+      await getServiceByTenantId(user.tenantId)
+      toast.success('Tenant service response logged to the console.')
+    } catch (error) {
+      console.error('getServiceByTenantId failed:', error)
+      toast.error(error instanceof Error ? error.message : 'Unable to fetch tenant service')
+    } finally {
+      setIsFetchingTenantService(false)
+    }
+  }
 
   return (
     <ProtectedRoute requiredStakeholderTypes={['BANK']}>
@@ -66,6 +96,17 @@ export default function BankDashboardPage() {
                 <h1 className="page-title">Welcome back, {user?.name?.split(' ')[0] || 'Bank User'}</h1>
                 <p className="page-sub">{user?.tenantName || 'Bank Portal'}</p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFetchTenantService}
+                disabled={isFetchingTenantService || !user?.tenantId}
+              >
+                {isFetchingTenantService
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <RefreshCw className="h-4 w-4" />}
+                {isFetchingTenantService ? 'Fetching...' : 'Fetch tenant service'}
+              </Button>
             </header>
 
             <div className="action-grid">
