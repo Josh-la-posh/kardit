@@ -18,11 +18,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { PaginatedTable } from '@/components/ui/paginated-table';
+import {
+  SearchableFilterSelect,
+  type SearchableFilterOption,
+} from '@/components/ui/searchable-filter-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { getAffiliateBankPartnerships, resolveAffiliateId } from '@/services/affiliateBankApi';
 import { getBankAffiliates } from '@/services/bankPortalApi';
-import { getBanks } from '@/services/bankApi';
+import { getBanks, queryBanks } from '@/services/bankApi';
+import { getCard, queryCards } from '@/services/cardsApi';
+import { searchCustomers } from '@/services/customerApi';
 import { queryAffiliates, queryBanks as querySuperAdminBanks } from '@/services/superAdminApi';
 import {
   downloadTransactionExport,
@@ -52,11 +58,7 @@ const transactionStatusOptions: Array<TransactionStatus | 'ALL'> = [
   'PENDING',
 ];
 
-type FilterOption = {
-  id: string;
-  label: string;
-  meta?: string;
-};
+type FilterOption = SearchableFilterOption;
 
 function formatMoney(amount: number, currency: string) {
   const safeCurrency = (currency || '').trim() || 'NGN';
@@ -96,6 +98,42 @@ function uniqueOptions(options: FilterOption[]) {
   });
 }
 
+function cardOption(card: {
+  cardId: string;
+  maskedPan?: string;
+  productName?: string;
+  productType?: string;
+  customerId?: string;
+  customer?: { displayName?: string } | null;
+}): FilterOption {
+  const descriptor = card.productName || card.productType;
+  return {
+    id: card.cardId,
+    label: [card.maskedPan, descriptor].filter(Boolean).join(' · ') || card.cardId,
+    meta: [card.cardId, card.customer?.displayName || card.customerId].filter(Boolean).join(' · '),
+  };
+}
+
+function customerOption(customer: {
+  customerRefId: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+}): FilterOption {
+  return {
+    id: customer.customerRefId,
+    label: customer.fullName || customer.customerRefId,
+    meta: [customer.customerRefId, customer.email || customer.phone].filter(Boolean).join(' · '),
+  };
+}
+
+function customerSearchCriteria(query: string) {
+  const value = query.trim();
+  if (/^\+?\d[\d\s-]{6,}$/.test(value)) return { phone: value };
+  if (/^(CUST|CUS)-/i.test(value)) return { customerRefId: value };
+  return { name: value };
+}
+
 export default function TransactionsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -118,14 +156,14 @@ export default function TransactionsPage() {
   const [isDownloadingExport, setIsDownloadingExport] = useState(false);
   const [exportId, setExportId] = useState<string | null>(null);
   const [bankOptions, setBankOptions] = useState<FilterOption[]>([]);
+  const [cardOptions, setCardOptions] = useState<FilterOption[]>([]);
+  const [customerOptions, setCustomerOptions] = useState<FilterOption[]>([]);
   const [affiliateOptions, setAffiliateOptions] = useState<FilterOption[]>([]);
   const [isFilterOptionsLoading, setIsFilterOptionsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [bankSelectOpen, setBankSelectOpen] = useState(false);
   const [affiliateSelectOpen, setAffiliateSelectOpen] = useState(false);
-  const [bankSearchQuery, setBankSearchQuery] = useState('');
   const [affiliateSearchQuery, setAffiliateSearchQuery] = useState('');
 
   const affiliateId = useMemo(() => {
@@ -169,17 +207,6 @@ export default function TransactionsPage() {
   }, [affiliateId, affiliateIdFilter, bankId, cardId, customerId, defaultBankId, fromDate, merchantName, searchReference, status, toDate, transactionType, user?.stakeholderType]);
 
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
-
-  const filteredBankOptions = useMemo(() => {
-    const query = bankSearchQuery.trim().toLowerCase();
-    if (!query) return bankOptions;
-
-    return bankOptions.filter((bank) => {
-      const label = bank.label.toLowerCase();
-      const meta = bank.meta?.toLowerCase() || '';
-      return label.includes(query) || meta.includes(query) || bank.id.toLowerCase().includes(query);
-    });
-  }, [bankOptions, bankSearchQuery]);
 
   const filteredAffiliateOptions = useMemo(() => {
     const query = affiliateSearchQuery.trim().toLowerCase();
@@ -227,11 +254,17 @@ export default function TransactionsPage() {
       try {
         const nextBanks: FilterOption[] = [];
         const nextAffiliates: FilterOption[] = [];
+        const cardFilters =
+          user.stakeholderType === 'BANK' && defaultBankId
+            ? { bankId: defaultBankId }
+            : user.stakeholderType === 'AFFILIATE' && affiliateId
+              ? { affiliateId }
+              : {};
 
         if (user?.stakeholderType === 'SERVICE_PROVIDER') {
           const [banksResponse, affiliatesResponse] = await Promise.all([
-            querySuperAdminBanks({ filters: {}, page: 1, pageSize: 500 }),
-            queryAffiliates({ filters: {}, page: 1, pageSize: 500 }),
+            querySuperAdminBanks({ filters: {}, page: 1, pageSize: 100 }),
+            queryAffiliates({ filters: {}, page: 1, pageSize: 100 }),
           ]);
 
           nextBanks.push(
@@ -283,15 +316,32 @@ export default function TransactionsPage() {
           }
         }
 
+        const [cardsResult, customersResult] = await Promise.allSettled([
+          queryCards({ filters: cardFilters, page: 1, pageSize: 100 }),
+          searchCustomers({ criteria: {}, pagination: { page: 1, pageSize: 100 } }),
+        ]);
+
         if (active) {
           setBankOptions(uniqueOptions([...currentBankOption, ...nextBanks]));
           setAffiliateOptions(uniqueOptions([...currentAffiliateOption, ...nextAffiliates]));
+          setCardOptions(
+            cardsResult.status === 'fulfilled'
+              ? uniqueOptions(cardsResult.value.data.map(cardOption))
+              : []
+          );
+          setCustomerOptions(
+            customersResult.status === 'fulfilled'
+              ? uniqueOptions(customersResult.value.results.map(customerOption))
+              : []
+          );
         }
       } catch (err) {
         console.error('Unable to load transaction filter options:', err);
         if (active) {
           setBankOptions(uniqueOptions(currentBankOption));
           setAffiliateOptions(uniqueOptions(currentAffiliateOption));
+          setCardOptions([]);
+          setCustomerOptions([]);
         }
       } finally {
         if (active) setIsFilterOptionsLoading(false);
@@ -304,6 +354,34 @@ export default function TransactionsPage() {
       active = false;
     };
   }, [affiliateId, currentAffiliateOption, currentBankOption, defaultBankId, user]);
+
+  const searchBankOptions = useCallback(async (query: string) => {
+    const response = await queryBanks({
+      filters: { search: query },
+      page: 1,
+      pageSize: 50,
+    });
+    const matches = response.data.map((bank) => ({
+      id: bank.bankId,
+      label: bank.bankName || bank.bankCode || bank.bankId,
+      meta: bank.bankCode,
+    }));
+    setBankOptions((current) => uniqueOptions([...current, ...matches]));
+  }, []);
+
+  const searchCardOptions = useCallback(async (query: string) => {
+    const card = await getCard(query.trim());
+    setCardOptions((current) => uniqueOptions([...current, cardOption(card)]));
+  }, []);
+
+  const searchCustomerOptions = useCallback(async (query: string) => {
+    const response = await searchCustomers({
+      criteria: customerSearchCriteria(query),
+      pagination: { page: 1, pageSize: 50 },
+    });
+    const matches = response.results.map(customerOption);
+    setCustomerOptions((current) => uniqueOptions([...current, ...matches]));
+  }, []);
 
   useEffect(() => {
     if (user?.stakeholderType === 'AFFILIATE' && !affiliateId) {
@@ -487,63 +565,39 @@ export default function TransactionsPage() {
                   <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
                 </div>
                 <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
-                <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
-                <Input title="Card no" placeholder="Card no" value={cardId} onChange={(e) => setCardId(e.target.value)} />
-                <Select
-                  value={bankId || ALL_FILTER_VALUE}
-                  onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}
-                  open={bankSelectOpen}
-                  onOpenChange={(open) => {
-                    setBankSelectOpen(open);
-                    if (!open) setBankSearchQuery('');
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Bank" /></SelectTrigger>
-                  <SelectContent>
-                    <div className="sticky top-0 z-10 border-b bg-popover p-2">
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          value={bankSearchQuery}
-                          placeholder="Search banks..."
-                          className="h-9 pr-9 pl-9"
-                          onChange={(e) => setBankSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                        />
-                        {bankSearchQuery ? (
-                          <button
-                            type="button"
-                            aria-label="Clear bank search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setBankSearchQuery('');
-                            }}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                    <SelectItem value={ALL_FILTER_VALUE}>All Banks</SelectItem>
-                    {filteredBankOptions.length === 0 ? (
-                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">No banks found.</div>
-                    ) : filteredBankOptions.map((bank) => (
-                      <SelectItem key={bank.id} value={bank.id}>
-                        {bank.label}{bank.meta ? ` - ${bank.meta}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} /> */}
-                <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
-                <Input title="Card ID" placeholder="Card ID" value={cardId} onChange={(e) => setCardId(e.target.value)} />
-                <div className="relative xl:col-span-2">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Reference" value={searchReference} onChange={(e) => setSearchReference(e.target.value)} />
-                </div>
+                <SearchableFilterSelect
+                  value={bankId}
+                  options={bankOptions}
+                  onValueChange={setBankId}
+                  onSearch={searchBankOptions}
+                  placeholder="Select bank"
+                  searchPlaceholder="Search banks..."
+                  emptyMessage="No banks found."
+                  allLabel="Select bank"
+                  loading={isFilterOptionsLoading}
+                />
+                <SearchableFilterSelect
+                  value={customerId}
+                  options={customerOptions}
+                  onValueChange={setCustomerId}
+                  onSearch={searchCustomerOptions}
+                  placeholder="Select customer"
+                  searchPlaceholder="Search customers..."
+                  emptyMessage="No customers found."
+                  allLabel="Select customer"
+                  loading={isFilterOptionsLoading}
+                />
+                <SearchableFilterSelect
+                  value={cardId}
+                  options={cardOptions}
+                  onValueChange={setCardId}
+                  onSearch={searchCardOptions}
+                  placeholder="Select card"
+                  searchPlaceholder="Search by card ID..."
+                  emptyMessage="No cards found."
+                  allLabel="Select card"
+                  loading={isFilterOptionsLoading}
+                />
                 {user?.stakeholderType !== 'AFFILIATE' && (
                   <Select
                     value={affiliateIdFilter || ALL_FILTER_VALUE}
