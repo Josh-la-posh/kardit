@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, Loader2, RefreshCcw, Search } from 'lucide-react';
+import { Download, Loader2, RefreshCcw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
+import { AppCard } from '@/components/ui/app-card';
 import { PaginatedTable } from '@/components/ui/paginated-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
@@ -112,6 +112,10 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [bankSelectOpen, setBankSelectOpen] = useState(false);
+  const [affiliateSelectOpen, setAffiliateSelectOpen] = useState(false);
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
+  const [affiliateSearchQuery, setAffiliateSearchQuery] = useState('');
 
   const affiliateId = useMemo(() => {
     try {
@@ -154,6 +158,28 @@ export default function TransactionsPage() {
   }, [affiliateId, affiliateIdFilter, bankId, cardId, customerId, defaultBankId, fromDate, merchantName, searchReference, status, toDate, transactionType, user?.stakeholderType]);
 
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
+
+  const filteredBankOptions = useMemo(() => {
+    const query = bankSearchQuery.trim().toLowerCase();
+    if (!query) return bankOptions;
+
+    return bankOptions.filter((bank) => {
+      const label = bank.label.toLowerCase();
+      const meta = bank.meta?.toLowerCase() || '';
+      return label.includes(query) || meta.includes(query) || bank.id.toLowerCase().includes(query);
+    });
+  }, [bankOptions, bankSearchQuery]);
+
+  const filteredAffiliateOptions = useMemo(() => {
+    const query = affiliateSearchQuery.trim().toLowerCase();
+    if (!query) return affiliateOptions;
+
+    return affiliateOptions.filter((affiliate) => {
+      const label = affiliate.label.toLowerCase();
+      const meta = affiliate.meta?.toLowerCase() || '';
+      return label.includes(query) || meta.includes(query) || affiliate.id.toLowerCase().includes(query);
+    });
+  }, [affiliateOptions, affiliateSearchQuery]);
 
   const fetchTransactions = useCallback(async (nextPage = page) => {
     setIsLoading(true);
@@ -420,11 +446,48 @@ export default function TransactionsPage() {
                 <Input placeholder="Merchant name" value={merchantName} onChange={(e) => setMerchantName(e.target.value)} />
                 <Input title="Customer name" placeholder="Customer name" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
                 <Input title="Card no" placeholder="Card no" value={cardId} onChange={(e) => setCardId(e.target.value)} />
-                <Select value={bankId || ALL_FILTER_VALUE} onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}>
+                <Select
+                  value={bankId || ALL_FILTER_VALUE}
+                  onValueChange={(value) => setBankId(value === ALL_FILTER_VALUE ? '' : value)}
+                  open={bankSelectOpen}
+                  onOpenChange={(open) => {
+                    setBankSelectOpen(open);
+                    if (!open) setBankSearchQuery('');
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Bank" /></SelectTrigger>
                   <SelectContent>
+                    <div className="sticky top-0 z-10 border-b bg-popover p-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={bankSearchQuery}
+                          placeholder="Search banks..."
+                          className="h-9 pr-9 pl-9"
+                          onChange={(e) => setBankSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        />
+                        {bankSearchQuery ? (
+                          <button
+                            type="button"
+                            aria-label="Clear bank search"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setBankSearchQuery('');
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
                     <SelectItem value={ALL_FILTER_VALUE}>All Banks</SelectItem>
-                    {bankOptions.map((bank) => (
+                    {filteredBankOptions.length === 0 ? (
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">No banks found.</div>
+                    ) : filteredBankOptions.map((bank) => (
                       <SelectItem key={bank.id} value={bank.id}>
                         {bank.label}{bank.meta ? ` - ${bank.meta}` : ''}
                       </SelectItem>
@@ -432,11 +495,48 @@ export default function TransactionsPage() {
                   </SelectContent>
                 </Select>
                 {user?.stakeholderType !== 'AFFILIATE' && (
-                  <Select value={affiliateIdFilter || ALL_FILTER_VALUE} onValueChange={(value) => setAffiliateIdFilter(value === ALL_FILTER_VALUE ? '' : value)}>
+                  <Select
+                    value={affiliateIdFilter || ALL_FILTER_VALUE}
+                    onValueChange={(value) => setAffiliateIdFilter(value === ALL_FILTER_VALUE ? '' : value)}
+                    open={affiliateSelectOpen}
+                    onOpenChange={(open) => {
+                      setAffiliateSelectOpen(open);
+                      if (!open) setAffiliateSearchQuery('');
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Affiliate" /></SelectTrigger>
                     <SelectContent>
+                      <div className="sticky top-0 z-10 border-b bg-popover p-2">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            value={affiliateSearchQuery}
+                            placeholder="Search affiliates..."
+                            className="h-9 pr-9 pl-9"
+                            onChange={(e) => setAffiliateSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+                          {affiliateSearchQuery ? (
+                            <button
+                              type="button"
+                              aria-label="Clear affiliate search"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setAffiliateSearchQuery('');
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
                       <SelectItem value={ALL_FILTER_VALUE}>All Affiliates</SelectItem>
-                      {affiliateOptions.map((affiliate) => (
+                      {filteredAffiliateOptions.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">No affiliates found.</div>
+                      ) : filteredAffiliateOptions.map((affiliate) => (
                         <SelectItem key={affiliate.id} value={affiliate.id}>
                           {affiliate.label}{affiliate.meta ? ` - ${affiliate.meta}` : ''}
                         </SelectItem>

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReviewerOnboardingCases } from '@/hooks/useOnboarding';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -11,7 +12,7 @@ import { format } from 'date-fns';
 import type { OnboardingCaseStatus } from '@/types/onboardingContracts';
 import { PaginatedTable } from '@/components/ui/paginated-table';
 import { AppCard, AppCardHeader, AppCardSub, AppCardTitle } from '@/components/ui/app-card';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Search, X } from 'lucide-react';
 
 const statusToChip: Record<string, StatusType> = {
   SUBMITTED: 'PENDING',
@@ -40,16 +41,32 @@ const pageSizeOptions = ['25', '50', '100'];
 
 export default function OnboardingCasesListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialName = searchParams.get('Name') || '';
+  const initialPage = Number(searchParams.get('Page') || '1');
+  const initialPageSize = Number(searchParams.get('PageSize') || '25');
   const [statusFilter, setStatusFilter] = useState<OnboardingCaseStatus | 'ALL'>('ALL');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedPageSize, setSelectedPageSize] = useState(25);
-  const hasActiveFilters = statusFilter !== 'ALL' || selectedPageSize !== 25;
+  const [nameFilter, setNameFilter] = useState(initialName);
+  const [currentPage, setCurrentPage] = useState(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
+  const [selectedPageSize, setSelectedPageSize] = useState(
+    Number.isFinite(initialPageSize) && initialPageSize > 0 ? initialPageSize : 25
+  );
+  const hasActiveFilters = statusFilter !== 'ALL' || selectedPageSize !== 25 || nameFilter.trim().length > 0;
 
   const { cases, total, page, pageSize, isLoading, error, refresh } = useReviewerOnboardingCases({
+    name: nameFilter,
     status: statusFilter,
     page: currentPage,
     pageSize: selectedPageSize,
   });
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (nameFilter.trim()) next.set('Name', nameFilter.trim());
+    next.set('Page', String(currentPage));
+    next.set('PageSize', String(selectedPageSize));
+    setSearchParams(next, { replace: true });
+  }, [currentPage, nameFilter, selectedPageSize, setSearchParams]);
 
   const subtitle = useMemo(() => {
     const statusText = statusFilter === 'ALL' ? 'all statuses' : statusFilter;
@@ -67,7 +84,13 @@ export default function OnboardingCasesListPage() {
     setCurrentPage(1);
   };
 
+  const handleNameChange = (value: string) => {
+    setNameFilter(value);
+    setCurrentPage(1);
+  };
+
   const handleClearFilters = () => {
+    setNameFilter('');
     setStatusFilter('ALL');
     setSelectedPageSize(25);
     setCurrentPage(1);
@@ -124,8 +147,27 @@ export default function OnboardingCasesListPage() {
                 </div>
               </AppCardHeader>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <Select value={statusFilter} onValueChange={handleStatusChange}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9 pr-9"
+                    value={nameFilter}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder="Search by affiliate name"
+                  />
+                  {nameFilter.trim() ? (
+                    <button
+                      type="button"
+                      aria-label="Clear name search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => handleNameChange('')}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+                <Select value={statusFilter} onValueChange={handleStatusChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>

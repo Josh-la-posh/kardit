@@ -1,6 +1,7 @@
 
 // Request and response types for paginated onboarding case listing
 export interface ListOnboardingCasesRequest {
+  name?: string;
   status?: OnboardingCaseStatus;
   page?: number;
   pageSize?: number;
