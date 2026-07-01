@@ -91,6 +91,7 @@ const bankNavItems: NavItem[] = [
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Cards', icon: CreditCard, path: '/cards' },
   { label: 'Transactions', icon: Receipt, path: '/transactions' },
+  { label: 'Batch Operations', icon: Layers, path: '/batch-operations' },
   { label: 'Audit Logs', icon: History, path: '/bank/audit-logs' },
   { label: 'Reports', icon: FileText, path: '/reports' },
   { label: 'Notifications', icon: Bell, path: '/notifications' },

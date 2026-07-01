@@ -190,7 +190,7 @@ export default function BatchOperationsPage() {
   const paginatedBatches = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK']}>
       <AppLayout>
         <main className="scr-main">
           <div className="container">

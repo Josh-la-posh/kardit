@@ -114,7 +114,7 @@ export function useBatches(category?: BatchCategory) {
   const context = useMemo(
     () => {
       let affiliateId: string | undefined;
-      if (user?.stakeholderType === 'AFFILIATE') {
+      if (user?.stakeholderType === 'AFFILIATE' || user?.stakeholderType === 'BANK') {
         try {
           affiliateId = resolveAffiliateId(user);
         } catch {
