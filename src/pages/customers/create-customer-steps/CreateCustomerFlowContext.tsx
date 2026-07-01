@@ -248,6 +248,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
       customerForm.lastName.trim() &&
       customerForm.dob &&
       combinedPhone &&
+      customerForm.email.trim() &&
       customerForm.line1.trim() &&
       customerForm.city.trim() &&
       customerForm.state.trim() &&
@@ -281,7 +282,8 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
     else if (!isAtLeastAge(customerForm.dob, 14)) next.dob = 'Customer must be at least 14 years old'
     if (!combinedPhone) next.phone = 'Required'
     else if (!/^\+\d{7,20}$/.test(combinedPhone)) next.phone = 'Invalid phone'
-    if (customerForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerForm.email)) next.email = 'Invalid email'
+    if (!customerForm.email.trim()) next.email = 'Required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerForm.email)) next.email = 'Invalid email'
     if (!customerForm.line1.trim()) next.line1 = 'Required'
     if (!customerForm.city.trim()) next.city = 'Required'
     if (!customerForm.state.trim()) next.state = 'Required'
@@ -315,8 +317,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
 
     setSubmitting(true)
     try {
-      const fallbackEmail = `${customerForm.firstName.toLowerCase()}.${customerForm.lastName.toLowerCase()}@no-email.local`
-      const email = customerForm.email.trim() || fallbackEmail
+      const email = customerForm.email.trim()
 
       const cardRes = await createCard({
         customerId: draftCustomerId,
@@ -362,8 +363,7 @@ export function CreateCustomerFlowProvider({ children }: { children: ReactNode }
 
     setSubmitting(true)
     try {
-      const fallbackEmail = `${customerForm.firstName.toLowerCase()}.${customerForm.lastName.toLowerCase()}@no-email.local`
-      const email = customerForm.email.trim() || fallbackEmail
+      const email = customerForm.email.trim()
       const dobIso = new Date(customerForm.dob).toISOString()
 
       const customerRes = await createCustomerDraft({

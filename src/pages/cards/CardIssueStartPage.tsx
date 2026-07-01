@@ -49,7 +49,7 @@ export default function CardIssueStartPage() {
   }, [warm])
 
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK']}>
       <AppLayout>
         <main className="scr-main">
           <div className="container">

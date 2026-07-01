@@ -21,6 +21,7 @@ export function CustomerStepRoute() {
       setSelectedState={flow.setSelectedState}
       phoneCode={flow.phoneCode}
       setPhoneCode={flow.setPhoneCode}
+      busy={flow.busy}
       onBack={() => navigate('/cards/issue')}
       onContinue={async () => {
         const ok = await flow.submitCustomerDraft()

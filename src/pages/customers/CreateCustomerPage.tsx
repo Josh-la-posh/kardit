@@ -21,7 +21,7 @@ function activeStepFromPath(pathname: string): number {
 
 export default function CreateCustomerPage() {
   return (
-    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE']}>
+    <ProtectedRoute requiredStakeholderTypes={['AFFILIATE', 'BANK']}>
       <AppLayout>
         <CreateCustomerFlowProvider>
           <CreateCustomerFlowLayout />

@@ -2,10 +2,13 @@ import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
+import { BatchDownloadDialog } from '@/components/BatchDownloadDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { StatusChip, StatusType } from '@/components/ui/status-chip';
 import { useBatch, useBatches } from '@/hooks/useBatches';
+import { downloadBatchResults } from '@/services/batchApi';
+import type { BatchResultsFormat, GetBatchResultsResponse } from '@/types/batchContracts';
 import { Download, Loader2, Upload } from 'lucide-react';
 
 function mapStatus(status: string): StatusType {
@@ -138,7 +141,8 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
   const { validate, submit } = useBatches('customers');
   const [validating, setValidating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<BatchResultsFormat | null>(null);
+  const [downloadDetails, setDownloadDetails] = useState<GetBatchResultsResponse | null>(null);
 
   const handleValidate = async () => {
     if (!batchId) return;
@@ -168,18 +172,21 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
     }
   };
 
-  const handleDownloadResults = async () => {
-    if (!batch?.results) return;
-    setDownloading(true);
+  const handleDownloadResults = async (format: BatchResultsFormat) => {
+    if (!batchId) return;
+    setDownloading(format);
     try {
-      window.open(batch.results.downloadUrl, '_blank', 'noopener,noreferrer');
-      toast.success(`Opened ${batch.results.resultFile}`);
+      const response = await downloadBatchResults(batchId, format);
+      setDownloadDetails(response);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to download batch results');
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
   return (
+    <>
     <section className="card card-pad">
       {!batchId ? (
         <p className="text-sm text-muted-foreground">Select a batch to view its status and actions.</p>
@@ -212,8 +219,11 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
             <Button variant="outline" onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Submit
             </Button>
-            <Button variant="outline" onClick={handleDownloadResults} disabled={!batch.results || downloading}>
-              {downloading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Results
+            <Button variant="outline" onClick={() => handleDownloadResults('csv')} disabled={downloading !== null}>
+              {downloading === 'csv' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} CSV Results
+            </Button>
+            <Button variant="outline" onClick={() => handleDownloadResults('excel')} disabled={downloading !== null}>
+              {downloading === 'excel' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Excel Results
             </Button>
           </div>
           {batch.rows.length > 0 && (
@@ -232,13 +242,10 @@ function CustomerBatchDetail({ batchId }: { batchId: string | null }) {
               ))}
             </div>
           )}
-          {batch.results && (
-            <div className="text-sm text-muted-foreground">
-              Result file: <span className="font-mono text-foreground">{batch.results.resultFile}</span>
-            </div>
-          )}
         </div>
       )}
     </section>
+    <BatchDownloadDialog download={downloadDetails} onClose={() => setDownloadDetails(null)} />
+    </>
   );
 }

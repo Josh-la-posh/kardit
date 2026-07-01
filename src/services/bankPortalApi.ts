@@ -1,11 +1,13 @@
 import { ApiError, getApiErrorMessage } from '@/services/apiError';
 import type {
+  ApprovePartnershipRequest,
   ApprovePartnershipResponse,
   BlockAffiliateRequest,
   BlockAffiliateResponse,
   GetAffiliateCardMetricsResponse,
   GetBankCardMetricsResponse,
   GetBankAffiliatesResponse,
+  GetBankAffiliatesQuery,
   GetBankDashboardResponse,
   GetPartnershipRequestResponse,
   ListBankAuditLogsRequest,
@@ -38,6 +40,19 @@ const safeJson = async (res: Response) => {
     return text;
   }
 };
+
+function unwrapResponse<TResponse>(response: TResponse | { data?: TResponse }): TResponse {
+  if (
+    response &&
+    typeof response === 'object' &&
+    'data' in response &&
+    (response as { data?: TResponse }).data !== undefined
+  ) {
+    return (response as { data: TResponse }).data;
+  }
+
+  return response as TResponse;
+}
 
 async function getJson<TResponse>(path: string): Promise<TResponse> {
   const baseUrl = getApiBaseUrl();
@@ -93,8 +108,35 @@ export async function getAffiliateCardMetrics(affiliateId: string): Promise<GetA
   return getJson<GetAffiliateCardMetricsResponse>(`/cards/metrics/affiliate/${encodeURIComponent(affiliateId)}`);
 }
 
-export async function getBankAffiliates(bankId: string): Promise<GetBankAffiliatesResponse> {
-  return getJson<GetBankAffiliatesResponse>(`/banks/${encodeURIComponent(bankId)}/affiliates`);
+export async function getBankAffiliates(
+  bankId: string,
+  query: GetBankAffiliatesQuery = {}
+): Promise<GetBankAffiliatesResponse | { data: GetBankAffiliatesResponse }> {
+  const params = new URLSearchParams({
+    page: String(query.page ?? 1),
+    pageSize: String(query.pageSize ?? 20),
+  });
+  if (query.status) params.set('status', query.status);
+
+  return getJson<GetBankAffiliatesResponse | { data: GetBankAffiliatesResponse }>(
+    `/banks/${encodeURIComponent(bankId)}/affiliates?${params.toString()}`
+  );
+}
+
+export async function getPendingBankAffiliateApprovals(
+  bankId: string,
+  page: number,
+  pageSize: number
+): Promise<unknown> {
+  const query = new URLSearchParams({
+    status: 'PENDING_BANK_APPROVAL',
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+
+  return getJson<unknown>(
+    `/banks/${encodeURIComponent(bankId)}/affiliates?${query.toString()}`
+  );
 }
 
 export async function listBankCards(bankId: string, request: ListBankCardsRequest): Promise<ListBankCardsResponse> {
@@ -119,9 +161,9 @@ export async function getPartnershipRequest(
   bankId: string,
   partnershipRequestId: string
 ): Promise<GetPartnershipRequestResponse> {
-  return getJson<GetPartnershipRequestResponse>(
+  return getJson<GetPartnershipRequestResponse | { data: GetPartnershipRequestResponse }>(
     `/banks/${encodeURIComponent(bankId)}/affiliate-partnership-requests/${encodeURIComponent(partnershipRequestId)}`
-  );
+  ).then(unwrapResponse);
 }
 
 export async function queryPartnershipRequests(
@@ -130,8 +172,14 @@ export async function queryPartnershipRequests(
   return postJson<QueryPartnershipRequestsResponse>('/affiliates/partnership-requests/query', request);
 }
 
-export async function approvePartnershipRequest(requestId: string): Promise<ApprovePartnershipResponse> {
-  return postJson<ApprovePartnershipResponse>(`/banks/partnerships/${encodeURIComponent(requestId)}/approve`, { requestId });
+export async function approvePartnershipRequest(
+  requestId: string,
+  request: ApprovePartnershipRequest
+): Promise<ApprovePartnershipResponse> {
+  return postJson<ApprovePartnershipResponse>(
+    `/banks/partnerships/${encodeURIComponent(requestId)}/approve`,
+    request
+  );
 }
 
 export async function rejectPartnershipRequest(

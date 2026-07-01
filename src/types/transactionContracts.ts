@@ -90,13 +90,16 @@ export interface CustomerTransactionsResponse {
 }
 
 export interface TransactionExportRequest {
-  filters: TransactionQueryFilters;
+  filters: Pick<
+    TransactionQueryFilters,
+    'bankId' | 'affiliateId' | 'status' | 'transactionType' | 'fromDate' | 'toDate'
+  >;
   exportFormat: 'CSV' | 'EXCEL';
 }
 
 export interface TransactionExportResponse {
   exportId: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | null;
   requestedAt: string;
 }
 

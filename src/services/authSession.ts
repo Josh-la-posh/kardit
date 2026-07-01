@@ -4,6 +4,13 @@ const AUTH_ACCESS_TOKEN_KEY = 'kardit.auth.accessToken.v1';
 const AUTH_REFRESH_TOKEN_KEY = 'kardit.auth.refreshToken.v1';
 const AUTH_TENANT_CODE_KEY = 'kardit.auth.tenantCode.v1';
 const AUTH_PROFILE_KEY = 'kardit.auth.profile.v1';
+const AUTH_RESUME_IDENTITY_KEY = 'kardit.auth.resumeIdentity.v1';
+
+export type AuthResumeIdentity = {
+  serviceType: 'AFFILIATE_SERVICE' | 'BANK_SERVICE' | 'ADMIN_SERVICE';
+  serviceUserId: string;
+  serviceBankId?: string;
+};
 
 function getSessionStorage(): Storage | null {
   return typeof window === 'undefined' ? null : window.sessionStorage;
@@ -35,6 +42,10 @@ export function saveAuthProfile(profile: unknown): void {
   if (!storage) return;
 
   storage.setItem(AUTH_PROFILE_KEY, JSON.stringify(profile));
+  const identity = getServiceIdentity(profile);
+  if (identity) {
+    storage.setItem(AUTH_RESUME_IDENTITY_KEY, JSON.stringify(identity));
+  }
 }
 
 export function getAuthProfile(): unknown {
@@ -48,13 +59,53 @@ export function getAuthProfile(): unknown {
   }
 }
 
+export function getServiceIdentity(profileResponse: unknown): AuthResumeIdentity | null {
+  if (!profileResponse || typeof profileResponse !== 'object') return null;
+
+  let profile = profileResponse as Record<string, unknown>;
+  for (const key of ['data', 'value', 'profile', 'user']) {
+    const nested = profile[key];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      profile = nested as Record<string, unknown>;
+    }
+  }
+
+  const serviceType = normalizeServiceType(profile.serviceType);
+  const serviceUserId =
+    typeof profile.serviceUserId === 'string' ? profile.serviceUserId.trim() : '';
+  const serviceBankId =
+    typeof profile.serviceBankId === 'string' ? profile.serviceBankId.trim() : '';
+
+  return serviceType && serviceUserId
+    ? { serviceType, serviceUserId, serviceBankId: serviceBankId || undefined }
+    : null;
+}
+
+export function getAuthResumeIdentity(): AuthResumeIdentity | null {
+  const raw = getSessionStorage()?.getItem(AUTH_RESUME_IDENTITY_KEY);
+  if (!raw) return null;
+
+  try {
+    const identity = JSON.parse(raw) as Partial<AuthResumeIdentity>;
+    return identity.serviceType && identity.serviceUserId
+      ? identity as AuthResumeIdentity
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function getAuthAffiliateId(): string | null {
   const profile = getAuthProfile();
   if (!profile || typeof profile !== 'object') return null;
 
   const record = profile as Record<string, unknown>;
   const serviceType = normalizeServiceType(record.serviceType);
-  const affiliateId = record.affiliateId || (serviceType === 'AFFILIATE_SERVICE' ? record.serviceUserId : undefined);
+  const affiliateId =
+    record.affiliateId ||
+    (serviceType === 'AFFILIATE_SERVICE' || serviceType === 'BANK_SERVICE'
+      ? record.serviceUserId
+      : undefined);
   return typeof affiliateId === 'string' && affiliateId.trim() ? affiliateId.trim() : null;
 }
 

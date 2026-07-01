@@ -17,7 +17,7 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
-import { getRouteForAffiliateType, getServiceByTenantId } from '@/services/affiliateApi'
+import { getRouteForAffiliateType, getTenantServiceProfile } from '@/services/affiliateApi'
 import { saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
@@ -136,10 +136,9 @@ export default function DashboardPage() {
     setTenantProfileLoading(true)
     setTenantProfileError(null)
 
-    getServiceByTenantId(tenantId)
+    getTenantServiceProfile(tenantId)
       .then((response) => {
         if (cancelled) return
-        console.info('Service by tenant response:', response)
         saveAuthProfile(response)
         setTenantProfileResponse(response)
         const route = getRouteForAffiliateType((response as { serviceType?: unknown }).serviceType)
@@ -334,7 +333,7 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section>
+            {/* <section>
               <div className="section-head">
                 <div>
                   <div className="section-title">Recent activity</div>
@@ -383,7 +382,7 @@ export default function DashboardPage() {
                   time="Yesterday"
                 />
               </div>
-            </section>
+            </section> */}
           </div>
         </main>
       </AppLayout>

@@ -53,8 +53,8 @@ export default function OnboardingOrganizationPage() {
       state: draft?.organization?.address?.state || '',
       country: draft?.organization?.address?.country || '',
       contactFullName: draft?.organization?.primaryContact?.fullName || '',
-      contactEmail: draft?.organization?.primaryContact?.email || draft?.email || '',
-      contactPhone: draft?.organization?.primaryContact?.phone || draft?.phone || '',
+      contactEmail: draft?.email || draft?.organization?.primaryContact?.email || '',
+      contactPhone: draft?.phone || draft?.organization?.primaryContact?.phone || '',
     };
   }, [draft]);
 
@@ -164,12 +164,14 @@ export default function OnboardingOrganizationPage() {
     try {
       let activeDraftId = draftId;
       let activeOnboardingSessionId = draft?.onboardingSessionId;
+      const primaryEmail = draft?.email || form.contactEmail;
+      const primaryPhone = draft?.phone || form.contactPhone;
 
       if (!activeDraftId || !activeOnboardingSessionId) {
         const session = await create({
           channel: 'web',
-          email: form.contactEmail || 'affiliate-onboarding@kardit.app',
-          phone: form.contactPhone || '+2340000000000',
+          email: primaryEmail || 'affiliate-onboarding@kardit.app',
+          phone: primaryPhone || '+2340000000000',
           consentAccepted: true,
         });
         activeDraftId = session.draftId;
@@ -194,8 +196,8 @@ export default function OnboardingOrganizationPage() {
         },
         primaryContact: {
           fullName: form.contactFullName,
-          email: form.contactEmail,
-          phone: form.contactPhone,
+          email: primaryEmail,
+          phone: primaryPhone,
         },
       };
 
@@ -333,8 +335,32 @@ export default function OnboardingOrganizationPage() {
                 <div className="col-span-2">
                   <TextField label={<RequiredLabel>Full Name</RequiredLabel>} value={form.contactFullName} onChange={(e) => set('contactFullName', e.target.value)} disabled={saving} error={fieldErrors.contactFullName} />
                 </div>
-                <TextField label={<RequiredLabel>Email</RequiredLabel>} type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} disabled={saving} error={fieldErrors.contactEmail} />
-                <TextField label={<RequiredLabel>Phone</RequiredLabel>} type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} disabled={saving} error={fieldErrors.contactPhone} />
+                <TextField
+                  label={<RequiredLabel>Email</RequiredLabel>}
+                  type="email"
+                  value={form.contactEmail}
+                  onChange={(e) => {
+                    if (!draft?.email) set('contactEmail', e.target.value);
+                  }}
+                  readOnly={Boolean(draft?.email)}
+                  disabled={saving}
+                  hint={draft?.email ? 'Provided when onboarding was started' : undefined}
+                  className={draft?.email ? 'cursor-not-allowed bg-muted/60' : undefined}
+                  error={fieldErrors.contactEmail}
+                />
+                <TextField
+                  label={<RequiredLabel>Phone</RequiredLabel>}
+                  type="tel"
+                  value={form.contactPhone}
+                  onChange={(e) => {
+                    if (!draft?.phone) set('contactPhone', e.target.value);
+                  }}
+                  readOnly={Boolean(draft?.phone)}
+                  disabled={saving}
+                  hint={draft?.phone ? 'Provided when onboarding was started' : undefined}
+                  className={draft?.phone ? 'cursor-not-allowed bg-muted/60' : undefined}
+                  error={fieldErrors.contactPhone}
+                />
               </div>
             </section>
 

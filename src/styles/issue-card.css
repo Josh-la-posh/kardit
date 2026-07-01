@@ -1239,6 +1239,17 @@ dl.specs dd.danger  { color: var(--cs-red-700); }
 .form-row-full { grid-column: 1 / -1; }
 .form-row-2 { grid-column: span 2; }
 
+@media (max-width: 640px) {
+  .form-grid,
+  .form-grid--3 {
+    display: block;
+  }
+
+  .form-grid > .field + .field {
+    margin-top: 18px;
+  }
+}
+
 .field { display: flex; flex-direction: column; }
 .field label,
 .field .label { font-size: 12.5px; font-weight: 600; color: var(--cs-ink-700); margin-bottom: 6px; }

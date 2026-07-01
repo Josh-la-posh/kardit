@@ -1330,12 +1330,12 @@ function ScrOrg({ go, jump, formData, setFormData, errors }) {
           <div className="grid-2">
             <div className={`field ${errors.email ? 'has-error' : ''}`}>
               <label>Work email</label>
-              <input type="email" value={f.email} onChange={e => set('email', e.target.value)} placeholder="adaeze@acme.ng" />
+              <input type="email" value={f.email} readOnly aria-readonly="true" title="Provided when onboarding was started" />
               {errors.email && <span className="err"><Icon name="alert" size={13} color="var(--cs-red-700)" />{errors.email}</span>}
             </div>
             <div className="field">
               <label>Phone</label>
-              <input value={f.phone} onChange={e => set('phone', e.target.value)} placeholder="+234 803 000 0000" />
+              <input value={f.phone} readOnly aria-readonly="true" title="Provided when onboarding was started" />
             </div>
           </div>
         </div>

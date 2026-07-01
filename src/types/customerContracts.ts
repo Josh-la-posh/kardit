@@ -96,7 +96,8 @@ export interface CustomerDetailResponse {
   };
   kyc: {
     idType: string;
-    idNumberMasked: string;
+    idNumberMasked?: string | null;
+    idNumber?: string | null;
     kycLevel: string;
     verifiedAt: string;
   };

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getBatch, getBatchResultsDownload, getBatchRows, submitBatch, uploadBatch, validateBatch } from '@/services/batchApi';
+import { getBatch, getBatchRows, submitBatch, uploadBatch, validateBatch } from '@/services/batchApi';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveAffiliateId } from '@/services/affiliateBankApi';
 import type {
   BatchRow,
   GetBatchResponse,
   GetBatchRowsResponse,
-  GetBatchResultsResponse,
   SubmitBatchResponse,
   UploadBatchResponse,
   ValidateBatchResponse,
@@ -47,7 +46,6 @@ export interface BatchDetail {
   batch: GetBatchResponse;
   rows: BatchRow[];
   rowsTotal: number;
-  results: GetBatchResultsResponse | null;
 }
 
 function readStoredBatches(): StoredBatch[] {
@@ -239,13 +237,11 @@ export function useBatch(batchId: string | undefined) {
         batchId,
         data: [],
       }));
-      const resultsResponse = await getBatchResultsDownload(batchId).catch(() => null);
       setBatch({
         upload,
         batch: batchResponse,
         rows: rowsResponse.data,
         rowsTotal: rowsResponse.total,
-        results: resultsResponse,
       });
     } catch (err) {
       setBatch(null);

@@ -1,5 +1,6 @@
 import { ApiError } from '@/services/apiError';
 import type {
+  AffiliateProfile,
   CreateAffiliateRequest,
   CreateAffiliateResponse,
   GetAffiliateKybSnapshotResponse,
@@ -11,10 +12,12 @@ type NormalizedServiceType = 'AFFILIATE_SERVICE' | 'BANK_SERVICE' | 'ADMIN_SERVI
 
 export interface ServiceByTenantResponse {
   serviceType: ServiceType | string;
+  tenantId: string;
   serviceUserId: string;
+  serviceBankId: string;
   serviceUserName?: string;
   serviceUserEmail?: string;
-  status: boolean;
+  status: string;
 }
 
 export function normalizeServiceType(value: unknown): NormalizedServiceType | undefined {
@@ -99,10 +102,35 @@ export async function getAffiliateKybSnapshot(affiliateId: string): Promise<GetA
   );
 }
 
+export async function getAffiliateProfile(affiliateId: string): Promise<AffiliateProfile> {
+  return getJson<AffiliateProfile>(
+    `/affiliates/${encodeURIComponent(affiliateId)}/profile`
+  );
+}
+
 export async function getServiceByTenantId(tenantId: string): Promise<ServiceByTenantResponse> {
-  return getJson<ServiceByTenantResponse>(
+  const response = await getJson<ServiceByTenantResponse>(
     `/affiliates/GetServiceByTenantId?tenantId=${encodeURIComponent(tenantId)}`
   );
+  return response;
+}
+
+export type TenantServiceProfile = ServiceByTenantResponse & Partial<AffiliateProfile>;
+
+export async function getTenantServiceProfile(tenantId: string): Promise<TenantServiceProfile> {
+  const service = await getServiceByTenantId(tenantId);
+
+  if (normalizeServiceType(service.serviceType) !== 'AFFILIATE_SERVICE') {
+    return service;
+  }
+
+  const affiliateId = service.serviceUserId?.trim();
+  if (!affiliateId) {
+    throw new ApiError('Tenant service response is missing affiliateId', 0, service);
+  }
+
+  const profile = await getAffiliateProfile(affiliateId);
+  return { ...service, ...profile };
 }
 
 export function normalizeAffiliateType(value: unknown): AffiliateType | undefined {
