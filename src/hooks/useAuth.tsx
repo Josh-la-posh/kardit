@@ -109,8 +109,16 @@ function mergeProfileIntoUser(user: User, profileResponse: unknown): User {
       profileString(profile, ['stakeholderType', 'stakeholder_type', 'userType', 'user_type', 'role', 'userRole', 'roles'])
     ) || user.stakeholderType;
   const fallbackNameIsEmail = user.name === user.email || user.name.includes('@');
-  const profileName = profileString(profile, ['serviceUserName', 'fullName', 'name', 'displayName'], fallbackNameIsEmail ? '' : user.name);
-  const serviceEmail = profileString(profile, ['serviceUserEmail', 'email', 'username'], user.email);
+  const profileName = profileString(
+    profile,
+    ['primaryContactFullName', 'serviceUserName', 'fullName', 'name', 'displayName'],
+    fallbackNameIsEmail ? '' : user.name
+  );
+  const serviceEmail = profileString(
+    profile,
+    ['primaryContactEmail', 'serviceUserEmail', 'email', 'username'],
+    user.email
+  );
   const isBankService = stakeholderType === 'BANK';
   const isAffiliateService = stakeholderType === 'AFFILIATE';
 

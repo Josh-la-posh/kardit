@@ -1,4 +1,4 @@
-import { getRouteForAffiliateType, getServiceByTenantId } from '@/services/affiliateApi';
+import { getRouteForAffiliateType, getTenantServiceProfile } from '@/services/affiliateApi';
 import {
   clearAuthSession,
   getAuthResumeIdentity,
@@ -310,7 +310,7 @@ export class IAMBrowserClient {
 
     if (typeof tenantId !== 'string' || !tenantId.trim()) return null;
 
-    const profile = await getServiceByTenantId(tenantId.trim());
+    const profile = await getTenantServiceProfile(tenantId.trim());
     saveAuthProfile(profile);
     return profile;
   }

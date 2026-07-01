@@ -44,7 +44,7 @@ export interface ReportInstance {
 const REPORT_GROUPS: ReportGroup[] = [
   { id: 'cards', name: 'Cards', description: 'Card activity, issuance, fulfillment, balances, and lifecycle reporting.' },
   // { id: 'operations', name: 'Operations', description: 'Batch processing, CMS traceability, and exception monitoring.' },
-  { id: 'customers', name: 'Customers', description: 'Support-facing customer report views across issued cards.' },
+  // { id: 'customers', name: 'Customers', description: 'Support-facing customer report views across issued cards.' },
 ];
 
 const REPORT_DEFINITIONS: ReportDefinition[] = [

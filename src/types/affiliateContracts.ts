@@ -43,3 +43,22 @@ export interface GetAffiliateKybSnapshotResponse {
   affiliateId: string;
   onboardingSnapshot: AffiliateKybSnapshot;
 }
+
+export interface AffiliateProfile {
+  affiliateType: string;
+  affiliateId: string;
+  tenantId: string;
+  ownerBankId: string;
+  legalName: string;
+  tradingName: string;
+  registrationNumber: string;
+  country: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  isBankAffiliate: boolean;
+  cardProductName: string;
+  primaryContactFullName: string;
+  primaryContactEmail: string;
+  primaryContactPhone: string;
+}

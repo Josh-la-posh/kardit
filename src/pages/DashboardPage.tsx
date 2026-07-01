@@ -17,7 +17,7 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
-import { getRouteForAffiliateType, getServiceByTenantId } from '@/services/affiliateApi'
+import { getRouteForAffiliateType, getTenantServiceProfile } from '@/services/affiliateApi'
 import { saveAuthProfile } from '@/services/authSession'
 import './DashboardPage.css'
 
@@ -136,7 +136,7 @@ export default function DashboardPage() {
     setTenantProfileLoading(true)
     setTenantProfileError(null)
 
-    getServiceByTenantId(tenantId)
+    getTenantServiceProfile(tenantId)
       .then((response) => {
         if (cancelled) return
         saveAuthProfile(response)
