@@ -440,9 +440,10 @@ export async function listOnboardingCases(
   request: ListOnboardingCasesRequest
 ): Promise<ListOnboardingCasesResponse> {
   const search = new URLSearchParams();
+  if (request.name) search.set('Name', request.name);
   if (request.status) search.set('status', request.status);
-  if (typeof request.page === 'number') search.set('page', String(request.page));
-  if (typeof request.pageSize === 'number') search.set('pageSize', String(request.pageSize));
+  if (typeof request.page === 'number') search.set('Page', String(request.page));
+  if (typeof request.pageSize === 'number') search.set('PageSize', String(request.pageSize));
   const suffix = search.toString() ? `?${search.toString()}` : '';
   const response = await getJson<any>(`/admin/onboarding/cases${suffix}`);
 

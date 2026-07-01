@@ -184,6 +184,7 @@ export function useReviewerOnboardingCase(CaseId: string | undefined) {
 }
 
 interface ReviewerOnboardingCasesOptions {
+  name?: string;
   status?: OnboardingCaseStatus | 'ALL';
   page?: number;
   pageSize?: number;
@@ -205,6 +206,7 @@ export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptio
       const requestedPage = options.page ?? 1;
       const requestedPageSize = options.pageSize ?? 25;
       const response = await listOnboardingCases({
+        name: options.name?.trim() || undefined,
         status: options.status && options.status !== 'ALL' ? options.status : undefined,
         page: requestedPage,
         pageSize: requestedPageSize,
@@ -246,7 +248,7 @@ export function useReviewerOnboardingCases(options: ReviewerOnboardingCasesOptio
     } finally {
       setIsLoading(false);
     }
-  }, [options.page, options.pageSize, options.status]);
+  }, [options.name, options.page, options.pageSize, options.status]);
 
   useEffect(() => {
     refresh();

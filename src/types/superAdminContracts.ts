@@ -26,42 +26,35 @@ export interface GetSuperAdminDashboardResponse {
   generatedAt: string;
 }
 
-export interface AuditLogFilters {
-  fromDate?: string;
-  toDate?: string;
-  eventType?: string;
-  entityId?: string;
+export interface SuperAdminAuditLog {
+  id: string;
+  affiliateId?: string | null;
+  bankId?: string | null;
+  tenantId: string;
+  correlationId?: string | null;
+  actorUserRef?: string | null;
+  action: string;
+  targetEntityType?: string | null;
+  targetEntityId?: string | null;
+  outcome: string;
+  reason?: string | null;
+  detailsJson?: string | null;
+  occurredAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  modifiedBy?: string | null;
+  createdBy?: string | null;
 }
 
-export interface AuditLogPagination {
+export interface QuerySuperAdminAuditsRequest {
   page: number;
   pageSize: number;
 }
 
-export interface ListSuperAdminAuditLogsRequest {
-  requestContext: SuperAdminRequestContext;
-  filters?: AuditLogFilters;
-  pagination: AuditLogPagination;
-}
-
-export interface SuperAdminAuditLog {
-  auditId: string;
-  eventType: string;
-  actorUserId: string;
-  actorRole: string;
-  tenantId: string;
-  entityType: string;
-  entityId: string;
-  action: string;
-  previousState?: Record<string, unknown>;
-  newState?: Record<string, unknown>;
-  correlationId?: string;
-  timestamp: string;
-  status: string;
-}
-
-export interface ListSuperAdminAuditLogsResponse {
-  results: SuperAdminAuditLog[];
+export interface QuerySuperAdminAuditsResponse {
+  results?: SuperAdminAuditLog[];
+  data?: SuperAdminAuditLog[];
+  items?: SuperAdminAuditLog[];
   page: number;
   pageSize: number;
   total: number;
