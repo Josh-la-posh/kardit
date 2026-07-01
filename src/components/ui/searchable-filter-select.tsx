@@ -125,6 +125,10 @@ export function SearchableFilterSelect({
               {allLabel && (
                 <CommandItem
                   value={allLabel}
+                  className={cn(
+                    "group data-[selected=true]:bg-green-500 data-[selected=true]:text-white",
+                    !value && "bg-green-700 text-white data-[selected=true]:bg-green-700"
+                  )}
                   onSelect={() => {
                     onValueChange('');
                     setOpen(false);
@@ -138,6 +142,10 @@ export function SearchableFilterSelect({
                 <CommandItem
                   key={option.id}
                   value={[option.label, option.meta, option.id].filter(Boolean).join(' ')}
+                  className={cn(
+                    "group data-[selected=true]:bg-green-500 data-[selected=true]:text-white",
+                    value === option.id && "bg-green-700 text-white data-[selected=true]:bg-green-700"
+                  )}
                   onSelect={() => {
                     onValueChange(option.id);
                     setOpen(false);
@@ -147,7 +155,14 @@ export function SearchableFilterSelect({
                   <span className="min-w-0">
                     <span className="block truncate">{option.label}</span>
                     {option.meta && (
-                      <span className="block truncate text-xs text-muted-foreground">{option.meta}</span>
+                      <span
+                        className={cn(
+                          "block truncate text-xs text-muted-foreground group-data-[selected=true]:text-green-50",
+                          value === option.id && "text-green-50"
+                        )}
+                      >
+                        {option.meta}
+                      </span>
                     )}
                   </span>
                 </CommandItem>
