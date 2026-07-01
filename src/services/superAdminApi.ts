@@ -5,12 +5,12 @@ import type {
   GetReportStatusResponse,
   GetSuperAdminDashboardResponse,
   ListNotificationsResponse,
+  QuerySuperAdminAuditsRequest,
+  QuerySuperAdminAuditsResponse,
   QueryAffiliatesRequest,
   QueryAffiliatesResponse,
   QueryBanksRequest,
   QueryBanksResponse,
-  ListSuperAdminAuditLogsRequest,
-  ListSuperAdminAuditLogsResponse,
   SaveNotificationSettingsRequest,
   UpdateNotificationStatusRequest,
 } from '@/types/superAdminContracts';
@@ -57,6 +57,13 @@ async function getJson<TResponse>(path: string, init?: RequestInit): Promise<TRe
     throw new ApiError(getApiErrorMessage(body, `Request failed (${res.status})`), res.status, body);
   }
   return (await res.json()) as TResponse;
+}
+
+function buildQuerySuperAdminAuditsPath(request: QuerySuperAdminAuditsRequest) {
+  const query = new URLSearchParams();
+  query.set('Page', String(request.page));
+  query.set('PageSize', String(request.pageSize));
+  return `/Audit/query?${query.toString()}`;
 }
 
 function buildQueryBanksPath(request: QueryBanksRequest) {
@@ -126,8 +133,10 @@ export function getSuperAdminDashboard() {
   return getJson<GetSuperAdminDashboardResponse>('/super-admin/dashboard');
 }
 
-export function listSuperAdminAuditLogs(request: ListSuperAdminAuditLogsRequest) {
-  return sendJson<ListSuperAdminAuditLogsResponse>('POST', '/audit-logs', request);
+export function querySuperAdminAudits(request: QuerySuperAdminAuditsRequest) {
+  return getJson<QuerySuperAdminAuditsResponse | ApiEnvelope<QuerySuperAdminAuditsResponse>>(
+    buildQuerySuperAdminAuditsPath(request),
+  ).then(unwrapApiValue);
 }
 
 export function listNotifications() {
